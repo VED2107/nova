@@ -46,6 +46,14 @@ event thread. It holds the backend weakly so the shell can destroy the engine
 deterministically at exit. Tauri commands: `queue_get/open/append/select/next/
 previous/remove/move/clear`; changes are pushed on `queue://changed`.
 
+## Library (outside the playback contract)
+
+Library features never touch the engine directly: playing a library item
+calls `queue_open([path])`, the same path as the file picker. Library
+commands: `library_roots/add_root/remove_root/rescan/cancel_scans/
+scan_status/search/continue_watching/recently_added`; events
+`library://scan` (progress) and `library://changed`. See ADR 0005.
+
 ## JSON examples
 
 ```json

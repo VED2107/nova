@@ -20,7 +20,8 @@ pnpm install
 | `cargo test -p nova-domain` | Queue rules: ordering, cursor after remove/move, ends |
 | `cargo test -p nova-application` | Queue service against a fake backend: auto-advance once per own session, previous-restarts, validation |
 | `cargo test -p nova-storage` | SQLite migrations, newer-schema refusal, corrupt file, identity (moved/copied/replaced), constraints; **`resume_restart`**: real libmpv + services + SQLite file across two simulated restarts |
-| `pnpm --filter @nova/desktop test` | Frontend: snapshot ordering, time/track formatting, keyboard shortcut mapping |
+| `cargo test -p nova-library` | Scanner on real folders + SQLite: rescan no-op, rename/move, deleted folder + recovery, unplugged root, cancel, interrupted scan, junction loop, ScanManager. Opt-in 20k benchmark: `cargo test -p nova-library --release -- --ignored --nocapture` |
+| `pnpm --filter @nova/desktop test` | Frontend: snapshot ordering, formatting, shortcuts, virtual list, HomeView/LibraryView component tests (jsdom; IPC mocked at the client boundary) |
 | `pnpm --filter @nova/desktop check` | TypeScript strict type check |
 
 Override the engine with `NOVA_LIBMPV_PATH=...`.
