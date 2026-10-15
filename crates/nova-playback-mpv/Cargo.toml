@@ -11,3 +11,7 @@ publish.workspace = true
 nova-playback-api.workspace = true
 libloading.workspace = true
 log.workspace = true
+
+[dev-dependencies]
+serde.workspace = true
+serde_json.workspace = true

@@ -262,6 +262,7 @@ mod tests {
                     tracks: vec![],
                     video: None,
                     ab_loop: AbLoop::default(),
+                    issues: vec![],
                     error: None,
                 }),
             })

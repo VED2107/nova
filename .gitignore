@@ -7,3 +7,4 @@ tests/fixtures/media/
 .DS_Store
 apps/desktop/src-tauri/gen/
 apps/desktop/src-tauri/libmpv-2.dll
+tests/fixtures/compat/

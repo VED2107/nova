@@ -5,9 +5,12 @@
 //! them to a [`PlaybackState`] reducer. The reducer is pure, deterministic and
 //! unit-tested, so state-transition rules do not depend on any engine.
 
+mod details;
+pub mod format;
 mod media;
 mod state;
 
+pub use details::{AudioDetails, MediaDetails, VideoDetails, pixel_format_traits};
 pub use media::{MediaSource, MediaSourceError};
 pub use state::{EngineEvent, PlaybackState};
 
@@ -208,6 +211,8 @@ pub struct PlaybackSnapshot {
     pub tracks: Vec<Track>,
     pub video: Option<VideoInfo>,
     pub ab_loop: AbLoop,
+    /// Non-fatal problems observed for this media (e.g. no video decoder).
+    pub issues: Vec<PlaybackIssue>,
     pub error: Option<PlaybackError>,
 }
 
@@ -228,6 +233,23 @@ pub enum PlaybackErrorKind {
     LoadFailed,
     EngineUnavailable,
     EngineFailure,
+    /// An editing project (e.g. Premiere `.prproj`), not playable media.
+    EditingProject,
+    /// Camera RAW or other format that needs a vendor decoder NOVA does not ship.
+    RequiresExternalDecoder,
+}
+
+/// A non-fatal problem with the current media. Playback may continue
+/// (e.g. audio plays while the video codec cannot be decoded).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(
+    tag = "kind",
+    rename_all = "camelCase",
+    rename_all_fields = "camelCase"
+)]
+pub enum PlaybackIssue {
+    VideoDecoderMissing { codec: String },
+    AudioDecoderMissing { codec: String },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, thiserror::Error)]
@@ -273,6 +295,10 @@ pub trait PlaybackBackend: Send + Sync {
     fn capabilities(&self) -> Capabilities;
     fn execute(&self, command: PlaybackCommand) -> Result<CommandAck, PlaybackError>;
     fn snapshot(&self) -> PlaybackSnapshot;
+    /// Detailed stream information for diagnostics, when media is loaded.
+    fn media_details(&self) -> Option<MediaDetails> {
+        None
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

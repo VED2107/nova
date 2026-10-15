@@ -1,0 +1,902 @@
+# mpv Some("mpv v0.41.0-1175-g492bae076")
+# ffmpeg Some("N-127552-gee8cbd7db")
+decoder	aasc	aasc	Autodesk RLE
+decoder	aic	aic	Apple Intermediate Codec
+decoder	alias_pix	alias_pix	Alias/Wavefront PIX image
+decoder	agm	agm	Amuse Graphics Movie
+decoder	amv	amv	AMV Video
+decoder	anm	anm	Deluxe Paint Animation
+decoder	ansi	ansi	ASCII/ANSI art
+decoder	apng	apng	APNG (Animated Portable Network Graphics) image
+decoder	apv	apv	Advanced Professional Video
+decoder	arbc	arbc	Gryphon's Anim Compressor
+decoder	argo	argo	Argonaut Games Video
+decoder	asv1	asv1	ASUS V1
+decoder	asv2	asv2	ASUS V2
+decoder	aura	aura	Auravision AURA
+decoder	aura2	aura2	Auravision Aura 2
+decoder	avrp	avrp	Avid 1:1 10-bit RGB Packer
+decoder	avrn	avrn	Avid AVI Codec
+decoder	avs	avs	AVS (Audio Video Standard) video
+decoder	avui	avui	Avid Meridien Uncompressed
+decoder	bethsoftvid	bethsoftvid	Bethesda VID video
+decoder	bfi	bfi	Brute Force & Ignorance
+decoder	binkvideo	binkvideo	Bink video
+decoder	bitpacked	bitpacked	Bitpacked
+decoder	bmp	bmp	BMP (Windows and OS/2 bitmap)
+decoder	bmv_video	bmv_video	Discworld II BMV video
+decoder	brender_pix	brender_pix	BRender PIX image
+decoder	c93	c93	Interplay C93
+decoder	cavs	cavs	Chinese AVS (Audio Video Standard) (AVS1-P2, JiZhun profile)
+decoder	cdgraphics	cdgraphics	CD Graphics video
+decoder	cdtoons	cdtoons	CDToons video
+decoder	cdxl	cdxl	Commodore CDXL video
+decoder	cfhd	cfhd	GoPro CineForm HD
+decoder	cinepak	cinepak	Cinepak
+decoder	clearvideo	clearvideo	Iterated Systems ClearVideo
+decoder	cljr	cljr	Cirrus Logic AccuPak
+decoder	cllc	cllc	Canopus Lossless Codec
+decoder	cpia	cpia	CPiA video format
+decoder	cri	cri	Cintel RAW
+decoder	cscd	camstudio	CamStudio
+decoder	cyuv	cyuv	Creative YUV (CYUV)
+decoder	dds	dds	DirectDraw Surface image decoder
+decoder	dfa	dfa	Chronomaster DFA
+decoder	dirac	dirac	BBC Dirac VC-2
+decoder	dnxhd	dnxhd	VC3/DNxHD
+decoder	dpx	dpx	DPX (Digital Picture Exchange) image
+decoder	dsicinvideo	dsicinvideo	Delphine Software International CIN video
+decoder	dvvideo	dvvideo	DV (Digital Video)
+decoder	dxa	dxa	Feeble Files/ScummVM DXA
+decoder	dxtory	dxtory	Dxtory
+decoder	dxv	dxv	Resolume DXV
+decoder	cmv	eacmv	Electronic Arts CMV video
+decoder	mad	eamad	Electronic Arts Madcow Video
+decoder	tgq	eatgq	Electronic Arts TGQ video
+decoder	tgv	eatgv	Electronic Arts TGV video
+decoder	tqi	eatqi	Electronic Arts TQI Video
+decoder	8bps	8bps	QuickTime 8BPS video
+decoder	escape124	escape124	Escape 124
+decoder	escape130	escape130	Escape 130
+decoder	exr	exr	OpenEXR image
+decoder	ffv1	ffv1	FFmpeg video codec #1
+decoder	ffvhuff	ffvhuff	Huffyuv FFmpeg variant
+decoder	fic	fic	Mirillis FIC
+decoder	fits	fits	Flexible Image Transport System
+decoder	flashsv	flashsv	Flash Screen Video v1
+decoder	flashsv2	flashsv2	Flash Screen Video v2
+decoder	flic	flic	Autodesk Animator Flic video
+decoder	flv1	flv	FLV / Sorenson Spark / Sorenson H.263 (Flash Video)
+decoder	fmvc	fmvc	FM Screen Capture Codec
+decoder	4xm	4xm	4X Movie
+decoder	fraps	fraps	Fraps
+decoder	frwu	frwu	Forward Uncompressed
+decoder	g2m	g2m	Go2Meeting
+decoder	gdv	gdv	Gremlin Digital Video
+decoder	gem	gem	GEM Raster image
+decoder	gif	gif	GIF (Graphics Interchange Format)
+decoder	h261	h261	H.261
+decoder	h263	h263	H.263 / H.263-1996, H.263+ / H.263-1998 / H.263 version 2
+decoder	h263i	h263i	Intel H.263
+decoder	h263p	h263p	H.263 / H.263-1996, H.263+ / H.263-1998 / H.263 version 2
+decoder	h264	h264	H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10
+decoder	h264	h264_qsv	H264 video (Intel Quick Sync Video acceleration)
+decoder	hap	hap	Vidvox Hap
+decoder	hevc	hevc	HEVC (High Efficiency Video Coding)
+decoder	hevc	hevc_qsv	HEVC video (Intel Quick Sync Video acceleration)
+decoder	hnm4video	hnm4video	HNM 4 video
+decoder	hq_hqa	hq_hqa	Canopus HQ/HQA
+decoder	hqx	hqx	Canopus HQX
+decoder	huffyuv	huffyuv	Huffyuv / HuffYUV
+decoder	hymt	hymt	HuffYUV MT
+decoder	idcin	idcinvideo	id Quake II CIN video
+decoder	iff_ilbm	iff	IFF ACBM/ANIM/DEEP/ILBM/PBM/RGB8/RGBN
+decoder	imm4	imm4	Infinity IMM4
+decoder	imm5	imm5	Infinity IMM5
+decoder	indeo2	indeo2	Intel Indeo 2
+decoder	indeo3	indeo3	Intel Indeo 3
+decoder	indeo4	indeo4	Intel Indeo Video Interactive 4
+decoder	indeo5	indeo5	Intel Indeo Video Interactive 5
+decoder	interplayvideo	interplayvideo	Interplay MVE video
+decoder	ipu	ipu	IPU Video
+decoder	jpeg2000	jpeg2000	JPEG 2000
+decoder	jpegls	jpegls	JPEG-LS
+decoder	jv	jv	Bitmap Brothers JV video
+decoder	kgv1	kgv1	Kega Game Video
+decoder	kmvc	kmvc	Karl Morton's video codec
+decoder	lagarith	lagarith	Lagarith lossless
+decoder	lead	lead	LEAD MCMP
+decoder	loco	loco	LOCO
+decoder	lscr	lscr	LEAD Screen Capture
+decoder	m101	m101	Matrox Uncompressed SD
+decoder	magicyuv	magicyuv	MagicYUV video
+decoder	mdec	mdec	Sony PlayStation MDEC (Motion DECoder)
+decoder	media100	media100	Media 100
+decoder	mimic	mimic	Mimic
+decoder	mjpeg	mjpeg	MJPEG (Motion JPEG)
+decoder	mjpegb	mjpegb	Apple MJPEG-B
+decoder	mmvideo	mmvideo	American Laser Games MM Video
+decoder	mobiclip	mobiclip	MobiClip Video
+decoder	motionpixels	motionpixels	Motion Pixels video
+decoder	mpeg1video	mpeg1video	MPEG-1 video
+decoder	mpeg2video	mpeg2video	MPEG-2 video
+decoder	mpeg4	mpeg4	MPEG-4 part 2
+decoder	mpeg2video	mpegvideo	MPEG-1 video
+decoder	mpeg2video	mpeg2_qsv	MPEG2VIDEO video (Intel Quick Sync Video acceleration)
+decoder	msa1	msa1	MS ATC Screen
+decoder	mscc	mscc	Mandsoft Screen Capture Codec
+decoder	msmpeg4v1	msmpeg4v1	MPEG-4 part 2 Microsoft variant version 1
+decoder	msmpeg4v2	msmpeg4v2	MPEG-4 part 2 Microsoft variant version 2
+decoder	msmpeg4v3	msmpeg4	MPEG-4 part 2 Microsoft variant version 3
+decoder	msp2	msp2	Microsoft Paint (MSP) version 2
+decoder	msrle	msrle	Microsoft RLE
+decoder	mss1	mss1	MS Screen 1
+decoder	mss2	mss2	MS Windows Media Video V9 Screen
+decoder	msvideo1	msvideo1	Microsoft Video 1
+decoder	mszh	mszh	LCL (LossLess Codec Library) MSZH
+decoder	mts2	mts2	MS Expression Encoder Screen
+decoder	mv30	mv30	MidiVid 3.0
+decoder	mvc1	mvc1	Silicon Graphics Motion Video Compressor 1
+decoder	mvc2	mvc2	Silicon Graphics Motion Video Compressor 2
+decoder	mvdv	mvdv	MidiVid VQ
+decoder	mvha	mvha	MidiVid Archive Codec
+decoder	mwsc	mwsc	MatchWare Screen Capture Codec
+decoder	mxpeg	mxpeg	Mobotix MxPEG video
+decoder	notchlc	notchlc	NotchLC
+decoder	nuv	nuv	NuppelVideo/RTJPEG
+decoder	paf_video	paf_video	Amazing Studio Packed Animation File Video
+decoder	pam	pam	PAM (Portable AnyMap) image
+decoder	pbm	pbm	PBM (Portable BitMap) image
+decoder	pcx	pcx	PC Paintbrush PCX image
+decoder	pdv	pdv	PDV (PlayDate Video)
+decoder	pfm	pfm	PFM (Portable FloatMap) image
+decoder	pgm	pgm	PGM (Portable GrayMap) image
+decoder	pgmyuv	pgmyuv	PGMYUV (Portable GrayMap YUV) image
+decoder	pgx	pgx	PGX (JPEG2000 Test Format)
+decoder	phm	phm	PHM (Portable HalfFloatMap) image
+decoder	photocd	photocd	Kodak Photo CD
+decoder	pictor	pictor	Pictor/PC Paint
+decoder	pixlet	pixlet	Apple Pixlet
+decoder	png	png	PNG (Portable Network Graphics) image
+decoder	ppm	ppm	PPM (Portable PixelMap) image
+decoder	prores	prores	Apple ProRes (iCodec Pro)
+decoder	prores_raw	prores_raw	Apple ProRes RAW
+decoder	prosumer	prosumer	Brooktree ProSumer Video
+decoder	psd	psd	Photoshop PSD file
+decoder	ptx	ptx	V.Flash PTX image
+decoder	qdraw	qdraw	Apple QuickDraw
+decoder	qoi	qoi	QOI (Quite OK Image format) image
+decoder	qpeg	qpeg	Q-team QPEG
+decoder	qtrle	qtrle	QuickTime Animation (RLE) video
+decoder	r10k	r10k	AJA Kona 10-bit RGB Codec
+decoder	r210	r210	Uncompressed RGB 10-bit
+decoder	rasc	rasc	RemotelyAnywhere Screen Capture
+decoder	rawvideo	rawvideo	raw video
+decoder	rl2	rl2	RL2 video
+decoder	roq	roqvideo	id RoQ video
+decoder	rpza	rpza	QuickTime video (RPZA)
+decoder	rscc	rscc	innoHeim/Rsupport Screen Capture Codec
+decoder	rtv1	rtv1	RTV1 (RivaTuner Video)
+decoder	rv10	rv10	RealVideo 1.0
+decoder	rv20	rv20	RealVideo 2.0
+decoder	rv30	rv30	RealVideo 3.0
+decoder	rv40	rv40	RealVideo 4.0
+decoder	rv60	rv60	RealVideo 6.0
+decoder	rw2	rw2	Panasonic RW2
+decoder	sanm	sanm	LucasArts SANM/Smush video
+decoder	scpr	scpr	ScreenPressor
+decoder	screenpresso	screenpresso	Screenpresso
+decoder	sga	sga	Digital Pictures SGA Video
+decoder	sgi	sgi	SGI image
+decoder	sgirle	sgirle	Silicon Graphics RLE 8-bit video
+decoder	sheervideo	sheervideo	BitJazz SheerVideo
+decoder	simbiosis_imx	simbiosis_imx	Simbiosis Interactive IMX Video
+decoder	smackvideo	smackvid	Smacker video
+decoder	smc	smc	QuickTime Graphics (SMC)
+decoder	smvjpeg	smvjpeg	SMV JPEG
+decoder	snow	snow	Snow
+decoder	sp5x	sp5x	Sunplus JPEG (SP5X)
+decoder	speedhq	speedhq	NewTek SpeedHQ
+decoder	srgc	srgc	Screen Recorder Gold Codec
+decoder	sunrast	sunrast	Sun Rasterfile image
+decoder	svq1	svq1	Sorenson Vector Quantizer 1 / Sorenson Video 1 / SVQ1
+decoder	svq3	svq3	Sorenson Vector Quantizer 3 / Sorenson Video 3 / SVQ3
+decoder	targa	targa	Truevision Targa image
+decoder	targa_y216	targa_y216	Pinnacle TARGA CineWave YUV16
+decoder	tdsc	tdsc	TDSC
+decoder	theora	theora	Theora
+decoder	thp	thp	Nintendo Gamecube THP video
+decoder	tiertexseqvideo	tiertexseqvideo	Tiertex Limited SEQ video
+decoder	tiff	tiff	TIFF image
+decoder	tmv	tmv	8088flex TMV
+decoder	truemotion1	truemotion1	Duck TrueMotion 1.0
+decoder	truemotion2	truemotion2	Duck TrueMotion 2.0
+decoder	truemotion2rt	truemotion2rt	Duck TrueMotion 2.0 Real Time
+decoder	tscc	camtasia	TechSmith Screen Capture Codec
+decoder	tscc2	tscc2	TechSmith Screen Codec 2
+decoder	txd	txd	Renderware TXD (TeXture Dictionary) image
+decoder	ulti	ultimotion	IBM UltiMotion
+decoder	utvideo	utvideo	Ut Video
+decoder	v210	v210	Uncompressed 4:2:2 10-bit
+decoder	v210x	v210x	Uncompressed 4:2:2 10-bit
+decoder	vb	vb	Beam Software VB
+decoder	vbn	vbn	Vizrt Binary Image
+decoder	vble	vble	VBLE Lossless Codec
+decoder	vc1	vc1	SMPTE VC-1
+decoder	vc1image	vc1image	Windows Media Video 9 Image v2
+decoder	vc1	vc1_qsv	VC1 video (Intel Quick Sync Video acceleration)
+decoder	vcr1	vcr1	ATI VCR1
+decoder	vmdvideo	vmdvideo	Sierra VMD video
+decoder	vmix	vmix	vMix Video
+decoder	vmnc	vmnc	VMware Screen Codec / VMware Video
+decoder	vp3	vp3	On2 VP3
+decoder	vp4	vp4	On2 VP4
+decoder	vp5	vp5	On2 VP5
+decoder	vp6	vp6	On2 VP6
+decoder	vp6a	vp6a	On2 VP6 (Flash version, with alpha channel)
+decoder	vp6f	vp6f	On2 VP6 (Flash version)
+decoder	vp7	vp7	On2 VP7
+decoder	vp8	vp8	On2 VP8
+decoder	vp9	vp9	Google VP9
+decoder	ws_vqa	vqavideo	Westwood Studios VQA (Vector Quantized Animation) video
+decoder	vqc	vqc	ViewQuest VQC
+decoder	vvc	vvc	VVC (Versatile Video Coding)
+decoder	wbmp	wbmp	WBMP (Wireless Application Protocol Bitmap) image
+decoder	webp_anim	webp_anim	Animated WebP image
+decoder	webp	webp	WebP image
+decoder	wcmv	wcmv	WinCAM Motion Video
+decoder	wrapped_avframe	wrapped_avframe	AVPacket to AVFrame passthrough
+decoder	wmv1	wmv1	Windows Media Video 7
+decoder	wmv2	wmv2	Windows Media Video 8
+decoder	wmv3	wmv3	Windows Media Video 9
+decoder	wmv3image	wmv3image	Windows Media Video 9 Image
+decoder	wnv1	wnv1	Winnov WNV1
+decoder	xan_wc3	xan_wc3	Wing Commander III / Xan
+decoder	xan_wc4	xan_wc4	Wing Commander IV / Xxan
+decoder	xbm	xbm	XBM (X BitMap) image
+decoder	xface	xface	X-face image
+decoder	vixl	xl	Miro VideoXL
+decoder	xpm	xpm	XPM (X PixMap) image
+decoder	xwd	xwd	XWD (X Window Dump) image
+decoder	y41p	y41p	Uncompressed YUV 4:1:1 12-bit
+decoder	ylc	ylc	YUY2 Lossless Codec
+decoder	yop	yop	Psygnosis YOP Video
+decoder	yuv4	yuv4	Uncompressed packed 4:2:0
+decoder	012v	012v	Uncompressed 4:2:2 10-bit
+decoder	zerocodec	zerocodec	ZeroCodec Lossless Video
+decoder	zlib	zlib	LCL (LossLess Codec Library) ZLIB
+decoder	zmbv	zmbv	Zip Motion Blocks Video
+decoder	hdr	hdr	HDR (Radiance RGBE format) image
+decoder	av1	libdav1d	dav1d AV1 decoder by VideoLAN
+decoder	avs2	libdavs2	libdavs2 AVS2-P2/IEEE1857.4
+decoder	jpegxl_anim	libjxl_anim	libjxl JPEG XL animated
+decoder	jpegxl	libjxl	libjxl JPEG XL
+decoder	avs3	libuavs3d	libuavs3d AVS3-P2/IEEE1857.10
+decoder	vp8	libvpx	libvpx VP8
+decoder	vp9	libvpx-vp9	libvpx VP9
+decoder	bintext	bintext	Binary text
+decoder	xbin	xbin	eXtended BINary text
+decoder	idf	idf	iCEDraw text
+decoder	av1	av1	Alliance for Open Media AV1
+decoder	av1	av1_cuvid	Nvidia CUVID AV1 decoder
+decoder	av1	av1_qsv	AV1 video (Intel Quick Sync Video acceleration)
+decoder	av1	av1_amf	AV1 AMD AMF video decoder
+decoder	h264	h264_amf	H264 AMD AMF video decoder
+decoder	h264	h264_cuvid	Nvidia CUVID H264 decoder
+decoder	hevc	hevc_amf	HEVC AMD AMF video decoder
+decoder	hevc	hevc_cuvid	Nvidia CUVID HEVC decoder
+decoder	mjpeg	mjpeg_cuvid	Nvidia CUVID MJPEG decoder
+decoder	mjpeg	mjpeg_qsv	MJPEG video (Intel Quick Sync Video acceleration)
+decoder	mpeg1video	mpeg1_cuvid	Nvidia CUVID MPEG1VIDEO decoder
+decoder	mpeg2video	mpeg2_cuvid	Nvidia CUVID MPEG2VIDEO decoder
+decoder	mpeg4	mpeg4_cuvid	Nvidia CUVID MPEG4 decoder
+decoder	vc1	vc1_cuvid	Nvidia CUVID VC1 decoder
+decoder	vp8	vp8_cuvid	Nvidia CUVID VP8 decoder
+decoder	vp8	vp8_qsv	VP8 video (Intel Quick Sync Video acceleration)
+decoder	vp9	vp9_amf	VP9 AMD AMF video decoder
+decoder	vp9	vp9_cuvid	Nvidia CUVID VP9 decoder
+decoder	vp9	vp9_qsv	VP9 video (Intel Quick Sync Video acceleration)
+decoder	vvc	vvc_qsv	VVC video (Intel Quick Sync Video acceleration)
+decoder	vnull	vnull	null video
+decoder	comfortnoise	comfortnoise	RFC 3389 comfort noise generator
+decoder	dvaudio	dvaudio	Ulead DV Audio
+decoder	8svx_exp	8svx_exp	8SVX exponential
+decoder	8svx_fib	8svx_fib	8SVX fibonacci
+decoder	rka	rka	RKA (RK Audio)
+decoder	s302m	s302m	SMPTE 302M
+decoder	speex	speex	Speex
+decoder	aac	aac	AAC (Advanced Audio Coding)
+decoder	aac	aac_fixed	AAC (Advanced Audio Coding)
+decoder	aac_latm	aac_latm	AAC LATM (Advanced Audio Coding LATM syntax)
+decoder	ac3	ac3	ATSC A/52A (AC-3)
+decoder	ac3	ac3_fixed	ATSC A/52A (AC-3)
+decoder	acelp.kelvin	acelp.kelvin	Sipro ACELP.KELVIN
+decoder	ahx	ahx	CRI AHX
+decoder	alac	alac	ALAC (Apple Lossless Audio Codec)
+decoder	mp4als	als	MPEG-4 Audio Lossless Coding (ALS)
+decoder	amr_nb	amrnb	AMR-NB (Adaptive Multi-Rate NarrowBand)
+decoder	amr_wb	amrwb	AMR-WB (Adaptive Multi-Rate WideBand)
+decoder	apac	apac	Marian's A-pac audio
+decoder	ape	ape	Monkey's Audio
+decoder	aptx	aptx	aptX (Audio Processing Technology for Bluetooth)
+decoder	aptx_hd	aptx_hd	aptX HD (Audio Processing Technology for Bluetooth)
+decoder	atrac1	atrac1	ATRAC1 (Adaptive TRansform Acoustic Coding)
+decoder	atrac3	atrac3	ATRAC3 (Adaptive TRansform Acoustic Coding 3)
+decoder	atrac3al	atrac3al	ATRAC3 AL (Adaptive TRansform Acoustic Coding 3 Advanced Lossless)
+decoder	atrac3p	atrac3plus	ATRAC3+ (Adaptive TRansform Acoustic Coding 3+)
+decoder	atrac3pal	atrac3plusal	ATRAC3+ AL (Adaptive TRansform Acoustic Coding 3+ Advanced Lossless)
+decoder	atrac9	atrac9	ATRAC9 (Adaptive TRansform Acoustic Coding 9)
+decoder	binkaudio_dct	binkaudio_dct	Bink Audio (DCT)
+decoder	binkaudio_rdft	binkaudio_rdft	Bink Audio (RDFT)
+decoder	bmv_audio	bmv_audio	Discworld II BMV audio
+decoder	bonk	bonk	Bonk audio
+decoder	cook	cook	Cook / Cooker / Gecko (RealAudio G2)
+decoder	dts	dca	DCA (DTS Coherent Acoustics)
+decoder	dfpwm	dfpwm	DFPWM1a audio
+decoder	dolby_e	dolby_e	Dolby E
+decoder	dsd_lsbf	dsd_lsbf	DSD (Direct Stream Digital), least significant bit first
+decoder	dsd_msbf	dsd_msbf	DSD (Direct Stream Digital), most significant bit first
+decoder	dsd_lsbf_planar	dsd_lsbf_planar	DSD (Direct Stream Digital), least significant bit first, planar
+decoder	dsd_msbf_planar	dsd_msbf_planar	DSD (Direct Stream Digital), most significant bit first, planar
+decoder	dsicinaudio	dsicinaudio	Delphine Software International CIN audio
+decoder	dss_sp	dss_sp	Digital Speech Standard - Standard Play mode (DSS SP)
+decoder	dst	dst	DST (Digital Stream Transfer)
+decoder	eac3	eac3	ATSC A/52B (AC-3, E-AC-3)
+decoder	evrc	evrc	EVRC (Enhanced Variable Rate Codec)
+decoder	fastaudio	fastaudio	MobiClip FastAudio
+decoder	wavesynth	wavesynth	Wave synthesis pseudo-codec
+decoder	flac	flac	FLAC (Free Lossless Audio Codec)
+decoder	ftr	ftr	FTR Voice
+decoder	g723_1	g723_1	G.723.1
+decoder	g728	g728	G.728)
+decoder	g729	g729	G.729
+decoder	gsm	gsm	GSM
+decoder	gsm_ms	gsm_ms	GSM Microsoft variant
+decoder	hca	hca	CRI HCA
+decoder	hcom	hcom	HCOM Audio
+decoder	iac	iac	IAC (Indeo Audio Coder)
+decoder	ilbc	ilbc	iLBC (Internet Low Bitrate Codec)
+decoder	imc	imc	IMC (Intel Music Coder)
+decoder	interplayacm	interplayacm	Interplay ACM
+decoder	mace3	mace3	MACE (Macintosh Audio Compression/Expansion) 3:1
+decoder	mace6	mace6	MACE (Macintosh Audio Compression/Expansion) 6:1
+decoder	metasound	metasound	Voxware MetaSound
+decoder	misc4	misc4	Micronas SC-4 Audio
+decoder	mlp	mlp	MLP (Meridian Lossless Packing)
+decoder	mp1	mp1	MP1 (MPEG audio layer 1)
+decoder	mp1	mp1float	MP1 (MPEG audio layer 1)
+decoder	mp2	mp2	MP2 (MPEG audio layer 2)
+decoder	mp2	mp2float	MP2 (MPEG audio layer 2)
+decoder	mp3	mp3float	MP3 (MPEG audio layer 3)
+decoder	mp3	mp3	MP3 (MPEG audio layer 3)
+decoder	mp3adu	mp3adufloat	ADU (Application Data Unit) MP3 (MPEG audio layer 3)
+decoder	mp3adu	mp3adu	ADU (Application Data Unit) MP3 (MPEG audio layer 3)
+decoder	mp3on4	mp3on4float	MP3onMP4
+decoder	mp3on4	mp3on4	MP3onMP4
+decoder	musepack7	mpc7	Musepack SV7
+decoder	musepack8	mpc8	Musepack SV8
+decoder	msnsiren	msnsiren	MSN Siren
+decoder	nellymoser	nellymoser	Nellymoser Asao
+decoder	avc	on2avc	On2 Audio for Video Codec
+decoder	opus	opus	Opus
+decoder	osq	osq	OSQ (Original Sound Quality)
+decoder	paf_audio	paf_audio	Amazing Studio Packed Animation File Audio
+decoder	qcelp	qcelp	QCELP / PureVoice
+decoder	qdm2	qdm2	QDesign Music Codec 2
+decoder	qdmc	qdmc	QDesign Music Codec 1
+decoder	qoa	qoa	QOA (Quite OK Audio)
+decoder	ra_144	real_144	RealAudio 1.0 (14.4K)
+decoder	ra_288	real_288	RealAudio 2.0 (28.8K)
+decoder	ralf	ralf	RealAudio Lossless
+decoder	sbc	sbc	SBC (low-complexity subband codec)
+decoder	shorten	shorten	Shorten
+decoder	sipr	sipr	RealAudio SIPR / ACELP.NET
+decoder	siren	siren	Siren
+decoder	smackaudio	smackaud	Smacker audio
+decoder	tak	tak	TAK (Tom's lossless Audio Kompressor)
+decoder	truehd	truehd	TrueHD
+decoder	truespeech	truespeech	DSP Group TrueSpeech
+decoder	tta	tta	TTA (True Audio)
+decoder	twinvq	twinvq	VQF TwinVQ
+decoder	vmdaudio	vmdaudio	Sierra VMD audio
+decoder	vorbis	vorbis	Vorbis
+decoder	wavarc	wavarc	Waveform Archiver
+decoder	wavpack	wavpack	WavPack
+decoder	wmalossless	wmalossless	Windows Media Audio Lossless
+decoder	wmapro	wmapro	Windows Media Audio 9 Professional
+decoder	wmav1	wmav1	Windows Media Audio 1
+decoder	wmav2	wmav2	Windows Media Audio 2
+decoder	wmavoice	wmavoice	Windows Media Audio Voice
+decoder	westwood_snd1	ws_snd1	Westwood Audio (SND1)
+decoder	xma1	xma1	Xbox Media Audio 1
+decoder	xma2	xma2	Xbox Media Audio 2
+decoder	pcm_alaw	pcm_alaw	PCM A-law / G.711 A-law
+decoder	pcm_bluray	pcm_bluray	PCM signed 16|20|24-bit big-endian for Blu-ray media
+decoder	pcm_dvd	pcm_dvd	PCM signed 16|20|24-bit big-endian for DVD-Video media
+decoder	pcm_dvda	pcm_dvda	PCM signed 16|20|24-bit big-endian for DVD-Audio media
+decoder	pcm_f16le	pcm_f16le	PCM 16.8 floating point little-endian
+decoder	pcm_f24le	pcm_f24le	PCM 24.0 floating point little-endian
+decoder	pcm_f32be	pcm_f32be	PCM 32-bit floating point big-endian
+decoder	pcm_f32le	pcm_f32le	PCM 32-bit floating point little-endian
+decoder	pcm_f64be	pcm_f64be	PCM 64-bit floating point big-endian
+decoder	pcm_f64le	pcm_f64le	PCM 64-bit floating point little-endian
+decoder	pcm_lxf	pcm_lxf	PCM signed 20-bit little-endian planar
+decoder	pcm_mulaw	pcm_mulaw	PCM mu-law / G.711 mu-law
+decoder	pcm_s8	pcm_s8	PCM signed 8-bit
+decoder	pcm_s8_planar	pcm_s8_planar	PCM signed 8-bit planar
+decoder	pcm_s16be	pcm_s16be	PCM signed 16-bit big-endian
+decoder	pcm_s16be_planar	pcm_s16be_planar	PCM signed 16-bit big-endian planar
+decoder	pcm_s16le	pcm_s16le	PCM signed 16-bit little-endian
+decoder	pcm_s16le_planar	pcm_s16le_planar	PCM signed 16-bit little-endian planar
+decoder	pcm_s24be	pcm_s24be	PCM signed 24-bit big-endian
+decoder	pcm_s24daud	pcm_s24daud	PCM D-Cinema audio signed 24-bit
+decoder	pcm_s24le	pcm_s24le	PCM signed 24-bit little-endian
+decoder	pcm_s24le_planar	pcm_s24le_planar	PCM signed 24-bit little-endian planar
+decoder	pcm_s32be	pcm_s32be	PCM signed 32-bit big-endian
+decoder	pcm_s32le	pcm_s32le	PCM signed 32-bit little-endian
+decoder	pcm_s32le_planar	pcm_s32le_planar	PCM signed 32-bit little-endian planar
+decoder	pcm_s64be	pcm_s64be	PCM signed 64-bit big-endian
+decoder	pcm_s64le	pcm_s64le	PCM signed 64-bit little-endian
+decoder	pcm_sga	pcm_sga	PCM SGA
+decoder	pcm_u8	pcm_u8	PCM unsigned 8-bit
+decoder	pcm_u16be	pcm_u16be	PCM unsigned 16-bit big-endian
+decoder	pcm_u16le	pcm_u16le	PCM unsigned 16-bit little-endian
+decoder	pcm_u24be	pcm_u24be	PCM unsigned 24-bit big-endian
+decoder	pcm_u24le	pcm_u24le	PCM unsigned 24-bit little-endian
+decoder	pcm_u32be	pcm_u32be	PCM unsigned 32-bit big-endian
+decoder	pcm_u32le	pcm_u32le	PCM unsigned 32-bit little-endian
+decoder	pcm_vidc	pcm_vidc	PCM Archimedes VIDC
+decoder	cbd2_dpcm	cbd2_dpcm	DPCM Cuberoot-Delta-Exact
+decoder	derf_dpcm	derf_dpcm	DPCM Xilam DERF
+decoder	gremlin_dpcm	gremlin_dpcm	DPCM Gremlin
+decoder	interplay_dpcm	interplay_dpcm	DPCM Interplay
+decoder	roq_dpcm	roq_dpcm	DPCM id RoQ
+decoder	sdx2_dpcm	sdx2_dpcm	DPCM Squareroot-Delta-Exact
+decoder	sol_dpcm	sol_dpcm	DPCM Sol
+decoder	xan_dpcm	xan_dpcm	DPCM Xan
+decoder	wady_dpcm	wady_dpcm	DPCM Marble WADY
+decoder	adpcm_4xm	adpcm_4xm	ADPCM 4X Movie
+decoder	adpcm_adx	adpcm_adx	SEGA CRI ADX ADPCM
+decoder	adpcm_afc	adpcm_afc	ADPCM Nintendo Gamecube AFC
+decoder	adpcm_agm	adpcm_agm	ADPCM AmuseGraphics Movie
+decoder	adpcm_aica	adpcm_aica	ADPCM Yamaha AICA
+decoder	adpcm_argo	adpcm_argo	ADPCM Argonaut Games
+decoder	adpcm_circus	adpcm_circus	ADPCM Circus
+decoder	adpcm_ct	adpcm_ct	ADPCM Creative Technology
+decoder	adpcm_dtk	adpcm_dtk	ADPCM Nintendo Gamecube DTK
+decoder	adpcm_ea	adpcm_ea	ADPCM Electronic Arts
+decoder	adpcm_ea_maxis_xa	adpcm_ea_maxis_xa	ADPCM Electronic Arts Maxis CDROM XA
+decoder	adpcm_ea_r1	adpcm_ea_r1	ADPCM Electronic Arts R1
+decoder	adpcm_ea_r2	adpcm_ea_r2	ADPCM Electronic Arts R2
+decoder	adpcm_ea_r3	adpcm_ea_r3	ADPCM Electronic Arts R3
+decoder	adpcm_ea_xas	adpcm_ea_xas	ADPCM Electronic Arts XAS
+decoder	adpcm_g722	g722	G.722 ADPCM
+decoder	adpcm_g726	g726	G.726 ADPCM
+decoder	adpcm_g726le	g726le	G.726 ADPCM little-endian
+decoder	adpcm_ima_acorn	adpcm_ima_acorn	ADPCM IMA Acorn Replay
+decoder	adpcm_ima_amv	adpcm_ima_amv	ADPCM IMA AMV
+decoder	adpcm_ima_alp	adpcm_ima_alp	ADPCM IMA High Voltage Software ALP
+decoder	adpcm_ima_apc	adpcm_ima_apc	ADPCM IMA CRYO APC
+decoder	adpcm_ima_apm	adpcm_ima_apm	ADPCM IMA Ubisoft APM
+decoder	adpcm_citrix	adpcm_ima_citrix	ADPCM IMA Citrix
+decoder	adpcm_ima_cunning	adpcm_ima_cunning	ADPCM IMA Cunning Developments
+decoder	adpcm_ima_dat4	adpcm_ima_dat4	ADPCM IMA Eurocom DAT4
+decoder	adpcm_ima_dk3	adpcm_ima_dk3	ADPCM IMA Duck DK3
+decoder	adpcm_ima_dk4	adpcm_ima_dk4	ADPCM IMA Duck DK4
+decoder	adpcm_ima_ea_eacs	adpcm_ima_ea_eacs	ADPCM IMA Electronic Arts EACS
+decoder	adpcm_ima_ea_sead	adpcm_ima_ea_sead	ADPCM IMA Electronic Arts SEAD
+decoder	adpcm_ima_escape	adpcm_ima_escape	ADPCM IMA Acorn Escape
+decoder	adpcm_ima_hvqm2	adpcm_ima_hvqm2	ADPCM IMA HVQM2
+decoder	adpcm_ima_hvqm4	adpcm_ima_hvqm4	ADPCM IMA HVQM4
+decoder	adpcm_ima_iss	adpcm_ima_iss	ADPCM IMA Funcom ISS
+decoder	adpcm_ima_magix	adpcm_ima_magix	ADPCM IMA Magix
+decoder	adpcm_ima_moflex	adpcm_ima_moflex	ADPCM IMA MobiClip MOFLEX
+decoder	adpcm_ima_mtf	adpcm_ima_mtf	ADPCM IMA Capcom's MT Framework
+decoder	adpcm_ima_oki	adpcm_ima_oki	ADPCM IMA Dialogic OKI
+decoder	adpcm_ima_pda	adpcm_ima_pda	ADPCM IMA PlayDate
+decoder	adpcm_ima_qt	adpcm_ima_qt	ADPCM IMA QuickTime
+decoder	adpcm_ima_rad	adpcm_ima_rad	ADPCM IMA Radical
+decoder	adpcm_ima_ssi	adpcm_ima_ssi	ADPCM IMA Simon & Schuster Interactive
+decoder	adpcm_ima_smjpeg	adpcm_ima_smjpeg	ADPCM IMA Loki SDL MJPEG
+decoder	adpcm_ima_wav	adpcm_ima_wav	ADPCM IMA WAV
+decoder	adpcm_ima_ws	adpcm_ima_ws	ADPCM IMA Westwood
+decoder	adpcm_ima_xbox	adpcm_ima_xbox	ADPCM IMA Xbox
+decoder	adpcm_ms	adpcm_ms	ADPCM Microsoft
+decoder	adpcm_mtaf	adpcm_mtaf	ADPCM MTAF
+decoder	adpcm_n64	adpcm_n64	ADPCM Silicon Graphics N64
+decoder	adpcm_psx	adpcm_psx	ADPCM Playstation
+decoder	adpcm_psxc	adpcm_psxc	ADPCM Playstation C
+decoder	adpcm_rhetorex	adpcm_rhetorex	ADPCM Rhetorex
+decoder	adpcm_sanyo	adpcm_sanyo	ADPCM Sanyo
+decoder	adpcm_sbpro_2	adpcm_sbpro_2	ADPCM Sound Blaster Pro 2-bit
+decoder	adpcm_sbpro_3	adpcm_sbpro_3	ADPCM Sound Blaster Pro 2.6-bit
+decoder	adpcm_sbpro_4	adpcm_sbpro_4	ADPCM Sound Blaster Pro 4-bit
+decoder	adpcm_swf	adpcm_swf	ADPCM Shockwave Flash
+decoder	adpcm_thp	adpcm_thp	ADPCM Nintendo THP
+decoder	adpcm_thp_le	adpcm_thp_le	ADPCM Nintendo THP (little-endian)
+decoder	adpcm_vima	adpcm_vima	LucasArts VIMA audio
+decoder	adpcm_xa	adpcm_xa	ADPCM CDROM XA
+decoder	adpcm_xmd	adpcm_xmd	ADPCM Konami XMD
+decoder	adpcm_yamaha	adpcm_yamaha	ADPCM Yamaha
+decoder	adpcm_zork	adpcm_zork	ADPCM Zork
+decoder	opus	libopus	libopus Opus
+decoder	speex	libspeex	libspeex Speex
+decoder	vorbis	libvorbis	libvorbis
+decoder	anull	anull	null audio
+demuxer	aa
+demuxer	aac
+demuxer	aax
+demuxer	ac3
+demuxer	ac4
+demuxer	ace
+demuxer	acm
+demuxer	act
+demuxer	adf
+demuxer	adp
+demuxer	ads
+demuxer	adx
+demuxer	aea
+demuxer	afc
+demuxer	aiff
+demuxer	aix
+demuxer	alp
+demuxer	amr
+demuxer	amrnb
+demuxer	amrwb
+demuxer	anm
+demuxer	apac
+demuxer	apc
+demuxer	ape
+demuxer	apm
+demuxer	apng
+demuxer	aptx
+demuxer	aptx_hd
+demuxer	apv
+demuxer	aqtitle
+demuxer	argo_asf
+demuxer	argo_brp
+demuxer	argo_cvg
+demuxer	asf
+demuxer	asf_o
+demuxer	ass
+demuxer	ast
+demuxer	astc
+demuxer	au
+demuxer	av1
+demuxer	avi
+demuxer	avr
+demuxer	avs
+demuxer	avs2
+demuxer	avs3
+demuxer	bethsoftvid
+demuxer	bfi
+demuxer	bin
+demuxer	bink
+demuxer	binka
+demuxer	bit
+demuxer	bitpacked
+demuxer	bmv
+demuxer	bfstm
+demuxer	brstm
+demuxer	boa
+demuxer	bonk
+demuxer	c93
+demuxer	caf
+demuxer	cavsvideo
+demuxer	cdg
+demuxer	cdxl
+demuxer	cine
+demuxer	codec2
+demuxer	codec2raw
+demuxer	concat
+demuxer	dash
+demuxer	data
+demuxer	daud
+demuxer	dcstr
+demuxer	derf
+demuxer	dfa
+demuxer	dfpwm
+demuxer	dhav
+demuxer	dirac
+demuxer	dnxhd
+demuxer	dsf
+demuxer	dsicin
+demuxer	dss
+demuxer	dts
+demuxer	dtshd
+demuxer	dv
+demuxer	dvbsub
+demuxer	dvbtxt
+demuxer	dxa
+demuxer	ea
+demuxer	ea_cdata
+demuxer	eac3
+demuxer	epaf
+demuxer	evc
+demuxer	ffmetadata
+demuxer	filmstrip
+demuxer	fits
+demuxer	flac
+demuxer	flic
+demuxer	flv
+demuxer	live_flv
+demuxer	4xm
+demuxer	frm
+demuxer	fsb
+demuxer	fwse
+demuxer	g722
+demuxer	g723_1
+demuxer	g726
+demuxer	g726le
+demuxer	g728
+demuxer	g729
+demuxer	gdv
+demuxer	genh
+demuxer	gif
+demuxer	gsm
+demuxer	gxf
+demuxer	h261
+demuxer	h263
+demuxer	h264
+demuxer	hca
+demuxer	hcom
+demuxer	hevc
+demuxer	hls
+demuxer	hnm
+demuxer	hxvs
+demuxer	iamf
+demuxer	ico
+demuxer	idcin
+demuxer	idf
+demuxer	iff
+demuxer	ifv
+demuxer	ilbc
+demuxer	image2
+demuxer	image2pipe
+demuxer	alias_pix
+demuxer	brender_pix
+demuxer	imf
+demuxer	ingenient
+demuxer	ipmovie
+demuxer	ipu
+demuxer	ircam
+demuxer	iss
+demuxer	iv8
+demuxer	ivf
+demuxer	ivr
+demuxer	jacosub
+demuxer	jv
+demuxer	jpegxl_anim
+demuxer	ktx
+demuxer	kux
+demuxer	kvag
+demuxer	laf
+demuxer	lc3
+demuxer	lmlm4
+demuxer	loas
+demuxer	luodat
+demuxer	lrc
+demuxer	lvf
+demuxer	lxf
+demuxer	m4v
+demuxer	mca
+demuxer	mcc
+demuxer	matroska,webm
+demuxer	mgsts
+demuxer	microdvd
+demuxer	mjpeg
+demuxer	mjpeg_2000
+demuxer	mlp
+demuxer	mlv
+demuxer	mm
+demuxer	mmf
+demuxer	mods
+demuxer	moflex
+demuxer	mov,mp4,m4a,3gp,3g2,mj2
+demuxer	mp3
+demuxer	mpc
+demuxer	mpc8
+demuxer	mpeg
+demuxer	mpegts
+demuxer	mpegtsraw
+demuxer	mpegvideo
+demuxer	mpjpeg
+demuxer	mpl2
+demuxer	mpsub
+demuxer	msf
+demuxer	msnwctcp
+demuxer	msp
+demuxer	mtaf
+demuxer	mtv
+demuxer	musx
+demuxer	mv
+demuxer	mvi
+demuxer	mvr
+demuxer	mxf
+demuxer	mxg
+demuxer	nc
+demuxer	nistsphere
+demuxer	nsp
+demuxer	nsv
+demuxer	nut
+demuxer	nuv
+demuxer	obu
+demuxer	ogg
+demuxer	oma
+demuxer	osq
+demuxer	paf
+demuxer	alaw
+demuxer	mulaw
+demuxer	vidc
+demuxer	f64be
+demuxer	f64le
+demuxer	f32be
+demuxer	f32le
+demuxer	s32be
+demuxer	s32le
+demuxer	s24be
+demuxer	s24le
+demuxer	s16be
+demuxer	s16le
+demuxer	s8
+demuxer	u32be
+demuxer	u32le
+demuxer	u24be
+demuxer	u24le
+demuxer	u16be
+demuxer	u16le
+demuxer	u8
+demuxer	pdv
+demuxer	pjs
+demuxer	pmp
+demuxer	pp_bnk
+demuxer	pva
+demuxer	pvf
+demuxer	qcp
+demuxer	qoa
+demuxer	r3d
+demuxer	rawvideo
+demuxer	rcwt
+demuxer	realtext
+demuxer	redspark
+demuxer	rka
+demuxer	rl2
+demuxer	rm
+demuxer	roq
+demuxer	rpl
+demuxer	rsd
+demuxer	rso
+demuxer	rtp
+demuxer	rtsp
+demuxer	s337m
+demuxer	sami
+demuxer	sap
+demuxer	sbc
+demuxer	sbg
+demuxer	scc
+demuxer	scd
+demuxer	sdns
+demuxer	sdp
+demuxer	sdr2
+demuxer	sds
+demuxer	sdx
+demuxer	film_cpk
+demuxer	ser
+demuxer	sga
+demuxer	shn
+demuxer	siff
+demuxer	simbiosis_imx
+demuxer	sln
+demuxer	smk
+demuxer	smjpeg
+demuxer	smush
+demuxer	sol
+demuxer	sox
+demuxer	spdif
+demuxer	srt
+demuxer	psxstr
+demuxer	stl
+demuxer	subviewer1
+demuxer	subviewer
+demuxer	sup
+demuxer	svag
+demuxer	svs
+demuxer	swf
+demuxer	tak
+demuxer	tedcaptions
+demuxer	thp
+demuxer	3dostr
+demuxer	tiertexseq
+demuxer	tmv
+demuxer	truehd
+demuxer	tta
+demuxer	txd
+demuxer	tty
+demuxer	ty
+demuxer	usm
+demuxer	v210
+demuxer	v210x
+demuxer	vag
+demuxer	vc1
+demuxer	vc1test
+demuxer	vividas
+demuxer	vivo
+demuxer	vmd
+demuxer	vobsub
+demuxer	voc
+demuxer	vpk
+demuxer	vplayer
+demuxer	vqf
+demuxer	vvc
+demuxer	w64
+demuxer	wady
+demuxer	wavarc
+demuxer	wav
+demuxer	wc3movie
+demuxer	webm_dash_manifest
+demuxer	webp_anim
+demuxer	webvtt
+demuxer	wsaud
+demuxer	wsd
+demuxer	wsvqa
+demuxer	wtv
+demuxer	wve
+demuxer	wv
+demuxer	xa
+demuxer	xbin
+demuxer	xmd
+demuxer	xmv
+demuxer	xvag
+demuxer	xwma
+demuxer	yop
+demuxer	yuv4mpegpipe
+demuxer	bmp_pipe
+demuxer	cri_pipe
+demuxer	dds_pipe
+demuxer	dpx_pipe
+demuxer	exr_pipe
+demuxer	gem_pipe
+demuxer	gif_pipe
+demuxer	hdr_pipe
+demuxer	j2k_pipe
+demuxer	jpeg_pipe
+demuxer	jpegls_pipe
+demuxer	jpegxl_pipe
+demuxer	jpegxs_pipe
+demuxer	pam_pipe
+demuxer	pbm_pipe
+demuxer	pcx_pipe
+demuxer	pfm_pipe
+demuxer	pgmyuv_pipe
+demuxer	pgm_pipe
+demuxer	pgx_pipe
+demuxer	phm_pipe
+demuxer	photocd_pipe
+demuxer	pictor_pipe
+demuxer	png_pipe
+demuxer	ppm_pipe
+demuxer	psd_pipe
+demuxer	qdraw_pipe
+demuxer	qoi_pipe
+demuxer	rw2_pipe
+demuxer	sgi_pipe
+demuxer	svg_pipe
+demuxer	sunrast_pipe
+demuxer	tiff_pipe
+demuxer	vbn_pipe
+demuxer	webp_pipe
+demuxer	xbm_pipe
+demuxer	xpm_pipe
+demuxer	xwd_pipe
+demuxer	avisynth
+demuxer	dvdvideo
+demuxer	libmodplug
+demuxer	libopenmpt
+demuxer	vapoursynth
+demuxer	dshow
+demuxer	gdigrab
+demuxer	lavfi
+demuxer	openal
+demuxer	vfwcap
+prop	hwdec-interop	None
+prop	mpv-configuration	Some("-Dprefix=/__w/mpv-winbuild-cmake/mpv-winbuild-cmake/build_x86_64/x86_64-w64-mingw32 -Dlibdir=/__w/mpv-winbuild-cmake/mpv-winbuild-cmake/build_x86_64/x86_64-w64-mingw32/lib -Ddefault_library=shared -Dprefer_static=true -Ddebug=true -Db_ndebug=true -Doptimization=3 -Db_lto=true -Db_lto_mode=thin -Dlibmpv=true -Dpdf-build=enabled -Dlua=enabled -Djavascript=enabled -Dsdl2-gamepad=enabled -Dlibarchive=enabled -Dlibbluray=enabled -Ddvdnav=enabled -Duchardet=enabled -Drubberband=enabled -Dlcms2=enabled -Dopenal=enabled -Dspirv-cross=enabled -Dvulkan=enabled -Dvapoursynth=enabled -Dsubrandr=enabled -Dsixel=enabled -Dgl=enabled -Degl-angle=enabled -Dlibcurl=enabled -Dc_args=-Wno-error=int-conversion --cross-file=/__w/mpv-winbuild-cmake/mpv-winbuild-cmake/build_x86_64/meson_cross.txt")

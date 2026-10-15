@@ -32,6 +32,7 @@ pub enum EngineEvent {
     TitleChanged(Option<String>),
     AbLoopAChanged(Option<MediaTimeMs>),
     AbLoopBChanged(Option<MediaTimeMs>),
+    Issue(crate::PlaybackIssue),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -68,6 +69,7 @@ pub struct PlaybackState {
     tracks: Vec<Track>,
     video: Option<VideoInfo>,
     ab_loop: AbLoop,
+    issues: Vec<crate::PlaybackIssue>,
     error: Option<PlaybackError>,
 }
 
@@ -91,6 +93,7 @@ impl Default for PlaybackState {
             tracks: Vec::new(),
             video: None,
             ab_loop: AbLoop::default(),
+            issues: Vec::new(),
             error: None,
         }
     }
@@ -196,6 +199,11 @@ impl PlaybackState {
             EngineEvent::VideoChanged(v) => self.video = v,
             EngineEvent::AbLoopAChanged(a) => self.ab_loop.a_ms = a,
             EngineEvent::AbLoopBChanged(b) => self.ab_loop.b_ms = b,
+            EngineEvent::Issue(i) => {
+                if !self.issues.contains(&i) {
+                    self.issues.push(i);
+                }
+            }
             EngineEvent::TitleChanged(t) => {
                 if t.is_some() {
                     self.title = t;
@@ -224,6 +232,7 @@ impl PlaybackState {
             tracks: self.tracks.clone(),
             video: self.video.clone(),
             ab_loop: self.ab_loop,
+            issues: self.issues.clone(),
             error: self.error.clone(),
         }
     }

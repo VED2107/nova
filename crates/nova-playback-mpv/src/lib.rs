@@ -8,10 +8,14 @@
 //! - Dropping the player stops the event thread, then destroys the handle.
 
 mod ffi;
-mod node;
+pub mod node;
 
 use ffi::*;
 use node::Node;
+use nova_playback_api::format::{CameraRaw, FileClass, classify};
+use nova_playback_api::{
+    AudioDetails, MediaDetails, PlaybackIssue, VideoDetails, pixel_format_traits,
+};
 use nova_playback_api::{
     Capabilities, CommandAck, EngineEvent, MediaSource, MediaSourceError, PlaybackBackend,
     PlaybackCommand, PlaybackError, PlaybackErrorKind, PlaybackPhase, PlaybackSnapshot,
@@ -84,6 +88,19 @@ unsafe impl Sync for Handle {}
 struct Sessions {
     next: SessionId,
     by_entry: HashMap<i64, SessionId>,
+    /// Sessions whose file was classified as camera RAW (by extension).
+    raw: HashMap<SessionId, CameraRaw>,
+}
+
+fn raw_error(raw: CameraRaw) -> PlaybackError {
+    PlaybackError::new(
+        PlaybackErrorKind::RequiresExternalDecoder,
+        format!(
+            "{} can't be decoded by NOVA's built-in engine. {}",
+            raw.name(),
+            raw.advice()
+        ),
+    )
 }
 
 struct Inner {
@@ -252,6 +269,29 @@ impl MpvPlayer {
     }
 
     /// Reads an arbitrary engine property as a string. Diagnostics and tests only.
+    /// Reads an engine property as a structured node (lists, maps).
+    pub fn property_node(&self, name: &str) -> Option<Node> {
+        let n = CString::new(name).ok()?;
+        let mut raw = mpv_node {
+            u: mpv_node_u { int64: 0 },
+            format: MPV_FORMAT_NONE,
+        };
+        let rc = unsafe {
+            (self.inner.api.get_property)(
+                self.inner.h(),
+                n.as_ptr(),
+                MPV_FORMAT_NODE,
+                &mut raw as *mut _ as *mut c_void,
+            )
+        };
+        if rc < 0 {
+            return None;
+        }
+        let node = unsafe { Node::from_raw(&raw) };
+        unsafe { (self.inner.api.free_node_contents)(&mut raw) };
+        Some(node)
+    }
+
     pub fn property_string(&self, name: &str) -> Option<String> {
         self.inner.get_string(name)
     }
@@ -416,6 +456,16 @@ impl Inner {
             .to_str()
             .ok_or_else(|| PlaybackError::invalid("path is not valid Unicode"))?
             .to_owned();
+        let class = classify(source.path());
+        if let FileClass::EditingProject(app) = class {
+            return Err(PlaybackError::new(
+                PlaybackErrorKind::EditingProject,
+                format!(
+                    "This is a project file for {}, not a video. Open it there, or export/render it to a video file (for example H.264 MP4 or ProRes MOV) and open that.",
+                    app.name()
+                ),
+            ));
+        }
 
         // Holding the sessions lock across `loadfile` guarantees the event
         // thread cannot observe START_FILE before the entry is mapped.
@@ -444,6 +494,9 @@ impl Inner {
             .and_then(Node::as_i64);
         if let Some(entry) = entry {
             sessions.by_entry.insert(entry, session);
+        }
+        if let FileClass::CameraRaw(raw) = class {
+            sessions.raw.insert(session, raw);
         }
         drop(sessions);
 
@@ -543,6 +596,68 @@ impl PlaybackBackend for MpvPlayer {
             }
         }
         Ok(ack)
+    }
+
+    fn media_details(&self) -> Option<MediaDetails> {
+        let p = self;
+        let s = |n: &str| p.property_string(n);
+        let container = s("file-format")?;
+        let num = |v: Option<&Node>| v.and_then(Node::as_i64).and_then(|v| u32::try_from(v).ok());
+        let text = |v: Option<&Node>| v.and_then(Node::as_str).map(str::to_owned);
+        let video = p.property_node("video-params").map(|vp| {
+            // Decoder output format (before any hardware download) gives true depth/chroma.
+            let dec = p.property_node("video-dec-params");
+            let fmt = dec
+                .as_ref()
+                .and_then(|d| text(d.get("pixelformat")))
+                .or_else(|| text(vp.get("pixelformat")));
+            let (bit_depth, chroma, has_alpha) = fmt
+                .as_deref()
+                .map(pixel_format_traits)
+                .unwrap_or((None, None, false));
+            let transfer = text(vp.get("gamma"));
+            let hdr = match transfer.as_deref() {
+                Some("pq") => Some("HDR10".to_owned()),
+                Some("hlg") => Some("HLG".to_owned()),
+                _ => None,
+            };
+            VideoDetails {
+                codec: s("video-format"),
+                codec_description: s("video-codec"),
+                width: num(vp.get("w")),
+                height: num(vp.get("h")),
+                pixel_format: fmt,
+                bit_depth,
+                chroma,
+                has_alpha,
+                frame_rate: s("container-fps")
+                    .or_else(|| s("estimated-vf-fps"))
+                    .and_then(|v| v.parse().ok()),
+                color_matrix: text(vp.get("colormatrix")),
+                primaries: text(vp.get("primaries")),
+                transfer,
+                hdr,
+                hwdec: s("hwdec-current").filter(|h| h != "no"),
+                decoder: s("current-tracks/video/decoder-desc"),
+            }
+        });
+        let audio = p.property_node("audio-params").map(|ap| AudioDetails {
+            codec: s("audio-codec-name"),
+            codec_description: s("audio-codec"),
+            sample_rate: num(ap.get("samplerate")),
+            channels: num(ap.get("channel-count")),
+            channel_layout: text(ap.get("hr-channels")).or_else(|| text(ap.get("channels"))),
+            sample_format: text(ap.get("format")),
+        });
+        Some(MediaDetails {
+            container: Some(container),
+            file_size_bytes: s("file-size").and_then(|v| v.parse().ok()),
+            duration_ms: s("duration")
+                .and_then(|v| v.parse::<f64>().ok())
+                .map(secs_to_ms),
+            video,
+            audio,
+        })
     }
 
     fn snapshot(&self) -> PlaybackSnapshot {
@@ -678,6 +793,10 @@ impl EventLoop {
         self.inner.emit(snap);
     }
 
+    fn raw_for(&self, session: SessionId) -> Option<CameraRaw> {
+        self.inner.lock_sessions().raw.get(&session).copied()
+    }
+
     fn session_for_entry(&self, entry: i64, remove: bool) -> SessionId {
         let mut s = self.inner.lock_sessions();
         let found = s.by_entry.get(&entry).copied().unwrap_or(0);
@@ -717,10 +836,13 @@ impl EventLoop {
                 let session = self.session_for_entry(data.playlist_entry_id, true);
                 let event = match data.reason {
                     MPV_END_FILE_REASON_EOF => EngineEvent::EndReached(true),
-                    MPV_END_FILE_REASON_ERROR => EngineEvent::Failed(PlaybackError::new(
-                        PlaybackErrorKind::LoadFailed,
-                        self.inner.api.error_message(data.error),
-                    )),
+                    MPV_END_FILE_REASON_ERROR => EngineEvent::Failed(match self.raw_for(session) {
+                        Some(raw) => raw_error(raw),
+                        None => PlaybackError::new(
+                            PlaybackErrorKind::LoadFailed,
+                            self.inner.api.error_message(data.error),
+                        ),
+                    }),
                     _ => EngineEvent::Stopped,
                 };
                 self.flush_position(true);
@@ -735,11 +857,48 @@ impl EventLoop {
                 let m = unsafe { &*(ev.data as *const mpv_event_log_message) };
                 let (prefix, text) = unsafe { (opt_str(m.prefix), opt_str(m.text)) };
                 let text = text.unwrap_or_default();
-                log::warn!(target: "mpv", "[{}] {}", prefix.unwrap_or_default(), text.trim_end());
+                let prefix = prefix.unwrap_or_default();
+                if let Some(issue) = self.decoder_issue(&prefix, &text) {
+                    let video_missing = matches!(issue, PlaybackIssue::VideoDecoderMissing { .. });
+                    match self.raw_for(self.engine_session) {
+                        // A RAW clip whose video can't be decoded is a hard failure.
+                        Some(raw) if video_missing => {
+                            self.apply(EngineEvent::Failed(raw_error(raw)))
+                        }
+                        _ => self.apply(EngineEvent::Issue(issue)),
+                    }
+                }
+                log::warn!(target: "mpv", "[{prefix}] {}", text.trim_end());
             }
             MPV_EVENT_QUEUE_OVERFLOW => log::error!(target: "mpv", "event queue overflow"),
             _ => {}
         }
+    }
+
+    /// Recognizes libmpv's decoder-initialization failure (verified text:
+    /// `[vd] Failed to initialize a decoder for codec '<name>'.`). The codec
+    /// name can be empty for unknown FourCCs; fall back to the track's codec.
+    fn decoder_issue(&self, prefix: &str, text: &str) -> Option<PlaybackIssue> {
+        let rest = text.strip_prefix("Failed to initialize a decoder for codec '")?;
+        let named = rest.split('\'').next().unwrap_or("").to_owned();
+        let kind = match prefix {
+            "vd" => TrackKind::Video,
+            "ad" => TrackKind::Audio,
+            _ => return None,
+        };
+        let codec = if named.is_empty() {
+            self.tracks
+                .iter()
+                .find(|t| t.kind == kind && t.is_selected)
+                .and_then(|t| t.codec.clone())
+                .unwrap_or_else(|| "unknown".into())
+        } else {
+            named
+        };
+        Some(match kind {
+            TrackKind::Video => PlaybackIssue::VideoDecoderMissing { codec },
+            _ => PlaybackIssue::AudioDecoderMissing { codec },
+        })
     }
 
     fn property(&mut self, id: u64, prop: &mpv_event_property) {
