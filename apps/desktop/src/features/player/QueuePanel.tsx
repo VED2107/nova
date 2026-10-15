@@ -184,20 +184,22 @@ export function QueuePanel(props: { onClose: () => void; onAddFiles: () => void;
               </Button>
             </form>
           ) : (
-            <div className="flex items-center gap-2">
-              <Button tone="room" variant="ghost" icon={<SaveIcon size={16} />} onClick={() => setSaving(true)}>
-                Save as playlist
-              </Button>
+            <>
+              <div className="flex items-center gap-2">
+                <Button tone="room" variant="ghost" icon={<SaveIcon size={16} />} onClick={() => setSaving(true)}>
+                  Save as playlist
+                </Button>
+                <span className="flex-1" />
+                <Button tone="room" variant="danger" icon={<TrashIcon size={16} />} onClick={() => setClearing(true)}>
+                  Clear
+                </Button>
+              </div>
               {saved && (
-                <span role="status" className="truncate text-[12px] text-room-ink-2">
-                  Saved “{saved}”
-                </span>
+                <p role="status" className="mt-1.5 truncate px-1 text-[12px] text-room-ink-2">
+                  Saved as playlist “{saved}” — find it on Home.
+                </p>
               )}
-              <span className="flex-1" />
-              <Button tone="room" variant="danger" icon={<TrashIcon size={16} />} onClick={() => setClearing(true)}>
-                Clear
-              </Button>
-            </div>
+            </>
           )}
         </footer>
       )}

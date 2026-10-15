@@ -234,7 +234,7 @@ function FolderRail({ roots, onOpen, onAdd }: { roots: ScanRoot[]; onOpen: (root
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-[13px] font-[600] text-ink">{folderName(r.path)}</span>
                 <span className="block text-[11.5px] text-ink-3">
-                  {r.itemCount.toLocaleString()} {r.itemCount === 1 ? "item" : "items"}
+                  {r.itemCount.toLocaleString()} {r.itemCount === 1 ? "title" : "titles"}
                 </span>
               </span>
             </button>

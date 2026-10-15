@@ -22,7 +22,7 @@ export const Button = forwardRef<
     <button
       ref={ref}
       type="button"
-      className={`press inline-flex h-8 items-center justify-center gap-1.5 rounded-[6px] px-3 text-[13px] font-[560] disabled:pointer-events-none disabled:opacity-40 ${v} ${className}`}
+      className={`press inline-flex h-8 items-center justify-center gap-1.5 whitespace-nowrap rounded-[6px] px-3 text-[13px] font-[560] disabled:pointer-events-none disabled:opacity-40 ${v} ${className}`}
       {...rest}
     >
       {icon}

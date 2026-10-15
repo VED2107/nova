@@ -107,7 +107,7 @@ export function PlayerView(props: { active: boolean; onBrowse: () => void; onOpe
   // Window title follows the media.
   useEffect(() => {
     void getCurrentWindow()
-      .setTitle(s.mediaTitle && s.phase !== "idle" ? `${s.mediaTitle} — NOVA` : "NOVA")
+      .setTitle(s.mediaTitle && !["idle", "stopped", "error"].includes(s.phase) ? `${s.mediaTitle} — NOVA` : "NOVA")
       .catch(() => {});
   }, [s.mediaTitle, s.phase]);
 
@@ -208,7 +208,7 @@ export function PlayerView(props: { active: boolean; onBrowse: () => void; onOpe
           else void toggleFullscreen(false);
           break;
         case "video.snapshot":
-          screenshot(true).then((path) => flash(`Frame saved · ${path.split(/[\\/]/).pop()}`), reportError);
+          screenshot(true).then((path) => flash(`Frame saved to Pictures\\NOVA · ${path.split(/[\\/]/).pop()}`), reportError);
           break;
         case "view.queue":
           setPanel((p) => (p === "queue" ? null : "queue"));
@@ -433,7 +433,7 @@ export function PlayerView(props: { active: boolean; onBrowse: () => void; onOpe
       {/* Top bar: back to the shelf, title + engine spec, panels. */}
       <div
         className={[
-          "absolute inset-x-0 top-0 z-20 flex items-start gap-2 bg-gradient-to-b from-black/70 to-transparent px-4 pb-10 pt-3",
+          "absolute inset-x-0 top-0 z-20 flex items-start gap-2 bg-gradient-to-b from-black/85 via-black/45 to-transparent px-4 pb-12 pt-3 [text-shadow:0_1px_2px_rgb(0_0_0/0.6)]",
           "transition-opacity duration-200 ease-(--ease-out-strong)",
           topHidden ? "pointer-events-none opacity-0" : "opacity-100",
         ].join(" ")}

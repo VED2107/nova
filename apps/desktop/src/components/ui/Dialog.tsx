@@ -20,16 +20,27 @@ export function Dialog(props: {
   useEffect(() => {
     const d = ref.current;
     if (!d) return;
-    if (props.open && !d.open) d.showModal();
+    if (props.open && !d.open) {
+      d.showModal();
+      // React's autoFocus runs before showModal; honour it now (e.g. the safe "Keep").
+      d.querySelector<HTMLElement>("[data-autofocus]")?.focus();
+    }
     if (!props.open && d.open) d.close();
   }, [props.open]);
+
+  // React propagates close/cancel from a nested dialog through the component
+  // tree; only react to events that belong to this dialog.
+  const own = (e: React.SyntheticEvent) => e.target === ref.current;
 
   return (
     <dialog
       ref={ref}
       aria-label={props.title}
-      onClose={props.onClose}
+      onClose={(e) => {
+        if (own(e)) props.onClose();
+      }}
       onCancel={(e) => {
+        if (!own(e)) return;
         e.preventDefault();
         props.onClose();
       }}
@@ -75,7 +86,7 @@ export function ConfirmDialog(props: {
             {props.confirmLabel}
           </Button>
           <span className="flex-1" />
-          <Button variant="primary" autoFocus onClick={props.onCancel}>
+          <Button variant="primary" data-autofocus onClick={props.onCancel}>
             Keep
           </Button>
         </>

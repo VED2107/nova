@@ -161,8 +161,16 @@ impl QueueService {
         self.play(item)
     }
 
+    /// Next item; with repeat-all the end of the queue wraps to the start.
     pub fn next(&self) -> Result<QueueSnapshot, PlaybackError> {
-        let item = self.lock().queue.next_item().cloned();
+        let item = {
+            let mut st = self.lock();
+            match st.queue.next_item().cloned() {
+                Some(i) => Some(i),
+                None if st.queue.repeat() == RepeatMode::All => st.queue.wrap_to_start().cloned(),
+                None => None,
+            }
+        };
         self.play(item)
     }
 
@@ -486,6 +494,10 @@ mod tests {
         assert!(svc.on_snapshot(&ended));
         svc.advance_after_end();
         assert_eq!(fake.opened(), ["1.mp4", "2.mp4", "1.mp4"]);
+        // Manual next at the end wraps too under repeat-all.
+        svc.next().unwrap();
+        svc.next().unwrap();
+        assert_eq!(fake.opened().last().map(String::as_str), Some("1.mp4"));
         svc.set_repeat(RepeatMode::One).unwrap();
         assert!(
             fake.commands

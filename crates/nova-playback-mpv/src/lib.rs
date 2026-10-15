@@ -661,11 +661,22 @@ impl PlaybackBackend for MpvPlayer {
         let text = |v: Option<&Node>| v.and_then(Node::as_str).map(str::to_owned);
         let video = p.property_node("video-params").map(|vp| {
             // Decoder output format (before any hardware download) gives true depth/chroma.
+            // With hardware decoding `pixelformat` names the GPU surface (e.g. "d3d11");
+            // the real layout is in `hw-pixelformat` (e.g. "nv12", "p010").
             let dec = p.property_node("video-dec-params");
-            let fmt = dec
-                .as_ref()
-                .and_then(|d| text(d.get("pixelformat")))
-                .or_else(|| text(vp.get("pixelformat")));
+            let pick = |n: &Node| {
+                let sw = text(n.get("pixelformat"));
+                if sw
+                    .as_deref()
+                    .map(pixel_format_traits)
+                    .is_some_and(|t| t.0.is_some())
+                {
+                    sw
+                } else {
+                    text(n.get("hw-pixelformat")).or(sw)
+                }
+            };
+            let fmt = dec.as_ref().and_then(pick).or_else(|| pick(&vp));
             let (bit_depth, chroma, has_alpha) = fmt
                 .as_deref()
                 .map(pixel_format_traits)

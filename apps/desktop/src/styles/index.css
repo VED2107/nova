@@ -221,6 +221,9 @@ textarea {
   box-shadow: 0 1px 4px rgb(0 0 0 / 0.5);
 }
 
+dialog:focus-visible {
+  outline: none; /* focus moves to the first control; the panel itself needs no ring */
+}
 dialog::backdrop {
   background: rgb(11 11 10 / 0.42);
 }

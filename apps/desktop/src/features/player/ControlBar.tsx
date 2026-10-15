@@ -31,7 +31,8 @@ export function ControlBar(props: {
   };
   const toggle = (m: Exclude<MenuId, null>) => setMenu(menu === m ? null : m);
   const hasMedia = !["idle", "error", "stopped"].includes(s.phase);
-  const isPaused = s.phase === "paused" || s.phase === "ended";
+  // Show "Play" unless the engine is running or about to (paused, ended, stopped, idle, error).
+  const isPaused = !["playing", "seeking", "loading"].includes(s.phase);
 
   const trackItems = (kind: TrackKind): MenuItem[] =>
     s.tracks
@@ -75,7 +76,7 @@ export function ControlBar(props: {
           title={isPaused ? "Play (Space)" : "Pause (Space)"}
           disabled={!hasMedia}
           onClick={() => void execute({ type: "togglePause" }).catch(props.onError)}
-          className={`press flex shrink-0 items-center justify-center rounded-full bg-cream text-ink hover:bg-white disabled:opacity-35 ${compact ? "size-9" : "size-11"}`}
+          className={`press flex shrink-0 items-center justify-center rounded-full bg-cream text-[#171715] hover:bg-white disabled:opacity-35 ${compact ? "size-9" : "size-11"}`}
         >
           {isPaused ? <PlayIcon size={compact ? 18 : 20} /> : <PauseIcon size={compact ? 18 : 20} />}
         </button>
