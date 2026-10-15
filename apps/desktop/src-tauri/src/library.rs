@@ -162,11 +162,19 @@ pub fn library_search(
     include_missing: bool,
     offset: i64,
     limit: i64,
+    root_id: Option<RootId>,
     lib: State<'_, LibraryState>,
 ) -> Result<SearchPage, String> {
     lib.get()?
         .store
-        .search(&query, parse_sort(&sort), include_missing, limit, offset)
+        .search_in(
+            &query,
+            parse_sort(&sort),
+            include_missing,
+            limit,
+            offset,
+            root_id,
+        )
         .map_err(|e| e.to_string())
 }
 

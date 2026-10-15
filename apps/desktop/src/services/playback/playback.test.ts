@@ -1,13 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { SnapshotStore } from "./store";
 import { formatTime, languageName, trackLabel } from "./format";
-import { shortcutFor, type KeyInput } from "./shortcuts";
+import { describeError } from "./errors";
+import { nextAbLoop } from "./shortcuts";
+import { ACTIONS, actionForChord, chordOf, commandFor, conflicts, cycleTrack, effectiveKeymap, nextAspect, nextSpeed, parseKeymap } from "./actions";
 import { INITIAL_SNAPSHOT, type PlaybackSnapshot, type Track } from "./types";
 
 const snap = (over: Partial<PlaybackSnapshot>): PlaybackSnapshot => ({ ...INITIAL_SNAPSHOT, ...over });
-const key = (k: string, mods: Partial<KeyInput> = {}): KeyInput => ({
-  key: k, shiftKey: false, ctrlKey: false, altKey: false, metaKey: false, ...mods,
-});
 
 describe("SnapshotStore", () => {
   it("drops snapshots older than the current one", () => {
@@ -52,25 +51,62 @@ describe("track labels", () => {
   });
 });
 
-describe("shortcuts", () => {
-  const playing = snap({ seq: 1, phase: "playing", volumePercent: 100 });
-  it("toggles pause only with media", () => {
-    expect(shortcutFor(key(" "), playing)).toEqual({ kind: "command", command: { type: "togglePause" } });
-    expect(shortcutFor(key(" "), INITIAL_SNAPSHOT)).toBeNull();
+const key = (k: string, mods: Partial<{ ctrlKey: boolean; altKey: boolean; shiftKey: boolean; metaKey: boolean }> = {}) => ({
+  key: k, ctrlKey: false, altKey: false, shiftKey: false, metaKey: false, ...mods,
+});
+
+describe("key chords", () => {
+  it("normalizes letters, named keys and shifted symbols", () => {
+    expect(chordOf(key("n"))).toBe("N");
+    expect(chordOf(key("N", { shiftKey: true }))).toBe("Shift+N");
+    expect(chordOf(key("ArrowRight", { ctrlKey: true }))).toBe("Ctrl+ArrowRight");
+    expect(chordOf(key("?", { shiftKey: true }))).toBe("?");
+    expect(chordOf(key(" "))).toBe("Space");
+    expect(chordOf(key("Shift", { shiftKey: true }))).toBeNull();
   });
-  it("seeks by 5s or 30s with shift", () => {
-    expect(shortcutFor(key("ArrowLeft"), playing)).toEqual({ kind: "command", command: { type: "seekRelative", offsetMs: -5000 } });
-    expect(shortcutFor(key("ArrowRight", { shiftKey: true }), playing)).toEqual({ kind: "command", command: { type: "seekRelative", offsetMs: 30000 } });
+});
+
+describe("keymap", () => {
+  it("has no conflicts in the defaults", () => {
+    expect([...conflicts(effectiveKeymap({})).entries()]).toEqual([]);
   });
-  it("clamps volume to the contract range", () => {
-    expect(shortcutFor(key("ArrowUp"), snap({ volumePercent: 128 }))).toEqual({ kind: "command", command: { type: "setVolume", percent: 130 } });
-    expect(shortcutFor(key("ArrowDown"), snap({ volumePercent: 3 }))).toEqual({ kind: "command", command: { type: "setVolume", percent: 0 } });
+  it("detects conflicts introduced by overrides and resolves chords", () => {
+    const map = effectiveKeymap({ "volume.mute": ["Space"] });
+    expect(conflicts(map).get("Space")).toEqual(["play.toggle", "volume.mute"]);
+    expect(actionForChord(effectiveKeymap({}), "Shift+S")).toBe("video.snapshot");
   });
-  it("maps fullscreen, open and ignores alt/meta", () => {
-    expect(shortcutFor(key("f"), playing)).toEqual({ kind: "toggleFullscreen" });
-    expect(shortcutFor(key("o", { ctrlKey: true }), playing)).toEqual({ kind: "openFile" });
-    expect(shortcutFor(key("f", { altKey: true }), playing)).toBeNull();
-    expect(shortcutFor(key("z"), playing)).toBeNull();
+  it("ignores unknown actions and malformed stored data", () => {
+    expect(parseKeymap('{"nope":["A"],"volume.mute":["X"]}')).toEqual({ "volume.mute": ["X"] });
+    expect(parseKeymap("not json")).toEqual({});
+    expect(parseKeymap('{"volume.mute":"X"}')).toEqual({});
+  });
+  it("gives every action a label and a group", () => {
+    for (const a of ACTIONS) expect(a.label.length).toBeGreaterThan(2);
+  });
+});
+
+describe("action commands", () => {
+  const playing = snap({ seq: 1, phase: "playing", volumePercent: 100, speed: 1 });
+  it("maps seeks, speed, volume and delays", () => {
+    expect(commandFor("seek.fwd.long", playing)).toEqual({ type: "seekRelative", offsetMs: 60000 });
+    expect(commandFor("speed.up", playing)).toEqual({ type: "setSpeed", multiplier: 1.25 });
+    expect(nextSpeed(4, 1)).toBe(4);
+    expect(nextSpeed(0.25, -1)).toBe(0.25);
+    expect(commandFor("volume.up", snap({ volumePercent: 128 }))).toEqual({ type: "setVolume", percent: 130 });
+    expect(commandFor("subs.later", playing)).toEqual({ type: "setSubtitleDelay", ms: 50 });
+    expect(commandFor("frame.prev", playing)).toEqual({ type: "frameStep", forward: false });
+  });
+  it("cycles aspect ratios, rotation and tracks", () => {
+    expect(nextAspect(null)).toBe("16:9");
+    expect(nextAspect("1.85:1")).toBeNull();
+    expect(commandFor("video.rotate", snap({ adjust: { ...INITIAL_SNAPSHOT.adjust, rotation: 270 } }))).toEqual({ type: "setRotation", degrees: 0 });
+    const t = (id: string, kind: "audio" | "subtitle", sel: boolean) => ({
+      id, kind, title: null, language: null, codec: null, isDefault: false, isExternal: false, isSelected: sel, channels: null, width: null, height: null,
+    });
+    const s2 = snap({ tracks: [t("audio:1", "audio", true), t("audio:2", "audio", false), t("sub:1", "subtitle", true)] });
+    expect(cycleTrack(s2, "audio")).toBe("audio:2");
+    expect(cycleTrack(s2, "subtitle")).toBeNull();
+    expect(cycleTrack(snap({ tracks: [] }), "audio")).toBeUndefined();
   });
 });
 
@@ -78,28 +114,14 @@ describe("A–B loop cycling", () => {
   const at = (positionMs: number, aMs: number | null, bMs: number | null) =>
     snap({ seq: 1, phase: "playing", positionMs, abLoop: { aMs, bMs } });
   it("sets A, then B, then clears", () => {
-    expect(shortcutFor(key("l"), at(1000, null, null))).toEqual({ kind: "command", command: { type: "setAbLoop", aMs: 1000, bMs: null } });
-    expect(shortcutFor(key("l"), at(4000, 1000, null))).toEqual({ kind: "command", command: { type: "setAbLoop", aMs: 1000, bMs: 4000 } });
-    expect(shortcutFor(key("l"), at(2000, 1000, 4000))).toEqual({ kind: "command", command: { type: "setAbLoop", aMs: null, bMs: null } });
+    expect(nextAbLoop(at(1000, null, null))).toEqual({ type: "setAbLoop", aMs: 1000, bMs: null });
+    expect(nextAbLoop(at(4000, 1000, null))).toEqual({ type: "setAbLoop", aMs: 1000, bMs: 4000 });
+    expect(nextAbLoop(at(2000, 1000, 4000))).toEqual({ type: "setAbLoop", aMs: null, bMs: null });
   });
   it("restarts A when B would be before A", () => {
-    expect(shortcutFor(key("l"), at(500, 1000, null))).toEqual({ kind: "command", command: { type: "setAbLoop", aMs: 500, bMs: null } });
-  });
-  it("needs media", () => {
-    expect(shortcutFor(key("l"), INITIAL_SNAPSHOT)).toBeNull();
+    expect(nextAbLoop(at(500, 1000, null))).toEqual({ type: "setAbLoop", aMs: 500, bMs: null });
   });
 });
-
-describe("queue shortcuts", () => {
-  it("maps Shift+N / Shift+P / media keys / Q", () => {
-    expect(shortcutFor(key("N", { shiftKey: true }), INITIAL_SNAPSHOT)).toEqual({ kind: "queueNext" });
-    expect(shortcutFor(key("P", { shiftKey: true }), INITIAL_SNAPSHOT)).toEqual({ kind: "queuePrevious" });
-    expect(shortcutFor(key("MediaTrackNext"), INITIAL_SNAPSHOT)).toEqual({ kind: "queueNext" });
-    expect(shortcutFor(key("q"), INITIAL_SNAPSHOT)).toEqual({ kind: "toggleQueue" });
-  });
-});
-
-import { describeError } from "./errors";
 
 describe("error explanations", () => {
   it("explains editing projects and RAW with the engine's specific message", () => {

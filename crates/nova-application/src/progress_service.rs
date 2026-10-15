@@ -309,6 +309,7 @@ mod tests {
             video: None,
             ab_loop: AbLoop::default(),
             issues: vec![],
+            adjust: Default::default(),
             error: None,
         }
     }

@@ -1,19 +1,86 @@
 @import "tailwindcss";
 
-@theme {
-  --color-cream: #f7f4ee;
-  --color-ink: #171715;
-  --color-ember: #f97316;
-  --color-ash: #92928b;
-  --font-sans: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
-  --font-display: "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
-  --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
+/* Archivo (SIL OFL 1.1, see assets/fonts/OFL.txt): one variable family for UI
+   text and condensed spine titles via the width axis. */
+@font-face {
+  font-family: "Archivo";
+  src: url("../assets/fonts/Archivo-VF.ttf") format("truetype");
+  font-weight: 100 900;
+  font-stretch: 62% 125%;
+  font-display: swap;
 }
 
-:root {
+/* ---------------------------------------------------------------------------
+   Tokens. Daylight = cream stock, Night = ink stock, Darkroom = player chrome.
+   Contrast (computed, WCAG 2.x): --ink-2/--paper 8.9:1, --ink-3/--paper 5.5:1
+   (5.1:1 on --paper-sunk), --ember-text/--paper 5.2:1, ink on ember 6.4:1;
+   Night: --ink-3/--paper 6.6:1, --ember-text 8.7:1. Ember/cream is 2.6:1.
+   Ember is a FILL colour on cream; text uses --ember-text.
+--------------------------------------------------------------------------- */
+:root,
+:root[data-theme="light"] {
+  color-scheme: light;
+  --paper: #f7f4ee;
+  --paper-raised: #fbf9f5;
+  --paper-sunk: #efebe3;
+  --ink: #171715;
+  --ink-2: #45443f;
+  --ink-3: #64635c;
+  --seam: rgb(23 23 21 / 0.12);
+  --seam-strong: rgb(23 23 21 / 0.24);
+  --hover: rgb(23 23 21 / 0.05);
+  --press: rgb(23 23 21 / 0.09);
+  --ember: #f97316;
+  --ember-text: #a84a08;
+  --on-ember: #171715;
+  --danger: #b42318;
+  --thumb-bg: #e6e1d6;
+}
+
+:root[data-theme="dark"] {
   color-scheme: dark;
-  /* The native video surface is behind the WebView; keep the page transparent. */
-  background: transparent;
+  --paper: #141412;
+  --paper-raised: #1c1c19;
+  --paper-sunk: #0e0e0d;
+  --ink: #f2efe8;
+  --ink-2: #c9c6be;
+  --ink-3: #9d9b94;
+  --seam: rgb(242 239 232 / 0.1);
+  --seam-strong: rgb(242 239 232 / 0.2);
+  --hover: rgb(242 239 232 / 0.06);
+  --press: rgb(242 239 232 / 0.1);
+  --ember: #f97316;
+  --ember-text: #fb9a52;
+  --on-ember: #171715;
+  --danger: #ff8a7a;
+  --thumb-bg: #26261f;
+}
+
+@theme {
+  --color-paper: var(--paper);
+  --color-paper-raised: var(--paper-raised);
+  --color-paper-sunk: var(--paper-sunk);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-seam: var(--seam);
+  --color-seam-strong: var(--seam-strong);
+  --color-ember: var(--ember);
+  --color-ember-text: var(--ember-text);
+  --color-on-ember: var(--on-ember);
+  --color-danger: var(--danger);
+  /* Darkroom (player) is always dark, independent of theme. */
+  --color-room: #0b0b0a;
+  /* Opaque enough on its own: backdrop-filter cannot blur the native video surface below the WebView. */
+  --color-room-glass: rgb(13 13 12 / 0.93);
+  --color-room-ink: #f2efe8;
+  --color-room-ink-2: #c9c6be;
+  --color-room-ink-3: #a3a19a;
+  --color-room-seam: rgb(242 239 232 / 0.12);
+  --color-cream: #f7f4ee;
+  --font-sans: "Archivo", "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out-strong: cubic-bezier(0.77, 0, 0.175, 1);
 }
 
 html,
@@ -21,76 +88,166 @@ body,
 #root {
   height: 100%;
   margin: 0;
-  background: transparent;
+  background: transparent; /* native video sits under the WebView */
   overflow: hidden;
-  user-select: none;
-  -webkit-font-smoothing: antialiased;
 }
 
 body {
   font-family: var(--font-sans);
-  color: var(--color-cream);
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  font-optical-sizing: auto;
+  font-variant-numeric: tabular-nums;
+  user-select: none;
 }
 
+/* Browser surfaces carry the design too. */
+::selection {
+  background: rgb(249 115 22 / 0.28);
+  color: inherit;
+}
 :focus-visible {
-  outline: 2px solid var(--color-ember);
+  outline: 2px solid var(--ember);
   outline-offset: 2px;
+}
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--seam-strong) transparent;
+}
+input,
+textarea {
+  caret-color: var(--ember);
+  user-select: text;
+}
+
+/* Condensed spine voice: titles, catalogue headings. */
+.spine {
+  font-stretch: 72%;
+  font-weight: 640;
+  letter-spacing: -0.01em;
+  line-height: 1.05;
+}
+.spine-xl {
+  font-stretch: 68%;
+  font-weight: 720;
+  letter-spacing: -0.02em;
+  line-height: 0.95;
+}
+/* Small catalogue labels (not eyebrows: they label data, e.g. "No. 042"). */
+.catalog {
+  font-stretch: 88%;
+  font-weight: 560;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .press {
-  transition: transform 140ms var(--ease-out-strong), background-color 150ms ease, color 150ms ease;
+  transition:
+    transform 140ms var(--ease-out-strong),
+    background-color 150ms ease,
+    color 150ms ease,
+    border-color 150ms ease;
 }
-.press:active {
+.press:active:not(:disabled) {
   transform: scale(0.97);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .press:active {
-    transform: none;
-  }
+/* State stamps: ink-on-paper marks, never coloured pills. */
+.stamp {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 1.5px solid currentColor;
+  border-radius: 3px;
+  padding: 0 5px;
+  font-stretch: 80%;
+  font-weight: 650;
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  line-height: 16px;
 }
 
-/* Seek bar thumb: the track is drawn underneath by SeekBar. */
-.seek-input::-webkit-slider-runnable-track {
+/* Timeline input: track drawn by the component. */
+.seek-input {
+  -webkit-appearance: none;
+  appearance: none;
   background: transparent;
-  height: 20px;
+}
+.seek-input::-webkit-slider-runnable-track {
+  height: 24px;
+  background: transparent;
 }
 .seek-input::-webkit-slider-thumb {
-  appearance: none;
-  margin-top: 3px;
+  -webkit-appearance: none;
+  margin-top: 5px;
   width: 14px;
   height: 14px;
   border-radius: 9999px;
   background: var(--color-cream);
-  box-shadow: 0 0 0 4px rgb(249 115 22 / 0.35);
-  transform: scale(0.75);
-  transition: transform 150ms var(--ease-out-strong);
+  box-shadow:
+    0 0 0 3px rgb(249 115 22 / 0.9),
+    0 2px 6px rgb(0 0 0 / 0.5);
+  transform: scale(0);
+  transition: transform 160ms var(--ease-out-strong);
 }
-.seek-input:hover::-webkit-slider-thumb,
+.timeline:hover .seek-input::-webkit-slider-thumb,
 .seek-input:focus-visible::-webkit-slider-thumb,
 .seek-input:active::-webkit-slider-thumb {
   transform: scale(1);
 }
-.seek-input:disabled::-webkit-slider-thumb {
-  opacity: 0;
-}
 .seek-input:focus-visible {
   outline: none;
 }
-.seek-input:focus-visible::-webkit-slider-thumb {
-  box-shadow: 0 0 0 3px var(--color-ember);
+.seek-input:disabled::-webkit-slider-thumb {
+  display: none;
 }
 
-.volume-input {
+.level-input {
+  -webkit-appearance: none;
   appearance: none;
   height: 4px;
   border-radius: 9999px;
-  background: linear-gradient(to right, var(--color-cream) var(--fill), rgb(255 255 255 / 0.2) var(--fill));
+  background: linear-gradient(to right, var(--color-cream) var(--fill), rgb(242 239 232 / 0.22) var(--fill));
 }
-.volume-input::-webkit-slider-thumb {
-  appearance: none;
+.level-input::-webkit-slider-thumb {
+  -webkit-appearance: none;
   width: 12px;
   height: 12px;
   border-radius: 9999px;
   background: var(--color-cream);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.5);
+}
+
+dialog:focus-visible {
+  outline: none; /* focus moves to the first control; the panel itself needs no ring */
+}
+dialog::backdrop {
+  background: rgb(11 11 10 / 0.42);
+}
+
+/* One-off cards (end of media) rise a few pixels into place. */
+.rise {
+  transition:
+    opacity 220ms var(--ease-out-strong),
+    transform 220ms var(--ease-out-strong);
+  @starting-style {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 1ms !important;
+    animation-duration: 1ms !important;
+  }
+  .press:active:not(:disabled) {
+    transform: none;
+  }
 }

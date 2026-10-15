@@ -132,6 +132,12 @@ const P_HWDEC: u64 = 10;
 const P_VIDEO_PARAMS: u64 = 11;
 const P_AB_A: u64 = 12;
 const P_AB_B: u64 = 13;
+const P_SUB_DELAY: u64 = 14;
+const P_AUDIO_DELAY: u64 = 15;
+const P_ASPECT: u64 = 16;
+const P_ROTATE: u64 = 17;
+const P_DEINT: u64 = 18;
+const P_LOOP_FILE: u64 = 19;
 
 const OBSERVED: &[(u64, &str, c_int)] = &[
     (P_PAUSE, "pause", MPV_FORMAT_FLAG),
@@ -147,6 +153,12 @@ const OBSERVED: &[(u64, &str, c_int)] = &[
     (P_VIDEO_PARAMS, "video-params", MPV_FORMAT_NODE),
     (P_AB_A, "ab-loop-a", MPV_FORMAT_DOUBLE),
     (P_AB_B, "ab-loop-b", MPV_FORMAT_DOUBLE),
+    (P_SUB_DELAY, "sub-delay", MPV_FORMAT_DOUBLE),
+    (P_AUDIO_DELAY, "audio-delay", MPV_FORMAT_DOUBLE),
+    (P_ASPECT, "video-aspect-override", MPV_FORMAT_STRING),
+    (P_ROTATE, "video-rotate", MPV_FORMAT_STRING),
+    (P_DEINT, "deinterlace", MPV_FORMAT_STRING),
+    (P_LOOP_FILE, "loop-file", MPV_FORMAT_STRING),
 ];
 
 fn engine_err(msg: impl Into<String>) -> PlaybackError {
@@ -585,6 +597,30 @@ impl PlaybackBackend for MpvPlayer {
                 "sid",
                 &track_selector(track_id.as_deref(), TrackKind::Subtitle)?,
             )?,
+            PlaybackCommand::FrameStep { forward } => i.command(&[if forward {
+                "frame-step"
+            } else {
+                "frame-back-step"
+            }])?,
+            PlaybackCommand::SetSubtitleDelay { ms } => {
+                i.set_double("sub-delay", ms as f64 / 1000.0)?
+            }
+            PlaybackCommand::SetAudioDelay { ms } => {
+                i.set_double("audio-delay", ms as f64 / 1000.0)?
+            }
+            PlaybackCommand::SetAspectRatio { ratio } => {
+                i.set_string("video-aspect-override", ratio.as_deref().unwrap_or("no"))?
+            }
+            PlaybackCommand::SetRotation { degrees } => {
+                i.set_string("video-rotate", &degrees.to_string())?
+            }
+            PlaybackCommand::SetDeinterlace { enabled } => {
+                i.set_string("deinterlace", if enabled { "yes" } else { "no" })?
+            }
+            PlaybackCommand::SetLoopFile { enabled } => {
+                i.set_string("loop-file", if enabled { "inf" } else { "no" })?
+            }
+            PlaybackCommand::AddSubtitle { path } => i.command(&["sub-add", &path, "select"])?,
             PlaybackCommand::SetHardwareDecoding { enabled } => {
                 i.set_string("hwdec", if enabled { "auto-safe" } else { "no" })?
             }
@@ -602,6 +638,21 @@ impl PlaybackBackend for MpvPlayer {
         Ok(ack)
     }
 
+    fn screenshot(
+        &self,
+        path: &std::path::Path,
+        with_subtitles: bool,
+    ) -> Result<(), PlaybackError> {
+        let p = path
+            .to_str()
+            .ok_or_else(|| PlaybackError::invalid("path is not valid Unicode"))?;
+        self.inner.command(&[
+            "screenshot-to-file",
+            p,
+            if with_subtitles { "subtitles" } else { "video" },
+        ])
+    }
+
     fn media_details(&self) -> Option<MediaDetails> {
         let p = self;
         let s = |n: &str| p.property_string(n);
@@ -610,11 +661,22 @@ impl PlaybackBackend for MpvPlayer {
         let text = |v: Option<&Node>| v.and_then(Node::as_str).map(str::to_owned);
         let video = p.property_node("video-params").map(|vp| {
             // Decoder output format (before any hardware download) gives true depth/chroma.
+            // With hardware decoding `pixelformat` names the GPU surface (e.g. "d3d11");
+            // the real layout is in `hw-pixelformat` (e.g. "nv12", "p010").
             let dec = p.property_node("video-dec-params");
-            let fmt = dec
-                .as_ref()
-                .and_then(|d| text(d.get("pixelformat")))
-                .or_else(|| text(vp.get("pixelformat")));
+            let pick = |n: &Node| {
+                let sw = text(n.get("pixelformat"));
+                if sw
+                    .as_deref()
+                    .map(pixel_format_traits)
+                    .is_some_and(|t| t.0.is_some())
+                {
+                    sw
+                } else {
+                    text(n.get("hw-pixelformat")).or(sw)
+                }
+            };
+            let fmt = dec.as_ref().and_then(pick).or_else(|| pick(&vp));
             let (bit_depth, chroma, has_alpha) = fmt
                 .as_deref()
                 .map(pixel_format_traits)
@@ -681,6 +743,22 @@ fn track_selector(id: Option<&str>, kind: TrackKind) -> Result<String, PlaybackE
             Ok(id.index.to_string())
         }
     }
+}
+
+/// Maps mpv's reported aspect override (label or decimal) to one of ours.
+fn aspect_label(v: &str) -> Option<String> {
+    if nova_playback_api::ASPECT_RATIOS.contains(&v) {
+        return Some(v.to_owned());
+    }
+    let value: f64 = v.parse().ok()?;
+    nova_playback_api::ASPECT_RATIOS
+        .iter()
+        .find(|r| {
+            let (a, b) = r.split_once(':').unwrap();
+            let ratio = a.parse::<f64>().unwrap() / b.parse::<f64>().unwrap();
+            (ratio - value).abs() < 0.005
+        })
+        .map(|r| (*r).to_owned())
 }
 
 fn secs_to_ms(secs: f64) -> u64 {
@@ -946,6 +1024,27 @@ impl EventLoop {
             }
             P_MUTE => self.apply(EngineEvent::MuteChanged(flag())),
             P_AB_A => self.apply(EngineEvent::AbLoopAChanged(double().map(secs_to_ms))),
+            P_SUB_DELAY => self.apply(EngineEvent::SubtitleDelayChanged(
+                double().map_or(0, |d| (d * 1000.0).round() as i64),
+            )),
+            P_AUDIO_DELAY => self.apply(EngineEvent::AudioDelayChanged(
+                double().map_or(0, |d| (d * 1000.0).round() as i64),
+            )),
+            P_ASPECT => {
+                // mpv reports "no"/"-1" for "as encoded"; numeric forms are mapped back to our labels.
+                let v = string().filter(|v| v != "no" && v != "-1" && v != "-1.000000");
+                let label = v.and_then(|v| aspect_label(&v));
+                self.apply(EngineEvent::AspectChanged(label))
+            }
+            P_ROTATE => self.apply(EngineEvent::RotationChanged(
+                string().and_then(|v| v.parse().ok()).unwrap_or(0),
+            )),
+            P_DEINT => self.apply(EngineEvent::DeinterlaceChanged(
+                string().is_some_and(|v| v == "yes"),
+            )),
+            P_LOOP_FILE => self.apply(EngineEvent::LoopFileChanged(
+                string().is_some_and(|v| v != "no"),
+            )),
             P_AB_B => self.apply(EngineEvent::AbLoopBChanged(double().map(secs_to_ms))),
             P_SPEED => {
                 if let Some(s) = double() {

@@ -33,6 +33,12 @@ pub enum EngineEvent {
     AbLoopAChanged(Option<MediaTimeMs>),
     AbLoopBChanged(Option<MediaTimeMs>),
     Issue(crate::PlaybackIssue),
+    SubtitleDelayChanged(i64),
+    AudioDelayChanged(i64),
+    AspectChanged(Option<String>),
+    RotationChanged(u16),
+    DeinterlaceChanged(bool),
+    LoopFileChanged(bool),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -70,6 +76,7 @@ pub struct PlaybackState {
     video: Option<VideoInfo>,
     ab_loop: AbLoop,
     issues: Vec<crate::PlaybackIssue>,
+    adjust: crate::Adjustments,
     error: Option<PlaybackError>,
 }
 
@@ -94,6 +101,7 @@ impl Default for PlaybackState {
             video: None,
             ab_loop: AbLoop::default(),
             issues: Vec::new(),
+            adjust: crate::Adjustments::default(),
             error: None,
         }
     }
@@ -125,6 +133,7 @@ impl PlaybackState {
                 return false; // a newer session already started
             }
             let (volume, muted, speed) = (self.volume_percent, self.muted, self.speed);
+            let adjust = self.adjust.clone();
             *self = Self {
                 session_id: session,
                 seq: self.seq,
@@ -135,6 +144,7 @@ impl PlaybackState {
                 volume_percent: volume,
                 muted,
                 speed,
+                adjust,
                 ..Self::default()
             };
             self.seq += 1;
@@ -147,6 +157,12 @@ impl PlaybackState {
             EngineEvent::VolumeChanged(_)
                 | EngineEvent::MuteChanged(_)
                 | EngineEvent::SpeedChanged(_)
+                | EngineEvent::SubtitleDelayChanged(_)
+                | EngineEvent::AudioDelayChanged(_)
+                | EngineEvent::AspectChanged(_)
+                | EngineEvent::RotationChanged(_)
+                | EngineEvent::DeinterlaceChanged(_)
+                | EngineEvent::LoopFileChanged(_)
         );
         if !player_wide && session != self.session_id {
             return false;
@@ -199,6 +215,12 @@ impl PlaybackState {
             EngineEvent::VideoChanged(v) => self.video = v,
             EngineEvent::AbLoopAChanged(a) => self.ab_loop.a_ms = a,
             EngineEvent::AbLoopBChanged(b) => self.ab_loop.b_ms = b,
+            EngineEvent::SubtitleDelayChanged(v) => self.adjust.subtitle_delay_ms = v,
+            EngineEvent::AudioDelayChanged(v) => self.adjust.audio_delay_ms = v,
+            EngineEvent::AspectChanged(v) => self.adjust.aspect_ratio = v,
+            EngineEvent::RotationChanged(v) => self.adjust.rotation = v,
+            EngineEvent::DeinterlaceChanged(v) => self.adjust.deinterlace = v,
+            EngineEvent::LoopFileChanged(v) => self.adjust.loop_file = v,
             EngineEvent::Issue(i) => {
                 if !self.issues.contains(&i) {
                     self.issues.push(i);
@@ -233,6 +255,7 @@ impl PlaybackState {
             video: self.video.clone(),
             ab_loop: self.ab_loop,
             issues: self.issues.clone(),
+            adjust: self.adjust.clone(),
             error: self.error.clone(),
         }
     }

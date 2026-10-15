@@ -102,9 +102,25 @@ export interface PlaybackSnapshot {
   tracks: Track[];
   video: VideoInfo | null;
   abLoop: AbLoop;
+  adjust: Adjustments;
   issues: PlaybackIssue[];
   error: PlaybackError | null;
 }
+
+export interface Adjustments {
+  subtitleDelayMs: number;
+  audioDelayMs: number;
+  aspectRatio: string | null;
+  rotation: number;
+  deinterlace: boolean;
+  loopFile: boolean;
+}
+
+/** Must match nova-playback-api ASPECT_RATIOS. */
+export const ASPECT_RATIOS = ["16:9", "4:3", "1:1", "16:10", "2.21:1", "2.35:1", "2.39:1", "5:4", "1.85:1"] as const;
+export const SUBTITLE_EXTENSIONS = ["srt", "ass", "ssa", "vtt", "sub", "sup", "idx", "smi", "lrc"] as const;
+
+export type RepeatMode = "off" | "one" | "all";
 
 export interface AbLoop {
   aMs: number | null;
@@ -122,9 +138,10 @@ export interface QueueSnapshot {
   currentId: number | null;
   hasNext: boolean;
   hasPrevious: boolean;
+  repeat: RepeatMode;
 }
 
-export const EMPTY_QUEUE: QueueSnapshot = { items: [], currentId: null, hasNext: false, hasPrevious: false };
+export const EMPTY_QUEUE: QueueSnapshot = { items: [], currentId: null, hasNext: false, hasPrevious: false, repeat: "off" };
 
 export type PlaybackCommand =
   | { type: "open"; path: string }
@@ -139,7 +156,16 @@ export type PlaybackCommand =
   | { type: "setSpeed"; multiplier: number }
   | { type: "selectAudioTrack"; trackId: string | null }
   | { type: "selectSubtitleTrack"; trackId: string | null }
-  | { type: "setAbLoop"; aMs: number | null; bMs: number | null };
+  | { type: "setAbLoop"; aMs: number | null; bMs: number | null }
+  | { type: "setHardwareDecoding"; enabled: boolean }
+  | { type: "frameStep"; forward: boolean }
+  | { type: "setSubtitleDelay"; ms: number }
+  | { type: "setAudioDelay"; ms: number }
+  | { type: "setAspectRatio"; ratio: string | null }
+  | { type: "setRotation"; degrees: number }
+  | { type: "setDeinterlace"; enabled: boolean }
+  | { type: "setLoopFile"; enabled: boolean }
+  | { type: "addSubtitle"; path: string };
 
 export interface CommandAck {
   sessionId: number;
@@ -162,6 +188,7 @@ export const INITIAL_SNAPSHOT: PlaybackSnapshot = {
   tracks: [],
   video: null,
   abLoop: { aMs: null, bMs: null },
+  adjust: { subtitleDelayMs: 0, audioDelayMs: 0, aspectRatio: null, rotation: 0, deinterlace: false, loopFile: false },
   issues: [],
   error: null,
 };

@@ -1,12 +1,14 @@
+import { Thumb } from "../../components/Thumb";
+import { Stamp } from "../../components/ui/controls";
 import type { LibraryItem } from "../../services/library/types";
-import { folderName, formatBytes, timeLeft, watchedFraction } from "../../services/library/view";
+import { catalogNo, folderName, specLine, stampFor, timeLeft, watchedFraction } from "../../services/library/view";
 
-export const ROW_HEIGHT = 56;
+export const ROW_HEIGHT = 68;
 
-/** One library result. The whole row is the play button. */
+/** One catalogued title. The whole row is the play button. */
 export function ItemRow({ item, onPlay, style }: { item: LibraryItem; onPlay: (i: LibraryItem) => void; style?: React.CSSProperties }) {
+  const stamp = stampFor(item);
   const frac = watchedFraction(item.progress);
-  const left = timeLeft(item.progress);
   return (
     <button
       type="button"
@@ -14,24 +16,17 @@ export function ItemRow({ item, onPlay, style }: { item: LibraryItem; onPlay: (i
       onClick={() => onPlay(item)}
       disabled={item.missing}
       title={item.path}
-      className="press group absolute inset-x-0 flex items-center gap-4 rounded-lg px-3 text-left hover:bg-ink/[0.04] focus-visible:bg-ink/[0.04] disabled:cursor-not-allowed disabled:opacity-55"
+      className="press group absolute inset-x-0 flex items-center gap-4 border-b border-seam px-2 text-left hover:bg-[var(--hover)] focus-visible:bg-[var(--hover)] disabled:cursor-not-allowed disabled:opacity-60"
     >
+      <Thumb item={item} progress={stamp === "progress" ? frac : null} className="aspect-video w-[88px] shrink-0 rounded-[3px] ring-1 ring-seam" />
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-[15px] font-medium text-ink">{item.title}</span>
-        <span className="block truncate text-xs text-ash">
-          {item.missing ? <span className="font-medium text-ember">File missing · </span> : null}
-          {folderName(item.folder)}
+        <span className="spine block truncate text-[17px] text-ink">{item.title}</span>
+        <span className="mt-0.5 block truncate text-[12.5px] text-ink-3">
+          {[stamp === "progress" ? timeLeft(item.progress) : null, specLine(item), folderName(item.folder)].filter(Boolean).join(" · ")}
         </span>
       </span>
-      {frac != null && (
-        <span className="hidden w-28 shrink-0 flex-col gap-1 sm:flex" aria-label={left ?? undefined}>
-          <span className="h-1 overflow-hidden rounded-full bg-ink/10">
-            <span className="block h-full rounded-full bg-ember" style={{ width: `${frac * 100}%` }} />
-          </span>
-          <span className="text-[11px] text-ash">{left}</span>
-        </span>
-      )}
-      <span className="w-16 shrink-0 text-right text-xs tabular-nums text-ash">{formatBytes(item.sizeBytes)}</span>
+      {stamp && <Stamp kind={stamp} />}
+      <span className="catalog hidden w-16 shrink-0 text-right text-ink-3 min-[760px]:block">{catalogNo(item.id)}</span>
     </button>
   );
 }

@@ -4,7 +4,19 @@
 //! When the current item is removed, the cursor remembers *where* it was, so
 //! "next" continues with the item that moved into that slot.
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
+
+/// What happens at the end of an item.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum RepeatMode {
+    #[default]
+    Off,
+    /// Repeat the current item.
+    One,
+    /// After the last item, start again from the first.
+    All,
+}
 
 pub type QueueItemId = u64;
 
@@ -23,6 +35,7 @@ pub struct QueueSnapshot {
     pub current_id: Option<QueueItemId>,
     pub has_next: bool,
     pub has_previous: bool,
+    pub repeat: RepeatMode,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -39,6 +52,7 @@ pub struct Queue {
     items: Vec<QueueItem>,
     cursor: Option<Cursor>,
     next_id: QueueItemId,
+    repeat: RepeatMode,
 }
 
 fn title_of(path: &str) -> String {
@@ -178,6 +192,47 @@ impl Queue {
         true
     }
 
+    pub fn repeat(&self) -> RepeatMode {
+        self.repeat
+    }
+
+    pub fn set_repeat(&mut self, mode: RepeatMode) {
+        self.repeat = mode;
+    }
+
+    /// Moves to the first item (used by repeat-all at the end of the queue).
+    pub fn wrap_to_start(&mut self) -> Option<&QueueItem> {
+        if self.items.is_empty() {
+            return None;
+        }
+        self.cursor = Some(Cursor::At(0));
+        self.current()
+    }
+
+    /// Shuffles the items after the current one (already played items and the
+    /// current item keep their place). Deterministic for a given seed.
+    pub fn shuffle_upcoming(&mut self, seed: u64) {
+        let start = match self.cursor() {
+            Cursor::At(i) => i + 1,
+            Cursor::Gap(i) => i,
+            Cursor::None => 0,
+        };
+        let mut state = seed | 1;
+        let mut rand = || {
+            // xorshift64*: small, fast, dependency-free
+            state ^= state >> 12;
+            state ^= state << 25;
+            state ^= state >> 27;
+            state.wrapping_mul(0x2545_f491_4f6c_dd1d)
+        };
+        let len = self.items.len();
+        let tail = &mut self.items[start.min(len)..];
+        for i in (1..tail.len()).rev() {
+            let j = (rand() % (i as u64 + 1)) as usize;
+            tail.swap(i, j);
+        }
+    }
+
     pub fn clear(&mut self) {
         self.items.clear();
         self.cursor = Some(Cursor::None);
@@ -189,6 +244,7 @@ impl Queue {
             current_id: self.current().map(|c| c.id),
             has_next: self.next_index().is_some(),
             has_previous: self.previous_index().is_some(),
+            repeat: self.repeat,
         }
     }
 }
@@ -324,6 +380,49 @@ mod tests {
         let id3 = q.snapshot().items[1].id;
         q.move_item(id3, 2); // [1,4,3]
         assert_eq!(q.next_item().unwrap().title, "3.mp4");
+    }
+
+    #[test]
+    fn shuffle_keeps_played_and_current_in_place() {
+        let mut q1 = q(8);
+        q1.next_item(); // 2 is current
+        let before: Vec<_> = q1.snapshot().items.iter().map(|i| i.id).collect();
+        q1.shuffle_upcoming(42);
+        let after: Vec<_> = q1.snapshot().items.iter().map(|i| i.id).collect();
+        assert_eq!(&after[..2], &before[..2]);
+        assert_ne!(after, before, "upcoming order changed");
+        let mut a = after[2..].to_vec();
+        let mut b = before[2..].to_vec();
+        a.sort();
+        b.sort();
+        assert_eq!(a, b, "same items, nothing lost");
+        assert_eq!(cur(&q1).as_deref(), Some("2.mp4"));
+        let mut q2 = q(8);
+        q2.next_item();
+        q2.shuffle_upcoming(42);
+        let again: Vec<_> = q2
+            .snapshot()
+            .items
+            .iter()
+            .map(|i| i.title.clone())
+            .collect();
+        let first: Vec<_> = q1
+            .snapshot()
+            .items
+            .iter()
+            .map(|i| i.title.clone())
+            .collect();
+        assert_eq!(again, first, "deterministic for a seed");
+    }
+
+    #[test]
+    fn repeat_all_wraps() {
+        let mut q = q(2);
+        q.set_repeat(RepeatMode::All);
+        q.next_item();
+        assert!(q.next_item().is_none());
+        assert_eq!(q.wrap_to_start().unwrap().title, "1.mp4");
+        assert_eq!(q.snapshot().repeat, RepeatMode::All);
     }
 
     #[test]

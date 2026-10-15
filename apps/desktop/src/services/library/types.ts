@@ -14,6 +14,23 @@ export interface LibraryItem {
   sizeBytes: number;
   missing: boolean;
   progress: SavedProgress | null;
+  durationMs: number | null;
+  width: number | null;
+  height: number | null;
+  hasThumbnail: boolean;
+}
+
+export interface PlaylistSummary {
+  id: number;
+  name: string;
+  itemCount: number;
+  knownDurationMs: number | null;
+  updatedAtMs: number;
+}
+
+export interface PlaylistEntry {
+  path: string;
+  title: string;
 }
 
 export interface SearchPage {

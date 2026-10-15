@@ -1,129 +1,220 @@
-import { ChevronDownIcon, ChevronUpIcon, CloseIcon, PlusIcon } from "../../components/icons";
+import { useEffect, useRef, useState } from "react";
+import { CloseIcon, GripIcon, PlusIcon, SaveIcon, TrashIcon } from "../../components/icons";
+import { Button, IconButton } from "../../components/ui/controls";
+import { ConfirmDialog } from "../../components/ui/Dialog";
+import { library } from "../../services/library/client";
+import { formatDuration } from "../../services/library/view";
 import { queue, useQueue } from "../../services/playback/client";
+import type { RepeatMode } from "../../services/playback/types";
 
-/** Side panel listing the play queue. Every action round-trips to Rust. */
-export function QueuePanel(props: { open: boolean; onClose: () => void; onAddFiles: () => void; onError: (e: unknown) => void }) {
+/** Queue as a stack of pulled spines. Every change round-trips to Rust. */
+export function QueuePanel(props: { onClose: () => void; onAddFiles: () => void; onError: (e: unknown) => void }) {
   const q = useQueue();
   const run = (p: Promise<unknown>) => void p.catch(props.onError);
+  const [durations, setDurations] = useState<Record<string, number>>({});
+  const [saving, setSaving] = useState(false);
+  const [name, setName] = useState("");
+  const [clearing, setClearing] = useState(false);
+  const [dragId, setDragId] = useState<number | null>(null);
+  const [dropIndex, setDropIndex] = useState<number | null>(null);
+  const [saved, setSaved] = useState<string | null>(null);
+  const nameRef = useRef<HTMLInputElement>(null);
   const currentIndex = q.items.findIndex((i) => i.id === q.currentId);
 
+  useEffect(() => {
+    const paths = q.items.map((i) => i.path);
+    if (paths.length === 0) return;
+    library.durations(paths).then(setDurations, () => {});
+  }, [q.items]);
+
+  useEffect(() => {
+    if (saving) nameRef.current?.focus();
+  }, [saving]);
+
+  const upcomingMs = q.items.slice(currentIndex + 1).reduce((n, i) => n + (durations[i.path] ?? 0), 0);
+  const unknownUpcoming = q.items.slice(currentIndex + 1).some((i) => durations[i.path] == null);
+  const repeatLabel: Record<RepeatMode, string> = { off: "Repeat off", one: "Repeat one", all: "Repeat all" };
+  const nextRepeat: Record<RepeatMode, RepeatMode> = { off: "all", all: "one", one: "off" };
+
+  const save = async () => {
+    const n = name.trim();
+    if (!n) return;
+    try {
+      await library.createPlaylist(n, q.items.map((i) => ({ path: i.path, title: i.title })));
+      setSaving(false);
+      setName("");
+      setSaved(n);
+    } catch (e) {
+      props.onError(e);
+    }
+  };
+
   return (
-    <aside
-      aria-label="Queue"
-      aria-hidden={!props.open}
-      data-open={props.open}
-      onClick={(e) => e.stopPropagation()}
-      onKeyDown={(e) => {
-        if (e.key === "Escape") {
-          e.stopPropagation();
-          props.onClose();
-        }
-      }}
-      className={[
-        "absolute inset-y-3 right-3 z-30 flex w-80 flex-col rounded-2xl border border-white/10 bg-ink/90 shadow-2xl shadow-black/60 backdrop-blur-xl",
-        "transition-[transform,opacity] duration-200 ease-(--ease-out-strong)",
-        "data-[open=false]:pointer-events-none data-[open=false]:translate-x-[calc(100%+12px)] data-[open=false]:opacity-0",
-        "motion-reduce:transition-opacity motion-reduce:data-[open=false]:translate-x-0",
-      ].join(" ")}
-    >
-      <header className="flex items-center gap-2 px-4 pb-2 pt-4">
-        <h2 className="font-display text-lg font-semibold text-cream">Queue</h2>
-        <span className="text-sm tabular-nums text-ash">{q.items.length}</span>
-        <div className="flex-1" />
-        <button
-          type="button"
-          tabIndex={props.open ? 0 : -1}
-          onClick={props.onAddFiles}
-          className="press flex items-center gap-1 rounded-full px-2.5 py-1 text-sm text-cream/85 hover:bg-white/10"
-        >
-          <PlusIcon width={16} height={16} /> Add
-        </button>
-        <button
-          type="button"
-          aria-label="Close queue"
-          tabIndex={props.open ? 0 : -1}
-          onClick={props.onClose}
-          className="press flex size-8 items-center justify-center rounded-full text-cream/70 hover:bg-white/10"
-        >
-          <CloseIcon width={18} height={18} />
-        </button>
+    <section aria-label="Queue" className="flex h-full flex-col">
+      <header className="border-b border-room-seam px-5 pb-3 pt-4">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h2 className="spine text-[22px] text-room-ink">Queue</h2>
+            <p className="mt-0.5 text-[12.5px] text-room-ink-2">
+              {q.items.length} {q.items.length === 1 ? "title" : "titles"}
+              {upcomingMs > 0 && ` · ${unknownUpcoming ? "at least " : ""}${formatDuration(upcomingMs)} up next`}
+            </p>
+          </div>
+          <IconButton tone="room" size="sm" label="Close queue (Q)" onClick={props.onClose}>
+            <CloseIcon size={18} />
+          </IconButton>
+        </div>
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          <Button tone="room" variant="quiet" onClick={props.onAddFiles} icon={<PlusIcon size={16} />}>
+            Add
+          </Button>
+          <Button tone="room" variant="quiet" onClick={() => run(queue.setRepeat(nextRepeat[q.repeat]))} aria-label={`${repeatLabel[q.repeat]}. Change`} className={q.repeat !== "off" ? "text-ember" : ""}>
+            {repeatLabel[q.repeat]}
+          </Button>
+          <Button tone="room" variant="quiet" onClick={() => run(queue.shuffle())} disabled={q.items.length - currentIndex - 1 < 2}>
+            Shuffle upcoming
+          </Button>
+        </div>
       </header>
 
       {q.items.length === 0 ? (
-        <div className="flex flex-1 flex-col items-center justify-center gap-2 px-8 text-center">
-          <p className="text-sm text-cream/85">Nothing queued</p>
-          <p className="text-xs leading-relaxed text-ash">Open several files at once, drop them here, or use Add.</p>
+        <div className="flex flex-1 flex-col items-start justify-center gap-2 px-6">
+          <p className="spine text-[20px] text-room-ink">Nothing queued</p>
+          <p className="text-[13px] leading-relaxed text-room-ink-2">Open several files at once, drop them on the player, or add them here.</p>
         </div>
       ) : (
-        <ol className="flex-1 overflow-y-auto px-2 pb-2">
+        <ol
+          className="min-h-0 flex-1 overflow-y-auto py-2"
+          onDragOver={(e) => e.preventDefault()}
+          onDrop={(e) => {
+            e.preventDefault();
+            if (dragId != null && dropIndex != null) run(queue.move(dragId, dropIndex));
+            setDragId(null);
+            setDropIndex(null);
+          }}
+        >
           {q.items.map((item, i) => {
             const current = item.id === q.currentId;
             const played = currentIndex >= 0 && i < currentIndex;
+            const d = formatDuration(durations[item.path]);
             return (
               <li
                 key={item.id}
-                className={`group flex items-center gap-1 rounded-lg pr-1 ${current ? "bg-white/8" : "hover:bg-white/5"}`}
+                draggable
+                onDragStart={(e) => {
+                  setDragId(item.id);
+                  e.dataTransfer.effectAllowed = "move";
+                }}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  const r = e.currentTarget.getBoundingClientRect();
+                  setDropIndex(e.clientY < r.top + r.height / 2 ? i : i + 1 > q.items.length - 1 ? q.items.length - 1 : i);
+                }}
+                onDragEnd={() => {
+                  setDragId(null);
+                  setDropIndex(null);
+                }}
+                onKeyDown={(e) => {
+                  if (!e.altKey || (e.key !== "ArrowUp" && e.key !== "ArrowDown")) return;
+                  e.preventDefault();
+                  e.stopPropagation();
+                  run(queue.move(item.id, Math.max(0, Math.min(q.items.length - 1, i + (e.key === "ArrowUp" ? -1 : 1)))));
+                }}
+                className={`group relative mx-2 flex items-center gap-2 rounded-[6px] pr-1 ${current ? "bg-white/[0.07]" : "hover:bg-white/[0.04]"} ${dragId === item.id ? "opacity-40" : ""}`}
               >
+                {dropIndex === i && dragId != null && dragId !== item.id && <span aria-hidden className="absolute inset-x-2 -top-px h-[2px] rounded-full bg-ember" />}
+                <span aria-hidden className="cursor-grab pl-1 text-room-ink-3 opacity-0 group-hover:opacity-100">
+                  <GripIcon size={16} />
+                </span>
                 <button
                   type="button"
-                  tabIndex={props.open ? 0 : -1}
                   aria-current={current ? "true" : undefined}
+                  aria-describedby="queue-move-hint"
                   onClick={() => run(queue.select(item.id))}
                   title={item.path}
-                  className="flex min-w-0 flex-1 items-center gap-3 px-2 py-2 text-left"
+                  className="flex min-w-0 flex-1 items-center gap-3 py-2 text-left"
                 >
-                  <span className={`w-5 shrink-0 text-right text-xs tabular-nums ${current ? "text-ember" : "text-ash"}`}>
-                    {current ? "▶" : i + 1}
+                  <span className={`w-5 shrink-0 text-right text-[12px] font-[600] tabular-nums ${current ? "text-ember" : "text-room-ink-3"}`}>
+                    {current ? <span className="inline-block size-1.5 rounded-full bg-ember align-middle" /> : i + 1}
                   </span>
-                  <span className={`truncate text-sm ${current ? "font-medium text-cream" : played ? "text-ash" : "text-cream/85"}`}>
+                  <span className={`min-w-0 flex-1 truncate text-[13.5px] ${current ? "font-[650] text-room-ink" : played ? "text-room-ink-3" : "text-room-ink-2"}`}>
                     {item.title}
                   </span>
+                  {d && <span className="shrink-0 text-[12px] tabular-nums text-room-ink-3">{d}</span>}
                 </button>
-                <div className="flex shrink-0 opacity-0 transition-opacity duration-150 group-focus-within:opacity-100 group-hover:opacity-100">
-                  <RowButton label={`Move ${item.title} up`} disabled={i === 0} open={props.open} onClick={() => run(queue.move(item.id, i - 1))}>
-                    <ChevronUpIcon width={16} height={16} />
-                  </RowButton>
-                  <RowButton label={`Move ${item.title} down`} disabled={i === q.items.length - 1} open={props.open} onClick={() => run(queue.move(item.id, i + 1))}>
-                    <ChevronDownIcon width={16} height={16} />
-                  </RowButton>
-                  <RowButton label={`Remove ${item.title}`} open={props.open} onClick={() => run(queue.remove(item.id))}>
-                    <CloseIcon width={16} height={16} />
-                  </RowButton>
-                </div>
+                <IconButton tone="room" size="sm" label={`Remove ${item.title}`} onClick={() => run(queue.remove(item.id))} className="opacity-0 focus-visible:opacity-100 group-hover:opacity-100">
+                  <CloseIcon size={16} />
+                </IconButton>
               </li>
             );
           })}
         </ol>
       )}
+      <p id="queue-move-hint" className="sr-only">
+        Alt plus up or down arrow moves the item.
+      </p>
 
       {q.items.length > 0 && (
-        <footer className="border-t border-white/8 px-4 py-2.5">
-          <button
-            type="button"
-            tabIndex={props.open ? 0 : -1}
-            onClick={() => run(queue.clear())}
-            className="press text-xs text-ash hover:text-cream"
-          >
-            Clear queue
-          </button>
+        <footer className="border-t border-room-seam px-5 py-3">
+          {saving ? (
+            <form
+              className="flex gap-2"
+              onSubmit={(e) => {
+                e.preventDefault();
+                void save();
+              }}
+            >
+              <label className="min-w-0 flex-1">
+                <span className="sr-only">Playlist name</span>
+                <input
+                  ref={nameRef}
+                  value={name}
+                  maxLength={120}
+                  onChange={(e) => setName(e.currentTarget.value)}
+                  onKeyDown={(e) => {
+                    e.stopPropagation();
+                    if (e.key === "Escape") setSaving(false);
+                  }}
+                  placeholder="Playlist name"
+                  className="h-8 w-full rounded-[6px] border border-room-seam bg-black/30 px-2.5 text-[13px] text-room-ink placeholder:text-room-ink-3 focus:border-ember focus:outline-none"
+                />
+              </label>
+              <Button tone="room" variant="primary" type="submit" disabled={!name.trim()}>
+                Save
+              </Button>
+            </form>
+          ) : (
+            <>
+              <div className="flex items-center gap-2">
+                <Button tone="room" variant="ghost" icon={<SaveIcon size={16} />} onClick={() => setSaving(true)}>
+                  Save as playlist
+                </Button>
+                <span className="flex-1" />
+                <Button tone="room" variant="danger" icon={<TrashIcon size={16} />} onClick={() => setClearing(true)}>
+                  Clear
+                </Button>
+              </div>
+              {saved && (
+                <p role="status" className="mt-1.5 truncate px-1 text-[12px] text-room-ink-2">
+                  Saved as playlist “{saved}” — find it on Home.
+                </p>
+              )}
+            </>
+          )}
         </footer>
       )}
-    </aside>
-  );
-}
 
-function RowButton(props: { label: string; onClick: () => void; disabled?: boolean; open: boolean; children: React.ReactNode }) {
-  return (
-    <button
-      type="button"
-      aria-label={props.label}
-      title={props.label}
-      disabled={props.disabled}
-      tabIndex={props.open ? 0 : -1}
-      onClick={props.onClick}
-      className="press flex size-7 items-center justify-center rounded-md text-cream/70 hover:bg-white/10 hover:text-cream disabled:opacity-25"
-    >
-      {props.children}
-    </button>
+      <ConfirmDialog
+        open={clearing}
+        title="Clear the queue?"
+        body="The list is emptied. What's playing keeps playing, and no files are touched."
+        confirmLabel="Clear queue"
+        onCancel={() => setClearing(false)}
+        onConfirm={() => {
+          setClearing(false);
+          run(queue.clear());
+        }}
+      />
+    </section>
   );
 }
