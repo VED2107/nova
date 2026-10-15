@@ -2,7 +2,17 @@
 
 All notable changes to NOVA. No public release has been made: licensing is still unresolved (ADR 0003).
 
-## Unreleased
+## 0.1.0-rc.1 (2026-10-16) — local release candidate, not distributed
+
+Windows x64 NSIS installer built from `main`; tested on this machine only (see `docs/testing/rc1-local-windows.md`). Not published: ADR 0003 licensing review is open.
+
+### Interface
+- Player deck: one transport with the Lumen-beam playhead, quiet controls, a "More" menu for every picture, sound, subtitle and frame tool; subtitles rise above the controls and the picture re-centres beside open panels.
+- Home: lead title with progress and Resume, artwork grids, "Your shelf", playlists, a first-launch view.
+- Library: grid and list views, item menu (Play, Add to queue), a "Missing files" filter.
+- Settings: key search, "Saved" confirmation, a Formats page with honest support tiers.
+- End-of-media card, screenshot "Show in folder", playlist rename, Go to time focus fix, relative launch paths.
+
 
 ### Media compatibility
 - Content-first file detection: real media plays despite misleading extensions; editing projects (Premiere, After Effects, Resolve, Final Cut, …) are explained instead of failing; camera RAW formats get vendor-decoder guidance.
