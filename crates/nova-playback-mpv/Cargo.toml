@@ -1,0 +1,13 @@
+[package]
+name = "nova-playback-mpv"
+version = "0.1.0"
+description = "libmpv playback backend for NOVA (runtime-loaded)"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+nova-playback-api.workspace = true
+libloading.workspace = true
+log.workspace = true

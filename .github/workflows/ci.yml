@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install FFmpeg (fixture generation)
+        run: choco install ffmpeg-full -y --no-progress
+      - name: Fetch pinned libmpv
+        run: bash scripts/fetch-libmpv.sh
+      - name: Generate fixtures
+        run: bash scripts/generate-fixtures.sh
+      - run: pnpm install --frozen-lockfile
+      - name: Frontend type check
+        run: pnpm --filter @nova/desktop check
+      - name: Frontend tests
+        run: pnpm --filter @nova/desktop test
+      - name: Build frontend (needed by tauri::generate_context!)
+        run: pnpm --filter @nova/desktop build
+      - name: Rust format
+        run: cargo fmt --all -- --check
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+      - name: Rust tests (includes real libmpv integration tests)
+        run: cargo test --workspace

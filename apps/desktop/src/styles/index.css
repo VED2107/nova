@@ -1,0 +1,96 @@
+@import "tailwindcss";
+
+@theme {
+  --color-cream: #f7f4ee;
+  --color-ink: #171715;
+  --color-ember: #f97316;
+  --color-ash: #92928b;
+  --font-sans: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  --font-display: "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+  --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+:root {
+  color-scheme: dark;
+  /* The native video surface is behind the WebView; keep the page transparent. */
+  background: transparent;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  background: transparent;
+  overflow: hidden;
+  user-select: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  font-family: var(--font-sans);
+  color: var(--color-cream);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-ember);
+  outline-offset: 2px;
+}
+
+.press {
+  transition: transform 140ms var(--ease-out-strong), background-color 150ms ease, color 150ms ease;
+}
+.press:active {
+  transform: scale(0.97);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .press:active {
+    transform: none;
+  }
+}
+
+/* Seek bar thumb: the track is drawn underneath by SeekBar. */
+.seek-input::-webkit-slider-runnable-track {
+  background: transparent;
+  height: 20px;
+}
+.seek-input::-webkit-slider-thumb {
+  appearance: none;
+  margin-top: 3px;
+  width: 14px;
+  height: 14px;
+  border-radius: 9999px;
+  background: var(--color-cream);
+  box-shadow: 0 0 0 4px rgb(249 115 22 / 0.35);
+  transform: scale(0.75);
+  transition: transform 150ms var(--ease-out-strong);
+}
+.seek-input:hover::-webkit-slider-thumb,
+.seek-input:focus-visible::-webkit-slider-thumb,
+.seek-input:active::-webkit-slider-thumb {
+  transform: scale(1);
+}
+.seek-input:disabled::-webkit-slider-thumb {
+  opacity: 0;
+}
+.seek-input:focus-visible {
+  outline: none;
+}
+.seek-input:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 0 0 3px var(--color-ember);
+}
+
+.volume-input {
+  appearance: none;
+  height: 4px;
+  border-radius: 9999px;
+  background: linear-gradient(to right, var(--color-cream) var(--fill), rgb(255 255 255 / 0.2) var(--fill));
+}
+.volume-input::-webkit-slider-thumb {
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 9999px;
+  background: var(--color-cream);
+}

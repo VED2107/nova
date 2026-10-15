@@ -1,0 +1,9 @@
+target/
+node_modules/
+dist/
+vendor/
+tests/fixtures/media/
+*.log
+.DS_Store
+apps/desktop/src-tauri/gen/
+apps/desktop/src-tauri/libmpv-2.dll
