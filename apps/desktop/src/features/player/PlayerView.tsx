@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
-import { CameraIcon, ChevronLeftIcon, FileIcon, ImmersiveIcon, InfoIcon, NextIcon, QueueIcon, ReplayIcon } from "../../components/icons";
+import { ChevronLeftIcon, FileIcon, ImmersiveIcon, NextIcon, ReplayIcon } from "../../components/icons";
 import { Symbol } from "../../components/Wordmark";
 import { Button, IconButton } from "../../components/ui/controls";
 import { Dialog } from "../../components/ui/Dialog";
@@ -41,7 +41,7 @@ export function PlayerView(props: { active: boolean; onBrowse: () => void; onOpe
 
   const [panel, setPanel] = useState<Panel>(null);
   const [immersive, setImmersive] = useState(false);
-  const [ctx, setCtx] = useState<{ x: number; y: number } | null>(null);
+  const [ctx, setCtx] = useState<{ x: number; y: number; anchor?: DOMRect; tools?: boolean } | null>(null);
   const [gotoOpen, setGotoOpen] = useState(false);
   const [engine, setEngine] = useState<EngineInfo | null>(null);
   const [engineError, setEngineError] = useState<PlaybackError | null>(null);
@@ -393,6 +393,22 @@ export function PlayerView(props: { active: boolean; onBrowse: () => void; onOpe
     },
   ];
 
+  // The deck's More menu: the tools that are not on the deck itself.
+  const toolGroups: CtxGroup[] = [
+    {
+      title: "Position",
+      items: [
+        { label: "Go to time…", hint: hint("seek.goto"), disabled: !hasMedia, run: () => act("seek.goto") },
+        { label: "Next frame", hint: hint("frame.next"), disabled: !hasMedia, run: () => act("frame.next") },
+        { label: "Previous frame", hint: hint("frame.prev"), disabled: !hasMedia, run: () => act("frame.prev") },
+        { label: "Save frame to Pictures", hint: hint("video.snapshot"), disabled: !hasMedia, run: () => act("video.snapshot") },
+      ],
+    },
+    ...ctxGroups
+      .filter((g) => g.title === "Video" || g.title === "Audio" || g.title === "Subtitles")
+      .map((g) => ({ ...g, items: g.items.filter((i) => !/^(Fullscreen|Exit fullscreen|Save frame)/.test(i.label)) })),
+  ];
+
   return (
     <main
       className={`fixed inset-0 select-none ${hidden && hasMedia ? "cursor-none" : ""}`}
@@ -440,7 +456,7 @@ export function PlayerView(props: { active: boolean; onBrowse: () => void; onOpe
         </div>
       )}
 
-      {/* Top bar: back to the shelf, title + engine spec, panels. */}
+      {/* Top bar: way back, what is playing, and the one view toggle. Everything else lives in the deck. */}
       <div
         className={[
           "absolute inset-x-0 top-0 z-20 flex items-start gap-2 bg-gradient-to-b from-black/85 via-black/45 to-transparent px-4 pb-12 pt-3 [text-shadow:0_1px_2px_rgb(0_0_0/0.6)]",
@@ -465,25 +481,8 @@ export function PlayerView(props: { active: boolean; onBrowse: () => void; onOpe
             </p>
           )}
         </div>
-        {hasMedia && (
-          <IconButton tone="room" label={`Save frame to Pictures (${hint("video.snapshot") ?? "Shift+S"})`} onClick={() => act("video.snapshot")}>
-            <CameraIcon />
-          </IconButton>
-        )}
         <IconButton tone="room" label={`Immersive mode (${hint("view.immersive") ?? "Z"})`} active={immersive} aria-pressed={immersive} onClick={() => act("view.immersive")}>
           <ImmersiveIcon />
-        </IconButton>
-        <IconButton tone="room" label={`Queue (${hint("view.queue") ?? "Q"})`} active={panel === "queue"} aria-pressed={panel === "queue"} onClick={() => act("view.queue")}>
-          <QueueIcon />
-        </IconButton>
-        <IconButton
-          tone="room"
-          label={`Playback details (${hint("view.inspector") ?? "I"})`}
-          active={panel === "inspector"}
-          aria-pressed={panel === "inspector"}
-          onClick={() => act("view.inspector")}
-        >
-          <InfoIcon />
         </IconButton>
       </div>
 
@@ -535,7 +534,7 @@ export function PlayerView(props: { active: boolean; onBrowse: () => void; onOpe
 
       <div
         className={[
-          "absolute bottom-0 left-0 z-20 bg-gradient-to-t from-black/85 via-black/45 to-transparent",
+          "absolute bottom-0 left-0 z-20 bg-gradient-to-t from-black/90 via-black/60 to-transparent",
           "transition-opacity duration-200 ease-(--ease-out-strong)",
           hidden ? "pointer-events-none opacity-0" : "opacity-100",
         ].join(" ")}
@@ -547,7 +546,11 @@ export function PlayerView(props: { active: boolean; onBrowse: () => void; onOpe
         <ControlBar
           snapshot={s}
           isFullscreen={isFullscreen}
+          panel={panel}
+          hint={hint}
           onToggleFullscreen={() => void toggleFullscreen()}
+          onTogglePanel={(p) => act(p === "queue" ? "view.queue" : "view.inspector")}
+          onOpenTools={(anchor) => setCtx({ x: anchor.right, y: anchor.top, anchor, tools: true })}
           onMenuChange={(open) => {
             menuOpen.current = open;
             if (!open) showControls();
@@ -576,7 +579,16 @@ export function PlayerView(props: { active: boolean; onBrowse: () => void; onOpe
         </aside>
       )}
 
-      {ctx && <ContextMenu x={ctx.x} y={ctx.y} groups={ctxGroups} onClose={() => setCtx(null)} />}
+      {ctx && (
+        <ContextMenu
+          x={ctx.x}
+          y={ctx.y}
+          anchor={ctx.anchor}
+          label={ctx.tools ? "More controls" : "Player menu"}
+          groups={ctx.tools ? toolGroups : ctxGroups}
+          onClose={() => setCtx(null)}
+        />
+      )}
 
       <GoToTime
         open={gotoOpen}

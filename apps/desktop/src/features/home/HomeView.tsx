@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { FolderIcon, PencilIcon, PlayIcon, PlusIcon, TrashIcon } from "../../components/icons";
 import { Thumb } from "../../components/Thumb";
 import { Button, IconButton, Stamp } from "../../components/ui/controls";
@@ -40,113 +40,110 @@ export function HomeView(props: {
   const empty = !loading && continueItems.length === 0 && recent.length === 0 && playlists.length === 0;
   const [lead, ...rest] = continueItems ?? [];
 
-  return (
-    <div className="flex h-full">
-      <div className="min-w-0 flex-1 overflow-y-auto">
-        <div className="mx-auto w-full max-w-[1120px] px-10 pb-16 pt-9">
-          {error && (
-            <p role="alert" className="mb-6 rounded-[8px] border border-seam-strong px-4 py-3 text-[13.5px] text-ink-2">
-              The library couldn't be read: {error}
-            </p>
-          )}
+  const titles = roots.reduce((n, r) => n + r.itemCount, 0);
 
-          {empty ? (
-            <EmptyShelf onAddFolder={props.onAddFolder} onOpenFile={props.onOpenFile} />
-          ) : (
-            <>
-              <section aria-labelledby="continue-h">
-                <h2 id="continue-h" className="spine-xl text-[44px] text-ink">
-                  Continue
-                </h2>
+  return (
+    <div className="h-full overflow-y-auto">
+      <div className="mx-auto w-full max-w-[1280px] px-[clamp(20px,4vw,48px)] pb-20 pt-8">
+        {error && (
+          <p role="alert" className="mb-6 rounded-[8px] border border-seam-strong px-4 py-3 text-[13.5px] text-ink-2">
+            The library couldn't be read: {error}
+          </p>
+        )}
+
+        {empty ? (
+          <Welcome onAddFolder={props.onAddFolder} onOpenFile={props.onOpenFile} />
+        ) : (
+          <>
+            <div className="grid grid-cols-[minmax(0,1fr)_260px] gap-x-10 gap-y-8 max-[1020px]:grid-cols-1">
+              <section aria-labelledby="continue-h" className="min-w-0">
+                <SectionHead id="continue-h" title="Continue" />
                 {loading ? (
-                  <div className="mt-6 h-[260px] animate-pulse rounded-[6px] bg-paper-sunk motion-reduce:animate-none" aria-label="Loading" />
+                  <div className="mt-5 aspect-[2.6/1] animate-pulse rounded-[8px] bg-paper-sunk motion-reduce:animate-none" aria-label="Loading" />
                 ) : !lead ? (
-                  <p className="mt-3 max-w-md text-[14px] leading-relaxed text-ink-3">
+                  <p className="mt-4 max-w-md text-[14px] leading-relaxed text-ink-3">
                     Nothing in progress. Stop anything partway through and it waits for you here.
                   </p>
                 ) : (
-                  <div className="mt-6 grid grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] gap-x-8 gap-y-6 max-[900px]:grid-cols-1">
-                    <LeadSpine item={lead} onPlay={props.onPlay} />
+                  <>
+                    <LeadFeature item={lead} onPlay={props.onPlay} />
                     {rest.length > 0 && (
-                      <ul className="flex flex-col divide-y divide-seam border-y border-seam" aria-label="Also in progress">
-                        {rest.slice(0, 5).map((item) => (
+                      <ul aria-label="Also in progress" className="mt-6 grid grid-cols-[repeat(auto-fill,minmax(190px,1fr))] gap-x-5 gap-y-5">
+                        {rest.slice(0, 4).map((item) => (
                           <li key={item.id}>
-                            <ShelfRow item={item} onPlay={props.onPlay} showLeft />
+                            <PosterCard item={item} onPlay={props.onPlay} showLeft />
                           </li>
                         ))}
                       </ul>
                     )}
-                  </div>
+                  </>
                 )}
               </section>
 
-              {recent && recent.length > 0 && (
-                <section aria-labelledby="recent-h" className="mt-14">
-                  <div className="flex items-baseline justify-between border-b border-ink pb-2">
-                    <h2 id="recent-h" className="spine text-[26px] text-ink">
-                      Recently added
-                    </h2>
-                    <button type="button" onClick={() => props.onOpenLibrary()} className="text-[13px] font-[560] text-ember-text hover:underline">
+              <ShelfAside roots={roots} titles={titles} onOpen={props.onOpenLibrary} onAdd={props.onAddFolder} />
+            </div>
+
+            {recent && recent.length > 0 && (
+              <section aria-labelledby="recent-h" className="mt-14">
+                <SectionHead
+                  id="recent-h"
+                  title="Recently added"
+                  action={
+                    <button type="button" onClick={() => props.onOpenLibrary()} className="text-[13px] font-[600] text-ember-text underline-offset-4 hover:underline">
                       Whole library
                     </button>
-                  </div>
-                  <ul className="divide-y divide-seam">
-                    {recent.map((item) => (
-                      <li key={item.id}>
-                        <ShelfRow item={item} onPlay={props.onPlay} />
-                      </li>
-                    ))}
-                  </ul>
-                </section>
-              )}
-
-              <section aria-labelledby="pl-h" className="mt-14">
-                <div className="flex items-baseline justify-between border-b border-ink pb-2">
-                  <h2 id="pl-h" className="spine text-[26px] text-ink">
-                    Playlists
-                  </h2>
-                </div>
-                {playlists.length === 0 ? (
-                  <p className="mt-3 text-[13.5px] text-ink-3">Save a queue from the player to keep it here.</p>
-                ) : (
-                  <ul className="divide-y divide-seam">
-                    {playlists.map((p) => (
-                      <li key={p.id} className="group flex items-center gap-4 py-2.5">
-                        <button
-                          type="button"
-                          onClick={() => props.onPlayPlaylist(p)}
-                          className="press flex min-w-0 flex-1 items-center gap-4 rounded-[6px] px-1 py-1 text-left hover:bg-[var(--hover)]"
-                        >
-                          <span className="flex size-9 shrink-0 items-center justify-center rounded-full border border-seam-strong text-ink">
-                            <PlayIcon size={14} />
-                          </span>
-                          <span className="min-w-0">
-                            <span className="spine block truncate text-[18px] text-ink">{p.name}</span>
-                            <span className="block text-[12.5px] text-ink-3">
-                              {p.itemCount} {p.itemCount === 1 ? "file" : "files"}
-                              {p.knownDurationMs ? ` · ${formatDuration(p.knownDurationMs)} known` : ""}
-                            </span>
-                          </span>
-                        </button>
-                        <span className="ml-6 flex gap-0.5 opacity-60 group-focus-within:opacity-100 group-hover:opacity-100">
-                          <IconButton label={`Rename playlist ${p.name}`} size="sm" onClick={() => setRenaming(p)}>
-                            <PencilIcon size={16} />
-                          </IconButton>
-                          <IconButton label={`Delete playlist ${p.name}`} size="sm" onClick={() => setDeleting(p)}>
-                            <TrashIcon size={16} />
-                          </IconButton>
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
+                  }
+                />
+                <ul className="mt-5 grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-x-5 gap-y-6">
+                  {recent.map((item) => (
+                    <li key={item.id}>
+                      <PosterCard item={item} onPlay={props.onPlay} />
+                    </li>
+                  ))}
+                </ul>
               </section>
-            </>
-          )}
-        </div>
-      </div>
+            )}
 
-      <FolderRail roots={roots} onOpen={props.onOpenLibrary} onAdd={props.onAddFolder} />
+            <section aria-labelledby="pl-h" className="mt-14">
+              <SectionHead id="pl-h" title="Playlists" />
+              {playlists.length === 0 ? (
+                <p className="mt-4 text-[13.5px] text-ink-3">Queue a few titles in the player and choose “Save as playlist” to keep them here.</p>
+              ) : (
+                <ul className="mt-4 grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-x-5 gap-y-2">
+                  {playlists.map((p) => (
+                    <li key={p.id} className="group flex items-center gap-2 border-b border-seam py-2">
+                      <button
+                        type="button"
+                        onClick={() => props.onPlayPlaylist(p)}
+                        className="press flex min-w-0 flex-1 items-center gap-3 rounded-[6px] px-1 py-1 text-left hover:bg-[var(--hover)]"
+                      >
+                        <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-ink text-paper">
+                          <PlayIcon size={13} />
+                        </span>
+                        <span className="min-w-0">
+                          <span className="spine block truncate text-[18px] text-ink">{p.name}</span>
+                          <span className="block text-[12.5px] text-ink-3">
+                            {p.itemCount} {p.itemCount === 1 ? "file" : "files"}
+                            {p.knownDurationMs ? ` · ${formatDuration(p.knownDurationMs)}` : ""}
+                          </span>
+                        </span>
+                      </button>
+                      <span className="flex gap-0.5 opacity-60 group-focus-within:opacity-100 group-hover:opacity-100">
+                        <IconButton label={`Rename playlist ${p.name}`} size="sm" onClick={() => setRenaming(p)}>
+                          <PencilIcon size={16} />
+                        </IconButton>
+                        <IconButton label={`Delete playlist ${p.name}`} size="sm" onClick={() => setDeleting(p)}>
+                          <TrashIcon size={16} />
+                        </IconButton>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          </>
+        )}
+      </div>
 
       <RenamePlaylist
         playlist={renaming}
@@ -169,6 +166,17 @@ export function HomeView(props: {
           setDeleting(null);
         }}
       />
+    </div>
+  );
+}
+
+function SectionHead({ id, title, action }: { id: string; title: string; action?: ReactNode }) {
+  return (
+    <div className="flex items-baseline justify-between gap-4 border-b border-ink pb-2">
+      <h2 id={id} className="spine text-[28px] text-ink">
+        {title}
+      </h2>
+      {action}
     </div>
   );
 }
@@ -218,107 +226,156 @@ function RenamePlaylist(props: { playlist: PlaylistSummary | null; onClose: () =
   );
 }
 
-function LeadSpine({ item, onPlay }: { item: LibraryItem; onPlay: (i: LibraryItem) => void }) {
+/** The title you were watching: artwork and its facts side by side, so the band stays compact with one item or many. */
+function LeadFeature({ item, onPlay }: { item: LibraryItem; onPlay: (i: LibraryItem) => void }) {
   const frac = watchedFraction(item.progress);
   const left = timeLeft(item.progress);
+  const stamp = stampFor(item);
   return (
-    <article className="min-w-0" aria-label={item.title}>
+    <article aria-label={item.title} className="mt-5 grid grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)] items-end gap-x-7 gap-y-4 max-[760px]:grid-cols-1">
       <button
         type="button"
         tabIndex={-1}
         aria-hidden
         onClick={() => onPlay(item)}
         disabled={item.missing}
-        className="press group block w-full text-left disabled:cursor-not-allowed"
+        className="press group relative block w-full overflow-hidden rounded-[8px] text-left disabled:cursor-not-allowed"
       >
-        <Thumb item={item} progress={frac} className="aspect-video w-full rounded-[4px] ring-1 ring-seam" />
+        <Thumb item={item} progress={frac} className="aspect-video w-full rounded-[8px] ring-1 ring-seam" />
+        {!item.missing && (
+          <span className="absolute inset-0 flex items-center justify-center opacity-0 transition-[opacity,background-color] duration-200 group-hover:bg-black/25 group-hover:opacity-100">
+            <span className="flex size-14 items-center justify-center rounded-full bg-cream text-[#171715] shadow-[0_8px_24px_-8px_rgb(0_0_0/0.6)]">
+              <PlayIcon size={22} />
+            </span>
+          </span>
+        )}
       </button>
-      <div className="mt-3 flex items-center gap-2">
-        <span className="catalog text-ink-3">{catalogNo(item.id)}</span>
-        {stampFor(item) && <Stamp kind={stampFor(item)!} />}
-      </div>
-      <h3 className="spine mt-1.5 line-clamp-2 text-[30px] text-ink">{item.title}</h3>
-      <p className="mt-1 text-[13px] text-ink-3">{[specLine(item), folderName(item.folder)].filter(Boolean).join(" · ")}</p>
-      <div className="mt-4 flex items-center gap-3">
-        <Button variant="primary" onClick={() => onPlay(item)} disabled={item.missing} icon={<PlayIcon size={14} />}>
-          Resume
-        </Button>
-        {left && <span className="text-[13px] text-ink-2">{left}</span>}
-        {item.missing && <span className="text-[13px] text-danger">The file was moved or deleted.</span>}
+      <div className="min-w-0 pb-1">
+        <div className="flex items-center gap-2">
+          <span className="catalog text-ink-3">{catalogNo(item.id)}</span>
+          {stamp && <Stamp kind={stamp} />}
+        </div>
+        <h3 className="spine-xl mt-2 line-clamp-3 text-[clamp(28px,3vw,40px)] text-ink [text-wrap:balance]">{item.title}</h3>
+        <p className="mt-2 text-[13px] text-ink-3">{[specLine(item), folderName(item.folder)].filter(Boolean).join(" · ")}</p>
+        {frac != null && (
+          <div className="mt-5 flex items-center gap-3">
+            <span className="h-[3px] flex-1 overflow-hidden rounded-full bg-[var(--seam-strong)]" aria-hidden>
+              <span className="block h-full rounded-full bg-ember" style={{ width: `${Math.max(2, frac * 100)}%` }} />
+            </span>
+            {left && <span className="shrink-0 text-[13px] font-[560] tabular-nums text-ink-2">{left}</span>}
+          </div>
+        )}
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <Button variant="primary" onClick={() => onPlay(item)} disabled={item.missing} icon={<PlayIcon size={14} />} className="h-10 px-4 text-[14px]">
+            Resume
+          </Button>
+          {item.missing && <span className="text-[13px] text-danger">The file was moved or deleted.</span>}
+        </div>
       </div>
     </article>
   );
 }
 
-function ShelfRow({ item, onPlay, showLeft }: { item: LibraryItem; onPlay: (i: LibraryItem) => void; showLeft?: boolean }) {
+/** A title as a frame on the shelf: artwork first, then the facts NOVA actually has. */
+function PosterCard({ item, onPlay, showLeft }: { item: LibraryItem; onPlay: (i: LibraryItem) => void; showLeft?: boolean }) {
   const stamp = stampFor(item);
+  const sub = showLeft ? (timeLeft(item.progress) ?? specLine(item)) : specLine(item);
   return (
-    <button
-      type="button"
-      onClick={() => onPlay(item)}
-      disabled={item.missing}
-      title={item.path}
-      className="press flex w-full items-center gap-4 rounded-[4px] py-2.5 pr-2 text-left hover:bg-[var(--hover)] disabled:cursor-not-allowed disabled:opacity-60"
-    >
-      <Thumb item={item} progress={showLeft ? watchedFraction(item.progress) : null} className="aspect-video w-[104px] shrink-0 rounded-[3px] ring-1 ring-seam" />
-      <span className="min-w-0 flex-1">
-        <span className="spine block truncate text-[17px] text-ink">{item.title}</span>
-        <span className="mt-0.5 block truncate text-[12.5px] text-ink-3">
-          {showLeft ? (timeLeft(item.progress) ?? specLine(item)) : [specLine(item), folderName(item.folder)].filter(Boolean).join(" · ")}
-        </span>
+    <button type="button" onClick={() => onPlay(item)} disabled={item.missing} title={item.path} className="press group block w-full rounded-[8px] text-left disabled:cursor-not-allowed">
+      <span className="relative block">
+        <Thumb
+          item={item}
+          progress={watchedFraction(item.progress)}
+          className={`aspect-video w-full rounded-[6px] ring-1 ring-seam transition-[box-shadow] duration-200 group-hover:ring-[var(--seam-strong)] ${item.missing ? "opacity-50 grayscale" : ""}`}
+        />
+        {stamp && stamp !== "progress" && (
+          <span className="absolute left-2 top-2 rounded-[3px] bg-paper px-0.5">
+            <Stamp kind={stamp} />
+          </span>
+        )}
       </span>
-      {stamp && !showLeft && <Stamp kind={stamp} />}
-      <span className="catalog hidden w-16 shrink-0 text-right text-ink-3 min-[700px]:block">{catalogNo(item.id)}</span>
+      <span className="mt-2.5 flex items-baseline gap-2">
+        <span className="spine min-w-0 flex-1 truncate text-[17px] text-ink">{item.title}</span>
+        <span className="catalog shrink-0 text-ink-3">{catalogNo(item.id)}</span>
+      </span>
+      <span className="mt-0.5 block truncate text-[12.5px] text-ink-3">{sub}</span>
     </button>
   );
 }
 
-/** Stepped tab rail: library folders as tabs down the right edge. */
-function FolderRail({ roots, onOpen, onAdd }: { roots: ScanRoot[]; onOpen: (rootId?: number) => void; onAdd: () => void }) {
+/** What is on this computer, and the ways to add to it. Real counts only. */
+function ShelfAside(props: { roots: ScanRoot[]; titles: number; onOpen: (rootId?: number) => void; onAdd: () => void }) {
   return (
-    <nav aria-label="Library folders" className="flex w-[196px] shrink-0 flex-col border-l border-seam bg-paper-sunk/60 py-9 pl-4 pr-0 max-[820px]:hidden">
-      <span className="catalog mb-2 px-2 text-ink-3">Folders</span>
-      <ul className="flex flex-col gap-1">
-        {roots.map((r, i) => (
-          <li key={r.id} style={{ marginLeft: Math.min(i, 4) * 6 }}>
-            <button
-              type="button"
-              onClick={() => onOpen(r.id)}
-              title={r.path}
-              className="press flex w-full items-center gap-2 rounded-l-[6px] border border-r-0 border-seam bg-paper px-3 py-2 text-left hover:border-seam-strong"
-            >
-              <FolderIcon size={16} className="shrink-0 text-ink-3" />
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-[13px] font-[600] text-ink">{folderName(r.path)}</span>
-                <span className="block text-[11.5px] text-ink-3">
-                  {r.itemCount.toLocaleString()} {r.itemCount === 1 ? "title" : "titles"}
-                </span>
-              </span>
-            </button>
-          </li>
-        ))}
-      </ul>
-      <button type="button" onClick={onAdd} className="press mx-2 mt-3 flex items-center gap-1.5 rounded-[6px] px-2 py-1.5 text-[13px] font-[560] text-ink-2 hover:bg-[var(--hover)] hover:text-ink">
-        <PlusIcon size={16} /> Add folder
-      </button>
-    </nav>
+    <aside aria-labelledby="shelf-h" className="min-w-0 self-start rounded-[10px] bg-paper-sunk p-5 max-[1020px]:order-first max-[1020px]:p-4">
+      <h2 id="shelf-h" className="spine text-[22px] text-ink">
+        Your shelf
+      </h2>
+      <p className="mt-1 text-[12.5px] text-ink-3">
+        {props.titles.toLocaleString()} {props.titles === 1 ? "title" : "titles"} in {props.roots.length} {props.roots.length === 1 ? "folder" : "folders"}, on this
+        computer only
+      </p>
+      {props.roots.length > 0 && (
+        <ul className="mt-4 flex flex-col gap-0.5 max-[1020px]:flex-row max-[1020px]:flex-wrap">
+          {props.roots.map((r) => (
+            <li key={r.id}>
+              <button
+                type="button"
+                onClick={() => props.onOpen(r.id)}
+                title={r.path}
+                className="press flex w-full items-center gap-2.5 rounded-[6px] px-2 py-1.5 text-left hover:bg-[var(--hover)]"
+              >
+                <FolderIcon size={16} className="shrink-0 text-ink-3" />
+                <span className="min-w-0 flex-1 truncate text-[13.5px] font-[600] text-ink">{folderName(r.path)}</span>
+                <span className="shrink-0 text-[12px] tabular-nums text-ink-3">{r.itemCount.toLocaleString()}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <div className="mt-4 flex flex-wrap gap-2 border-t border-seam pt-4">
+        <Button onClick={props.onAdd} icon={<PlusIcon size={16} />}>
+          Add folder
+        </Button>
+        <Button variant="ghost" onClick={() => props.onOpen()}>
+          Browse library
+        </Button>
+      </div>
+    </aside>
   );
 }
 
-function EmptyShelf({ onAddFolder, onOpenFile }: { onAddFolder: () => void; onOpenFile: () => void }) {
+const PROMISES: [string, string][] = [
+  ["Remembers where you stopped", "Close a film halfway and it opens there next time, even after a restart."],
+  ["Tells you what is in a file", "Codec, resolution, bit depth, HDR and decoder, one key away."],
+  ["Stays on this computer", "No account and no tracking. The library is a file on this PC."],
+];
+
+/** First launch: what NOVA is for, two ways in, and the promises it keeps. */
+function Welcome({ onAddFolder, onOpenFile }: { onAddFolder: () => void; onOpenFile: () => void }) {
   return (
-    <section className="mt-6 max-w-xl">
-      <h2 className="spine-xl text-[56px] text-ink">An empty shelf</h2>
-      <p className="mt-4 text-[15px] leading-relaxed text-ink-2">
-        Add the folders where you keep films, recordings and music. NOVA catalogues them on this computer only, remembers where you stopped, and
-        tells you exactly what each file contains.
-      </p>
-      <div className="mt-6 flex gap-2">
-        <Button variant="primary" onClick={onAddFolder} icon={<FolderIcon size={16} />}>
-          Add a folder
-        </Button>
-        <Button onClick={onOpenFile}>Open a file</Button>
+    <section className="grid min-h-[min(640px,calc(100vh-140px))] grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] items-center gap-12 max-[900px]:grid-cols-1">
+      <div className="max-w-xl">
+        <h2 className="spine-xl text-[clamp(44px,6vw,76px)] text-ink [text-wrap:balance]">An empty shelf, ready for your films</h2>
+        <p className="mt-5 max-w-[56ch] text-[15.5px] leading-relaxed text-ink-2">
+          Add the folders where you keep films, recordings and music, or open a single file. You can also drop files anywhere in this window.
+        </p>
+        <div className="mt-7 flex flex-wrap gap-2">
+          <Button variant="primary" onClick={onAddFolder} icon={<FolderIcon size={16} />} className="h-10 px-4 text-[14px]">
+            Add a folder
+          </Button>
+          <Button onClick={onOpenFile} className="h-10 px-4 text-[14px]">
+            Open a file
+          </Button>
+        </div>
       </div>
+      <dl className="divide-y divide-seam border-y border-seam">
+        {PROMISES.map(([t, d]) => (
+          <div key={t} className="py-4">
+            <dt className="spine text-[19px] text-ink">{t}</dt>
+            <dd className="mt-1 text-[13.5px] leading-relaxed text-ink-3">{d}</dd>
+          </div>
+        ))}
+      </dl>
     </section>
   );
 }
