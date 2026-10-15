@@ -166,7 +166,14 @@ function LeadSpine({ item, onPlay }: { item: LibraryItem; onPlay: (i: LibraryIte
   const left = timeLeft(item.progress);
   return (
     <article className="min-w-0" aria-label={item.title}>
-      <button type="button" onClick={() => onPlay(item)} disabled={item.missing} className="press group block w-full text-left disabled:cursor-not-allowed">
+      <button
+        type="button"
+        tabIndex={-1}
+        aria-hidden
+        onClick={() => onPlay(item)}
+        disabled={item.missing}
+        className="press group block w-full text-left disabled:cursor-not-allowed"
+      >
         <Thumb item={item} progress={frac} className="aspect-video w-full rounded-[4px] ring-1 ring-seam" />
       </button>
       <div className="mt-3 flex items-center gap-2">

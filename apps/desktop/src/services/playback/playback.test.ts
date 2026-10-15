@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { SnapshotStore } from "./store";
 import { formatTime, languageName, trackLabel } from "./format";
+import { describeError } from "./errors";
 import { nextAbLoop } from "./shortcuts";
 import { ACTIONS, actionForChord, chordOf, commandFor, conflicts, cycleTrack, effectiveKeymap, nextAspect, nextSpeed, parseKeymap } from "./actions";
 import { INITIAL_SNAPSHOT, type PlaybackSnapshot, type Track } from "./types";
