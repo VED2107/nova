@@ -8,6 +8,7 @@
 //! - Media identity follows "paths are locations": see [`identity`].
 
 pub mod identity;
+pub mod library;
 
 use identity::FileIdentity;
 use nova_application::progress_service::{MediaId, ProgressRepository};
@@ -40,6 +41,55 @@ const MIGRATIONS: &[&str] = &[
         updated_at_ms INTEGER NOT NULL
     );
     CREATE INDEX playback_progress_recent ON playback_progress(updated_at_ms DESC);
+    "#,
+    // 2: media library — scan roots, scan jobs, searchable titles
+    r#"
+    CREATE TABLE scan_root (
+        id          INTEGER PRIMARY KEY,
+        path        TEXT    NOT NULL UNIQUE,
+        added_at_ms INTEGER NOT NULL
+    );
+    CREATE TABLE scan_job (
+        id             INTEGER PRIMARY KEY,
+        root_id        INTEGER NOT NULL REFERENCES scan_root(id) ON DELETE CASCADE,
+        status         TEXT    NOT NULL
+                       CHECK (status IN ('running','completed','cancelled','failed','interrupted')),
+        started_at_ms  INTEGER NOT NULL,
+        finished_at_ms INTEGER,
+        files_seen     INTEGER NOT NULL DEFAULT 0,
+        files_added    INTEGER NOT NULL DEFAULT 0,
+        files_updated  INTEGER NOT NULL DEFAULT 0,
+        files_missing  INTEGER NOT NULL DEFAULT 0,
+        errors         INTEGER NOT NULL DEFAULT 0,
+        last_error     TEXT
+    );
+    CREATE INDEX scan_job_root ON scan_job(root_id, id DESC);
+
+    ALTER TABLE media_item ADD COLUMN title  TEXT NOT NULL DEFAULT '';
+    ALTER TABLE media_item ADD COLUMN folder TEXT NOT NULL DEFAULT '';
+    ALTER TABLE media_item ADD COLUMN root_id INTEGER REFERENCES scan_root(id) ON DELETE SET NULL;
+    ALTER TABLE media_item ADD COLUMN missing INTEGER NOT NULL DEFAULT 0 CHECK (missing IN (0, 1));
+    ALTER TABLE media_item ADD COLUMN last_seen_job INTEGER;
+    ALTER TABLE media_item ADD COLUMN added_to_library_ms INTEGER;
+    CREATE INDEX media_item_root ON media_item(root_id, missing);
+    CREATE INDEX media_item_added ON media_item(added_to_library_ms DESC);
+
+    CREATE VIRTUAL TABLE media_fts USING fts5(
+        title, folder,
+        content = 'media_item', content_rowid = 'id',
+        tokenize = 'unicode61 remove_diacritics 2'
+    );
+    CREATE TRIGGER media_item_fts_ai AFTER INSERT ON media_item BEGIN
+        INSERT INTO media_fts(rowid, title, folder) VALUES (new.id, new.title, new.folder);
+    END;
+    CREATE TRIGGER media_item_fts_ad AFTER DELETE ON media_item BEGIN
+        INSERT INTO media_fts(media_fts, rowid, title, folder) VALUES ('delete', old.id, old.title, old.folder);
+    END;
+    CREATE TRIGGER media_item_fts_au AFTER UPDATE OF title, folder ON media_item BEGIN
+        INSERT INTO media_fts(media_fts, rowid, title, folder) VALUES ('delete', old.id, old.title, old.folder);
+        INSERT INTO media_fts(rowid, title, folder) VALUES (new.id, new.title, new.folder);
+    END;
+    INSERT INTO media_fts(media_fts) VALUES ('rebuild');
     "#,
 ];
 
@@ -83,7 +133,7 @@ impl From<std::io::Error> for StoreError {
     }
 }
 
-fn now_ms() -> i64 {
+pub(crate) fn now_ms() -> i64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map(|d| d.as_millis() as i64)
@@ -125,7 +175,7 @@ impl Store {
         })
     }
 
-    fn lock(&self) -> MutexGuard<'_, Connection> {
+    pub(crate) fn lock(&self) -> MutexGuard<'_, Connection> {
         self.conn.lock().unwrap_or_else(|p| p.into_inner())
     }
 
@@ -144,7 +194,7 @@ impl Store {
     pub fn resolve_media(&self, file: &FileIdentity) -> Result<MediaId, StoreError> {
         let mut conn = self.lock();
         let tx = conn.transaction()?;
-        let id = resolve_in(&tx, file)?;
+        let (id, _) = resolve_in(&tx, file)?;
         tx.commit()?;
         Ok(id)
     }
@@ -188,8 +238,38 @@ impl Store {
     }
 }
 
-fn resolve_in(tx: &Transaction<'_>, f: &FileIdentity) -> Result<MediaId, StoreError> {
+/// What [`resolve_in`] did with a file.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Resolution {
+    /// Known path, same content.
+    Existing,
+    /// Known path, new content (progress discarded).
+    ContentChanged,
+    /// Known content at a new path whose old path is gone.
+    Moved,
+    New,
+}
+
+/// Display title (file stem) and folder (parent path) used for search.
+pub(crate) fn title_and_folder(path: &str) -> (String, String) {
+    let p = Path::new(path);
+    let title = p
+        .file_stem()
+        .map(|s| s.to_string_lossy().into_owned())
+        .unwrap_or_else(|| path.to_owned());
+    let folder = p
+        .parent()
+        .map(|d| d.to_string_lossy().into_owned())
+        .unwrap_or_default();
+    (title, folder)
+}
+
+pub(crate) fn resolve_in(
+    tx: &Transaction<'_>,
+    f: &FileIdentity,
+) -> Result<(MediaId, Resolution), StoreError> {
     let now = now_ms();
+    let (title, folder) = title_and_folder(&f.path);
     let by_path: Option<(MediaId, String)> = tx
         .query_row(
             "SELECT id, fingerprint FROM media_item WHERE path = ?1",
@@ -202,12 +282,19 @@ fn resolve_in(tx: &Transaction<'_>, f: &FileIdentity) -> Result<MediaId, StoreEr
             log::info!("media content changed at a known path; discarding its progress");
             tx.execute("DELETE FROM playback_progress WHERE media_id = ?1", [id])?;
         }
+        let changed = fp != f.fingerprint;
         tx.execute(
-            "UPDATE media_item SET fingerprint = ?2, size_bytes = ?3, modified_ms = ?4, updated_at_ms = ?5
+            "UPDATE media_item SET fingerprint = ?2, size_bytes = ?3, modified_ms = ?4, updated_at_ms = ?5,
+                                   title = ?6, folder = ?7
              WHERE id = ?1",
-            params![id, f.fingerprint, f.size_bytes as i64, f.modified_ms, now],
+            params![id, f.fingerprint, f.size_bytes as i64, f.modified_ms, now, title, folder],
         )?;
-        return Ok(id);
+        let r = if changed {
+            Resolution::ContentChanged
+        } else {
+            Resolution::Existing
+        };
+        return Ok((id, r));
     }
 
     let mut stmt = tx.prepare(
@@ -225,18 +312,19 @@ fn resolve_in(tx: &Transaction<'_>, f: &FileIdentity) -> Result<MediaId, StoreEr
     {
         log::info!("media moved; carrying its progress to the new location");
         tx.execute(
-            "UPDATE media_item SET path = ?2, modified_ms = ?3, updated_at_ms = ?4 WHERE id = ?1",
-            params![id, f.path, f.modified_ms, now],
+            "UPDATE media_item SET path = ?2, modified_ms = ?3, updated_at_ms = ?4, title = ?5, folder = ?6
+             WHERE id = ?1",
+            params![id, f.path, f.modified_ms, now, title, folder],
         )?;
-        return Ok(id);
+        return Ok((id, Resolution::Moved));
     }
 
     tx.execute(
-        "INSERT INTO media_item (path, fingerprint, size_bytes, modified_ms, created_at_ms, updated_at_ms)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?5)",
-        params![f.path, f.fingerprint, f.size_bytes as i64, f.modified_ms, now],
+        "INSERT INTO media_item (path, fingerprint, size_bytes, modified_ms, created_at_ms, updated_at_ms, title, folder)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?5, ?6, ?7)",
+        params![f.path, f.fingerprint, f.size_bytes as i64, f.modified_ms, now, title, folder],
     )?;
-    Ok(tx.last_insert_rowid())
+    Ok((tx.last_insert_rowid(), Resolution::New))
 }
 
 fn migrate(conn: &mut Connection) -> Result<(), StoreError> {
@@ -311,6 +399,29 @@ mod tests {
         drop(s);
         let s = Store::open(&db).unwrap();
         assert_eq!(s.schema_version().unwrap(), SCHEMA_VERSION);
+    }
+
+    #[test]
+    fn upgrades_v1_database_keeping_progress() {
+        let d = dir("upgrade");
+        let db = d.join("nova.sqlite3");
+        {
+            let c = Connection::open(&db).unwrap();
+            c.execute_batch(MIGRATIONS[0]).unwrap();
+            c.pragma_update(None, "user_version", 1).unwrap();
+            c.execute_batch(
+                "INSERT INTO media_item (path, fingerprint, size_bytes, created_at_ms, updated_at_ms)
+                     VALUES ('C:/old/movie.mkv', 'f', 1, 0, 0);
+                 INSERT INTO playback_progress (media_id, position_ms, completed, updated_at_ms)
+                     VALUES (1, 42000, 0, 0);",
+            )
+            .unwrap();
+        }
+        let s = Store::open(&db).unwrap();
+        assert_eq!(s.schema_version().unwrap(), SCHEMA_VERSION);
+        assert_eq!(s.load_progress(1).unwrap().unwrap().position_ms, 42_000);
+        let cw = s.continue_watching(5).unwrap();
+        assert_eq!(cw[0].title, "movie", "title derived for pre-v2 rows");
     }
 
     #[test]

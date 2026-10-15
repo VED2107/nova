@@ -1903,6 +1903,7 @@ dependencies = [
  "nova-playback-api",
  "nova-playback-mpv",
  "rusqlite",
+ "serde",
 ]
 
 [[package]]
