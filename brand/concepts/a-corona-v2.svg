@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><title>NOVA</title>
+  <!-- Rotated -40deg about centre: light breaks at upper right. Outer r100 @(128,128), cut r88 @(110,128); intersections x=56.333 y=128±69.742 toward lower-left -->
+  <g transform="rotate(-40 128 128)">
+    <path d="M56.333 58.258 A100 100 0 1 1 56.333 197.742 A88 88 0 1 0 56.333 58.258 Z" fill="#000"/>
+    <circle cx="110" cy="128" r="76" fill="#000"/>
+  </g>
+</svg>

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <!-- Crescent: outer circle (128,128) r100 minus circle (112,128) r90; intersections at x=60.625, y=128±73.9 -->
+  <path d="M60.625 54.1 A100 100 0 1 1 60.625 201.9 A90 90 0 1 0 60.625 54.1 Z" fill="#000"/>
+  <!-- Disc: (112,128) r78, 12-unit gap to the crescent's inner edge -->
+  <circle cx="112" cy="128" r="78" fill="#000"/>
+</svg>

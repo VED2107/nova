@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><title>NOVA</title>
+  <!-- Four frame-line corners, arm 64, weight 22, on a 32..224 square -->
+  <path d="M32 32h64v22H54v42H32z M224 32v64h-22V54h-42V32z M224 224h-64v-22h42v-42h22z M32 224v-64h22v42h42v22z" fill="#000"/>
+  <!-- Point of light: square rotated 45deg, half-diagonal 34 -->
+  <path d="M128 94 L162 128 L128 162 L94 128 Z" fill="#000"/>
+</svg>

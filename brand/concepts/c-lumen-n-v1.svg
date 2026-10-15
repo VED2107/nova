@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <!-- Stems 40 wide, 176 tall; beam 40 wide (horizontal), separated by 10-unit gaps, edges parallel -->
+  <rect x="44" y="40" width="40" height="176" fill="#000"/>
+  <rect x="172" y="40" width="40" height="176" fill="#000"/>
+  <path d="M94 40 H134 L162 163 V216 H122 L94 93 Z" fill="#000"/>
+</svg>
