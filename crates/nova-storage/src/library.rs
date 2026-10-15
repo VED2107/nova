@@ -405,8 +405,25 @@ impl Store {
         limit: i64,
         offset: i64,
     ) -> Result<SearchPage, StoreError> {
+        self.search_in(query, sort, include_missing, limit, offset, None)
+    }
+
+    /// [`Self::search`] limited to one library folder when `root` is set.
+    pub fn search_in(
+        &self,
+        query: &str,
+        sort: LibrarySort,
+        include_missing: bool,
+        limit: i64,
+        offset: i64,
+        root: Option<RootId>,
+    ) -> Result<SearchPage, StoreError> {
         let conn = self.lock();
         let fts = fts_query(query);
+        // An i64 is formatted, never user text, so this cannot inject SQL.
+        let root_clause = root
+            .map(|r| format!("AND m.root_id = {r}"))
+            .unwrap_or_default();
         let missing_clause = if include_missing {
             ""
         } else {
@@ -426,7 +443,7 @@ impl Store {
         };
         let base = format!(
             "FROM {from} LEFT JOIN playback_progress p ON p.media_id = m.id
-                            WHERE {filter} AND m.root_id IS NOT NULL {missing_clause}"
+                            WHERE {filter} AND m.root_id IS NOT NULL {missing_clause} {root_clause}"
         );
         let total: i64 =
             conn.query_row(&format!("SELECT count(*) {base}"), [&fts], |r| r.get(0))?;
@@ -696,6 +713,43 @@ mod tests {
         );
         assert!(titles("zzz").is_empty());
         assert_eq!(titles("\")(*"), titles(""), "pure punctuation = list all");
+    }
+
+    #[test]
+    fn search_can_be_limited_to_one_folder() {
+        let d = dir("by-root");
+        std::fs::create_dir_all(d.join("a")).unwrap();
+        std::fs::create_dir_all(d.join("b")).unwrap();
+        let s = Store::open_in_memory().unwrap();
+        let ra = s.add_root(&d.join("a")).unwrap().id;
+        let rb = s.add_root(&d.join("b")).unwrap().id;
+        for (root, name, seed) in [
+            (ra, "a/one.mkv", 1u8),
+            (rb, "b/two.mkv", 2),
+            (rb, "b/three.mkv", 3),
+        ] {
+            let job = s.begin_job(root).unwrap();
+            let f = file(&d.join(name), seed);
+            s.record_batch(job, root, &[ScanEntry::Changed(f)]).unwrap();
+        }
+        assert_eq!(
+            s.search_in("", LibrarySort::Title, false, 50, 0, Some(rb))
+                .unwrap()
+                .total,
+            2
+        );
+        assert_eq!(
+            s.search_in("", LibrarySort::Title, false, 50, 0, Some(ra))
+                .unwrap()
+                .total,
+            1
+        );
+        assert_eq!(
+            s.search("", LibrarySort::Title, false, 50, 0)
+                .unwrap()
+                .total,
+            3
+        );
     }
 
     #[test]

@@ -8,7 +8,7 @@
 //! because backends may deliver snapshots synchronously from `execute`.
 
 use crate::progress_service::{Prepared, ProgressService};
-use nova_domain::queue::{Queue, QueueItem, QueueItemId, QueueSnapshot};
+use nova_domain::queue::{Queue, QueueItem, QueueItemId, QueueSnapshot, RepeatMode};
 use nova_playback_api::{
     MediaSource, MediaSourceError, PlaybackBackend, PlaybackCommand, PlaybackError,
     PlaybackErrorKind, PlaybackPhase, PlaybackSnapshot, SessionId,
@@ -197,6 +197,22 @@ impl QueueService {
         self.publish()
     }
 
+    /// Repeat one uses the engine's file loop; repeat all wraps the queue.
+    pub fn set_repeat(&self, mode: RepeatMode) -> Result<QueueSnapshot, PlaybackError> {
+        self.lock().queue.set_repeat(mode);
+        if let Ok(backend) = self.backend() {
+            backend.execute(PlaybackCommand::SetLoopFile {
+                enabled: mode == RepeatMode::One,
+            })?;
+        }
+        Ok(self.publish())
+    }
+
+    pub fn shuffle(&self, seed: u64) -> QueueSnapshot {
+        self.lock().queue.shuffle_upcoming(seed);
+        self.publish()
+    }
+
     /// Clears the list. Playback of the current media continues.
     pub fn clear(&self) -> QueueSnapshot {
         let mut st = self.lock();
@@ -215,7 +231,8 @@ impl QueueService {
         }
         let mut st = self.lock();
         let ours = st.session == Some(s.session_id);
-        if !ours || st.advanced_for == Some(s.session_id) || !st.queue.snapshot().has_next {
+        let can_continue = st.queue.snapshot().has_next || st.queue.repeat() == RepeatMode::All;
+        if !ours || st.advanced_for == Some(s.session_id) || !can_continue {
             return false;
         }
         st.advanced_for = Some(s.session_id);
@@ -224,6 +241,20 @@ impl QueueService {
 
     pub fn advance_after_end(&self) {
         log::info!("end of media confirmed by engine; advancing queue");
+        let wrap = {
+            let mut st = self.lock();
+            if !st.queue.snapshot().has_next && st.queue.repeat() == RepeatMode::All {
+                st.queue.wrap_to_start().cloned()
+            } else {
+                None
+            }
+        };
+        if let Some(first) = wrap {
+            if let Err(e) = self.play(Some(first)) {
+                log::warn!("repeat-all failed: {e}");
+            }
+            return;
+        }
         if let Err(e) = self.next() {
             log::warn!("auto-advance failed: {e}");
         }
@@ -263,6 +294,7 @@ mod tests {
                     video: None,
                     ab_loop: AbLoop::default(),
                     issues: vec![],
+                    adjust: Default::default(),
                     error: None,
                 }),
             })
@@ -442,6 +474,26 @@ mod tests {
         svc.select(snap.items[2].id).unwrap();
         assert_eq!(fake.opened(), ["1.mp4", "3.mp4"]);
         assert!(svc.select(9_999).is_err());
+    }
+
+    #[test]
+    fn repeat_all_wraps_to_first_and_repeat_one_uses_engine_loop() {
+        let (svc, fake, _) = service();
+        svc.open(files(2)).unwrap();
+        svc.set_repeat(RepeatMode::All).unwrap();
+        svc.next().unwrap();
+        let ended = fake.set(PlaybackPhase::Ended, 10_000);
+        assert!(svc.on_snapshot(&ended));
+        svc.advance_after_end();
+        assert_eq!(fake.opened(), ["1.mp4", "2.mp4", "1.mp4"]);
+        svc.set_repeat(RepeatMode::One).unwrap();
+        assert!(
+            fake.commands
+                .lock()
+                .unwrap()
+                .iter()
+                .any(|c| matches!(c, PlaybackCommand::SetLoopFile { enabled: true }))
+        );
     }
 
     #[test]

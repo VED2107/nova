@@ -198,6 +198,66 @@ fn queue_clear(queue: State<'_, Queue>) -> QueueSnapshot {
     queue.clear()
 }
 
+#[tauri::command]
+fn queue_set_repeat(
+    mode: nova_domain::queue::RepeatMode,
+    queue: State<'_, Queue>,
+) -> Result<QueueSnapshot, PlaybackError> {
+    queue.set_repeat(mode)
+}
+
+#[tauri::command]
+fn queue_shuffle(queue: State<'_, Queue>) -> QueueSnapshot {
+    let seed = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_nanos() as u64)
+        .unwrap_or(7);
+    queue.shuffle(seed)
+}
+
+/// Saves the current frame to Pictures\NOVA and returns the file path.
+/// The path is chosen here, never by the frontend.
+#[tauri::command]
+fn playback_screenshot(
+    with_subtitles: bool,
+    engine: State<'_, Engine>,
+    app: AppHandle,
+) -> Result<String, PlaybackError> {
+    let player = engine.get()?;
+    let snap = player.snapshot();
+    let dir = app
+        .path()
+        .picture_dir()
+        .map_err(|e| PlaybackError::new(PlaybackErrorKind::EngineFailure, e.to_string()))?
+        .join("NOVA");
+    std::fs::create_dir_all(&dir)
+        .map_err(|e| PlaybackError::new(PlaybackErrorKind::EngineFailure, e.to_string()))?;
+    let stem: String = snap
+        .media_title
+        .unwrap_or_else(|| "NOVA".into())
+        .chars()
+        .map(|c| {
+            if c.is_alphanumeric() || c == '-' || c == '_' {
+                c
+            } else {
+                '_'
+            }
+        })
+        .take(60)
+        .collect();
+    let secs = snap.position_ms / 1000;
+    let name = format!(
+        "{stem}_{:02}-{:02}-{:02}_{}.png",
+        secs / 3600,
+        (secs / 60) % 60,
+        secs % 60,
+        snap.position_ms % 1000
+    );
+    let path = dir.join(name);
+    player.screenshot(&path, with_subtitles)?;
+    Ok(path.display().to_string())
+}
+
 /// Resolution order: NOVA_LIBMPV_PATH, next to the executable, then the
 /// repository's vendor directory (debug builds only).
 fn libmpv_path() -> PathBuf {
@@ -431,6 +491,9 @@ pub fn run() {
             queue_remove,
             queue_move,
             queue_clear,
+            queue_set_repeat,
+            queue_shuffle,
+            playback_screenshot,
             library::library_roots,
             library::library_add_root,
             library::library_remove_root,

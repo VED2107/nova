@@ -75,7 +75,49 @@ pub enum PlaybackCommand {
     SetHardwareDecoding {
         enabled: bool,
     },
+    /// Show the next (or previous) frame and pause.
+    FrameStep {
+        forward: bool,
+    },
+    /// Subtitle timing offset (positive = later).
+    SetSubtitleDelay {
+        ms: i64,
+    },
+    /// Audio timing offset (positive = later).
+    SetAudioDelay {
+        ms: i64,
+    },
+    /// Display aspect override, one of [`ASPECT_RATIOS`]; `None` = as encoded.
+    SetAspectRatio {
+        ratio: Option<String>,
+    },
+    /// Clockwise rotation: 0, 90, 180 or 270.
+    SetRotation {
+        degrees: u16,
+    },
+    SetDeinterlace {
+        enabled: bool,
+    },
+    /// Repeat the current file indefinitely.
+    SetLoopFile {
+        enabled: bool,
+    },
+    /// Load an external subtitle file for the current media and select it.
+    AddSubtitle {
+        path: String,
+    },
 }
+
+/// Aspect ratios offered for override (VLC-equivalent set).
+pub const ASPECT_RATIOS: &[&str] = &[
+    "16:9", "4:3", "1:1", "16:10", "2.21:1", "2.35:1", "2.39:1", "5:4", "1.85:1",
+];
+/// Subtitle file extensions accepted by `AddSubtitle`.
+pub const SUBTITLE_EXTENSIONS: &[&str] = &[
+    "srt", "ass", "ssa", "vtt", "sub", "sup", "idx", "smi", "lrc",
+];
+/// Maximum timing offset accepted for subtitle/audio delay.
+pub const MAX_DELAY_MS: i64 = 600_000;
 
 impl PlaybackCommand {
     pub const MAX_VOLUME_PERCENT: u8 = 130;
@@ -108,6 +150,34 @@ impl PlaybackCommand {
                 a_ms: Some(a),
                 b_ms: Some(b),
             } if a >= b => Err(PlaybackError::invalid("loop end must be after loop start")),
+            Self::SetSubtitleDelay { ms } | Self::SetAudioDelay { ms }
+                if ms.abs() > MAX_DELAY_MS =>
+            {
+                Err(PlaybackError::invalid("delay must be within ±10 minutes"))
+            }
+            Self::SetAspectRatio { ratio: Some(r) } if !ASPECT_RATIOS.contains(&r.as_str()) => {
+                Err(PlaybackError::invalid("unsupported aspect ratio"))
+            }
+            Self::SetRotation { degrees } if !matches!(degrees, 0 | 90 | 180 | 270) => {
+                Err(PlaybackError::invalid("rotation must be 0, 90, 180 or 270"))
+            }
+            Self::AddSubtitle { path } => {
+                let ok_ext = std::path::Path::new(path)
+                    .extension()
+                    .and_then(|e| e.to_str())
+                    .is_some_and(|e| {
+                        SUBTITLE_EXTENSIONS.contains(&e.to_ascii_lowercase().as_str())
+                    });
+                if !ok_ext {
+                    return Err(PlaybackError::new(
+                        PlaybackErrorKind::UnsupportedSource,
+                        "not a subtitle file",
+                    ));
+                }
+                MediaSource::from_user_path(path)
+                    .map(|_| ())
+                    .map_err(|e| PlaybackError::new(PlaybackErrorKind::NotFound, e.to_string()))
+            }
             _ => Ok(()),
         }
     }
@@ -215,9 +285,23 @@ pub struct PlaybackSnapshot {
     pub tracks: Vec<Track>,
     pub video: Option<VideoInfo>,
     pub ab_loop: AbLoop,
+    /// Engine-confirmed picture and timing adjustments (player-wide).
+    pub adjust: Adjustments,
     /// Non-fatal problems observed for this media (e.g. no video decoder).
     pub issues: Vec<PlaybackIssue>,
     pub error: Option<PlaybackError>,
+}
+
+/// Engine-confirmed picture/timing adjustments.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Adjustments {
+    pub subtitle_delay_ms: i64,
+    pub audio_delay_ms: i64,
+    pub aspect_ratio: Option<String>,
+    pub rotation: u16,
+    pub deinterlace: bool,
+    pub loop_file: bool,
 }
 
 /// Engine-confirmed A–B loop points.
@@ -302,6 +386,17 @@ pub trait PlaybackBackend: Send + Sync {
     /// Detailed stream information for diagnostics, when media is loaded.
     fn media_details(&self) -> Option<MediaDetails> {
         None
+    }
+    /// Saves the current frame (with or without subtitles) to `path`.
+    fn screenshot(
+        &self,
+        _path: &std::path::Path,
+        _with_subtitles: bool,
+    ) -> Result<(), PlaybackError> {
+        Err(PlaybackError::new(
+            PlaybackErrorKind::EngineFailure,
+            "screenshots are not supported by this backend",
+        ))
     }
 }
 
@@ -431,6 +526,44 @@ mod tests {
                 path: "C:/a.mp4".into(),
                 start_ms: Some(1500)
             }
+        );
+    }
+
+    #[test]
+    fn validates_vlc_style_adjustments() {
+        use PlaybackCommand as C;
+        assert!(C::SetSubtitleDelay { ms: -1500 }.validate().is_ok());
+        assert!(C::SetAudioDelay { ms: 700_000 }.validate().is_err());
+        assert!(
+            C::SetAspectRatio {
+                ratio: Some("16:9".into())
+            }
+            .validate()
+            .is_ok()
+        );
+        assert!(C::SetAspectRatio { ratio: None }.validate().is_ok());
+        assert!(
+            C::SetAspectRatio {
+                ratio: Some("16:9;quit".into())
+            }
+            .validate()
+            .is_err()
+        );
+        assert!(C::SetRotation { degrees: 90 }.validate().is_ok());
+        assert!(C::SetRotation { degrees: 45 }.validate().is_err());
+        assert!(
+            C::AddSubtitle {
+                path: "C:/x/y.exe".into()
+            }
+            .validate()
+            .is_err()
+        );
+        assert!(
+            C::AddSubtitle {
+                path: "C:/definitely/missing.srt".into()
+            }
+            .validate()
+            .is_err()
         );
     }
 

@@ -22,7 +22,14 @@ pub const PREFERENCES: &[(&str, &[&str], &str)] = &[
     ("hwdec", &["auto", "off"], "auto"),
     ("resume", &["on", "off"], "on"),
     ("autoHide", &["on", "off"], "on"),
+    ("wheel", &["volume", "seek", "none"], "volume"),
+    ("click", &["pause", "none"], "pause"),
+    ("dblclick", &["fullscreen", "none"], "fullscreen"),
 ];
+
+/// Free-form preferences validated structurally instead of by enumeration.
+pub const KEYMAP_KEY: &str = "keymap";
+const KEYMAP_MAX_BYTES: usize = 16 * 1024;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -83,6 +90,7 @@ impl Store {
             .iter()
             .map(|(k, _, d)| ((*k).to_owned(), (*d).to_owned()))
             .collect();
+        out.insert(KEYMAP_KEY.to_owned(), "{}".to_owned());
         let conn = self.lock();
         let mut stmt = conn.prepare("SELECT key, value FROM preference")?;
         for row in stmt.query_map([], |r| Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?)))? {
@@ -209,9 +217,32 @@ impl Store {
 }
 
 pub fn validate_preference(key: &str, value: &str) -> bool {
+    if key == KEYMAP_KEY {
+        return validate_keymap(value);
+    }
     PREFERENCES
         .iter()
         .any(|(k, allowed, _)| *k == key && allowed.contains(&value))
+}
+
+/// A keymap is a JSON object: action id -> list of key chords
+/// (e.g. `{"seek.forward":["ArrowRight","L"]}`). Bounded in size and shape so
+/// stored data can never be used to smuggle anything else.
+pub fn validate_keymap(value: &str) -> bool {
+    if value.len() > KEYMAP_MAX_BYTES {
+        return false;
+    }
+    let Ok(serde_json::Value::Object(map)) = serde_json::from_str::<serde_json::Value>(value)
+    else {
+        return false;
+    };
+    map.len() <= 200
+        && map.iter().all(|(action, chords)| {
+            action.len() <= 48
+                && action.chars().all(|c| c.is_ascii_alphanumeric() || c == '.' || c == '-')
+                && matches!(chords, serde_json::Value::Array(list) if list.len() <= 6
+                    && list.iter().all(|c| matches!(c, serde_json::Value::String(s) if !s.is_empty() && s.len() <= 40)))
+        })
 }
 
 #[cfg(test)]
@@ -232,6 +263,27 @@ mod tests {
             .execute("INSERT INTO preference VALUES ('hwdec', 'rm -rf', 0) ON CONFLICT(key) DO UPDATE SET value = 'rm -rf'", [])
             .unwrap();
         assert_eq!(s.preferences().unwrap()["hwdec"], "auto");
+    }
+
+    #[test]
+    fn keymap_is_validated_structurally() {
+        let s = Store::open_in_memory().unwrap();
+        assert_eq!(s.preferences().unwrap()["keymap"], "{}");
+        assert!(
+            s.set_preference("keymap", r#"{"seek.forward":["ArrowRight","Shift+L"]}"#)
+                .unwrap()
+        );
+        assert!(
+            !s.set_preference("keymap", r#"{"seek.forward":"ArrowRight"}"#)
+                .unwrap()
+        );
+        assert!(!s.set_preference("keymap", r#"{"bad key!":["A"]}"#).unwrap());
+        assert!(!s.set_preference("keymap", "not json").unwrap());
+        assert!(
+            !s.set_preference("keymap", &format!(r#"{{"a":["{}"]}}"#, "x".repeat(41)))
+                .unwrap()
+        );
+        assert_eq!(s.preferences().unwrap()["wheel"], "volume");
     }
 
     #[test]

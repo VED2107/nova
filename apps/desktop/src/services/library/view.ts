@@ -57,3 +57,41 @@ export function formatBytes(n: number): string {
 }
 
 export const itemKey = (i: LibraryItem) => i.id;
+
+/** "4K", "1080p", "720p", or "1440×1080" for non-standard sizes. */
+export function resolutionLabel(w: number | null, h: number | null): string | null {
+  if (!w || !h) return null;
+  if (h >= 4300 || w >= 7600) return "8K";
+  if (h >= 2100 || w >= 3800) return "4K";
+  for (const p of [1440, 1080, 720, 576, 480, 360]) if (h === p) return `${p}p`;
+  return `${w}×${h}`;
+}
+
+/** Compact duration: "1:32:10" / "47:05" / null. */
+export function formatDuration(ms: number | null | undefined): string | null {
+  if (ms == null || !Number.isFinite(ms) || ms <= 0) return null;
+  const t = Math.round(ms / 1000);
+  const h = Math.floor(t / 3600);
+  const m = Math.floor((t % 3600) / 60);
+  const s = String(t % 60).padStart(2, "0");
+  return h ? `${h}:${String(m).padStart(2, "0")}:${s}` : `${m}:${s}`;
+}
+
+/** Catalogue number from the stable media id (real, not decorative). */
+export function catalogNo(id: number): string {
+  return `No. ${String(id).padStart(3, "0")}`;
+}
+
+/** Spec line printed like a disc back cover: only engine-measured facts. */
+export function specLine(item: Pick<LibraryItem, "width" | "height" | "durationMs" | "sizeBytes">): string {
+  return [resolutionLabel(item.width, item.height), formatDuration(item.durationMs), formatBytes(item.sizeBytes)]
+    .filter(Boolean)
+    .join(" · ");
+}
+
+export function stampFor(item: Pick<LibraryItem, "missing" | "progress">): "missing" | "watched" | "progress" | null {
+  if (item.missing) return "missing";
+  if (item.progress?.completed) return "watched";
+  if (item.progress && item.progress.positionMs > 0) return "progress";
+  return null;
+}

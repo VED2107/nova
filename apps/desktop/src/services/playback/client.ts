@@ -2,7 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { useSyncExternalStore } from "react";
 import { SnapshotStore } from "./store";
-import type { CommandAck, MediaDetails, PlaybackCommand, PlaybackError, PlaybackSnapshot, QueueSnapshot } from "./types";
+import type { CommandAck, MediaDetails, PlaybackCommand, PlaybackError, PlaybackSnapshot, QueueSnapshot, RepeatMode } from "./types";
 import { EMPTY_QUEUE } from "./types";
 
 export const SNAPSHOT_EVENT = "playback://snapshot";
@@ -77,6 +77,8 @@ export const queue = {
   remove: (id: number) => queueCall("queue_remove", { id }),
   move: (id: number, to: number) => queueCall("queue_move", { id, to }),
   clear: () => queueCall("queue_clear"),
+  setRepeat: (mode: RepeatMode) => queueCall("queue_set_repeat", { mode }),
+  shuffle: () => queueCall("queue_shuffle"),
 };
 
 /** Starts listening for engine snapshots. Idempotent. */
@@ -103,6 +105,8 @@ export function execute(command: PlaybackCommand): Promise<CommandAck> {
 
 export const engineInfo = () => invoke<EngineInfo>("engine_info");
 export const mediaDetails = () => invoke<MediaDetails | null>("playback_media_details");
+/** Saves the current frame to Pictures\NOVA; returns the file path. */
+export const screenshot = (withSubtitles: boolean) => invoke<string>("playback_screenshot", { withSubtitles });
 export const launchMediaPaths = () => invoke<string[]>("launch_media_paths");
 
 export function isPlaybackError(e: unknown): e is PlaybackError {

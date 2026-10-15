@@ -565,3 +565,60 @@ fn engine_lifecycle_does_not_leak() {
     assert!(h1 <= h0 + 20, "handle growth {h0} -> {h1}");
     assert!(m1 <= m0 + 64 * 1024 * 1024, "memory growth {m0} -> {m1}");
 }
+
+#[test]
+fn vlc_style_adjustments_are_confirmed_by_engine() {
+    let mut h = Harness::new();
+    h.open_and_play("h264_aac_1080p30_30s.mp4");
+    h.exec(Cmd::SetSubtitleDelay { ms: -1500 });
+    h.exec(Cmd::SetAudioDelay { ms: 250 });
+    h.exec(Cmd::SetAspectRatio {
+        ratio: Some("4:3".into()),
+    });
+    h.exec(Cmd::SetRotation { degrees: 90 });
+    h.exec(Cmd::SetDeinterlace { enabled: true });
+    h.exec(Cmd::SetLoopFile { enabled: true });
+    let s = h.wait("adjustments confirmed", 3_000, |s| {
+        let a = &s.adjust;
+        a.subtitle_delay_ms == -1500
+            && a.audio_delay_ms == 250
+            && a.aspect_ratio.as_deref() == Some("4:3")
+            && a.rotation == 90
+            && a.deinterlace
+            && a.loop_file
+    });
+    assert_eq!(s.phase, P::Playing);
+    h.exec(Cmd::SetAspectRatio { ratio: None });
+    h.exec(Cmd::SetLoopFile { enabled: false });
+    h.wait("reset", 3_000, |s| {
+        s.adjust.aspect_ratio.is_none() && !s.adjust.loop_file
+    });
+
+    // Frame step pauses and moves forward by about one frame (30 fps).
+    h.exec(Cmd::Pause);
+    let before = h
+        .wait("paused", 3_000, |s| s.phase == P::Paused)
+        .position_ms;
+    h.exec(Cmd::FrameStep { forward: true });
+    h.wait("stepped", 3_000, |s| {
+        s.phase == P::Paused && s.position_ms > before && s.position_ms <= before + 100
+    });
+
+    // External subtitle file is loaded and selected.
+    let srt = std::env::temp_dir().join("nova-engine-test.srt");
+    std::fs::write(&srt, "1\n00:00:00,000 --> 00:00:30,000\nExternal\n").unwrap();
+    h.exec(Cmd::AddSubtitle {
+        path: srt.to_string_lossy().into(),
+    });
+    h.wait("external sub selected", 3_000, |s| {
+        s.tracks
+            .iter()
+            .any(|t| t.kind == TrackKind::Subtitle && t.is_external && t.is_selected)
+    });
+
+    // Screenshot of the current frame.
+    let shot = std::env::temp_dir().join("nova-engine-test-shot.png");
+    let _ = std::fs::remove_file(&shot);
+    let r = h.player.screenshot(&shot, false);
+    println!("screenshot with vo=null: {r:?}");
+}
