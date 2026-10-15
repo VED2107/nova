@@ -64,7 +64,7 @@ export function SettingsDialog(props: { open: boolean; onClose: () => void; init
           <p aria-hidden className={`mt-4 flex items-center gap-1.5 px-3 text-[12px] text-ink-3 transition-opacity duration-200 ${saved ? "opacity-100" : "opacity-0"}`}>
             <CheckIcon size={14} className="text-ember-text" /> Saved
           </p>
-          <p className="mt-auto px-3 pt-6 text-[11.5px] leading-snug text-ink-3">Changes save as you make them.</p>
+          <p className="mt-1 px-3 text-[11.5px] leading-snug text-ink-3">Changes save as you make them.</p>
         </nav>
         <div className="min-w-0 flex-1 overflow-y-auto px-6 py-5">
           {error && (

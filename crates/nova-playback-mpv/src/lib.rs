@@ -621,6 +621,12 @@ impl PlaybackBackend for MpvPlayer {
                 i.set_string("loop-file", if enabled { "inf" } else { "no" })?
             }
             PlaybackCommand::AddSubtitle { path } => i.command(&["sub-add", &path, "select"])?,
+            PlaybackCommand::SetSubtitleMargin { margin } => {
+                i.set_string("sub-margin-y", &margin.to_string())?
+            }
+            PlaybackCommand::SetVideoMarginRight { ratio } => {
+                i.set_double("video-margin-ratio-right", ratio)?
+            }
             PlaybackCommand::SetHardwareDecoding { enabled } => {
                 i.set_string("hwdec", if enabled { "auto-safe" } else { "no" })?
             }

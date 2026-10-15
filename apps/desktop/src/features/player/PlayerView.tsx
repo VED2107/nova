@@ -23,6 +23,8 @@ import { ResumeToast } from "./ResumeToast";
 const IDLE_HIDE_MS = 2500;
 const WHEEL_SEEK_MS = 5_000;
 const WHEEL_VOLUME = 5;
+const SUB_MARGIN_BASE = 22; // the engine's own default bottom margin
+const PANEL_WIDTH = 380;
 let launchHandled = false; // StrictMode runs effects twice in development
 
 type Panel = "queue" | "inspector" | null;
@@ -296,6 +298,39 @@ export function PlayerView(props: { active: boolean; onBrowse: () => void; onOpe
   const hidden = immersive ? !nearBottom && !panel && !menuOpen.current : autoHidden;
   const topHidden = immersive || autoHidden;
 
+  // Subtitles are drawn by the engine under the WebView, so lift them above the
+  // deck while it is visible and let them fall back when it hides.
+  const deckRef = useRef<HTMLDivElement>(null);
+  const subsLifted = hasMedia && !hidden;
+  useEffect(() => {
+    if (!hasMedia) return;
+    const apply = () => {
+      const timeline = deckRef.current?.querySelector(".timeline")?.getBoundingClientRect();
+      const h = window.innerHeight;
+      const px = subsLifted && timeline ? h - timeline.top + 14 : 0;
+      const margin = Math.min(400, Math.round(SUB_MARGIN_BASE + (px / h) * 720));
+      void execute({ type: "setSubtitleMargin", margin }).catch(() => {});
+    };
+    const raf = requestAnimationFrame(apply);
+    window.addEventListener("resize", apply);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("resize", apply);
+    };
+  }, [subsLifted, hasMedia, s.sessionId, prefs.controls, isFullscreen]);
+
+  // A side panel reserves its width in the engine, so the picture re-centres beside it.
+  useEffect(() => {
+    if (!hasMedia) return;
+    const apply = () => {
+      const ratio = panel ? Math.min(0.6, PANEL_WIDTH / window.innerWidth) : 0;
+      void execute({ type: "setVideoMarginRight", ratio: Math.round(ratio * 1000) / 1000 }).catch(() => {});
+    };
+    apply();
+    window.addEventListener("resize", apply);
+    return () => window.removeEventListener("resize", apply);
+  }, [panel, hasMedia, s.sessionId]);
+
   const tracksOf = (kind: "audio" | "subtitle") => s.tracks.filter((t) => t.kind === kind);
   const ctxGroups: CtxGroup[] = [
     {
@@ -463,7 +498,7 @@ export function PlayerView(props: { active: boolean; onBrowse: () => void; onOpe
           "transition-opacity duration-200 ease-(--ease-out-strong)",
           topHidden ? "pointer-events-none opacity-0" : "opacity-100",
         ].join(" ")}
-        style={{ right: panel ? 380 : 0 }}
+        style={{ right: panel ? PANEL_WIDTH : 0 }}
         onMouseEnter={() => (overControls.current = true)}
         onMouseLeave={() => (overControls.current = false)}
         onClick={(e) => e.stopPropagation()}
@@ -538,7 +573,8 @@ export function PlayerView(props: { active: boolean; onBrowse: () => void; onOpe
           "transition-opacity duration-200 ease-(--ease-out-strong)",
           hidden ? "pointer-events-none opacity-0" : "opacity-100",
         ].join(" ")}
-        style={{ right: panel ? 380 : 0 }}
+        style={{ right: panel ? PANEL_WIDTH : 0 }}
+        ref={deckRef}
         onMouseEnter={() => (overControls.current = true)}
         onMouseLeave={() => (overControls.current = false)}
         onClick={(e) => e.stopPropagation()}
@@ -561,7 +597,8 @@ export function PlayerView(props: { active: boolean; onBrowse: () => void; onOpe
 
       {panel && (
         <aside
-          className="absolute inset-y-0 right-0 z-30 w-[380px] border-l border-room-seam bg-room-glass text-room-ink backdrop-blur-xl"
+          style={{ width: PANEL_WIDTH }}
+          className="absolute inset-y-0 right-0 z-30 border-l border-room-seam bg-room-glass text-room-ink backdrop-blur-xl"
           onClick={(e) => e.stopPropagation()}
           onWheel={(e) => e.stopPropagation()}
           onKeyDown={(e) => {

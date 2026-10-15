@@ -280,7 +280,7 @@ function LeadFeature({ item, onPlay }: { item: LibraryItem; onPlay: (i: LibraryI
 /** What is on this computer, and the ways to add to it. Real counts only. */
 function ShelfAside(props: { roots: ScanRoot[]; titles: number; onOpen: (rootId?: number) => void; onAdd: () => void }) {
   return (
-    <aside aria-labelledby="shelf-h" className="min-w-0 self-start rounded-[10px] bg-paper-sunk p-5 max-[1020px]:order-first max-[1020px]:p-4">
+    <aside aria-labelledby="shelf-h" className="min-w-0 self-start rounded-[10px] bg-paper-sunk p-5 max-[1020px]:p-4">
       <h2 id="shelf-h" className="spine text-[22px] text-ink">
         Your shelf
       </h2>
