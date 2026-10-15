@@ -192,31 +192,32 @@ textarea {
   outline: none;
 }
 .timeline-track {
-  height: 4px;
-  transition: height 160ms var(--ease-out-strong);
+  height: 6px;
+  transform: scaleY(0.667);
+  transition: transform 160ms var(--ease-out-strong);
 }
 .timeline:hover .timeline-track,
 .timeline[data-scrubbing="true"] .timeline-track {
-  height: 6px;
+  transform: scaleY(1);
 }
 /* The playhead is the Lumen beam: the N's diagonal at 15.3 degrees. A dark
    keyline keeps it visible on bright footage. */
 .timeline-beam {
   top: 50%;
   width: 5px;
-  height: 16px;
+  height: 22px;
   border-radius: 1px;
   background: var(--color-ember);
   box-shadow: 0 0 0 1.5px rgb(11 11 10 / 0.55);
-  transform: translate(-50%, -50%) skewX(-15.3deg);
-  transition: height 160ms var(--ease-out-strong);
+  transform: translate(-50%, -50%) skewX(-15.3deg) scaleY(0.73);
+  transition: transform 160ms var(--ease-out-strong);
 }
 .timeline:hover .timeline-beam,
-.timeline[data-scrubbing="true"] .timeline-beam {
-  height: 22px;
+.timeline[data-scrubbing="true"] .timeline-beam,
+.timeline:has(.seek-input:focus-visible) .timeline-beam {
+  transform: translate(-50%, -50%) skewX(-15.3deg);
 }
 .timeline:has(.seek-input:focus-visible) .timeline-beam {
-  height: 22px;
   box-shadow:
     0 0 0 1.5px rgb(11 11 10 / 0.55),
     0 0 0 3.5px var(--color-cream);
