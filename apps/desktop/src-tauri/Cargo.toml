@@ -20,6 +20,7 @@ nova-domain.workspace = true
 nova-playback-api.workspace = true
 nova-playback-mpv.workspace = true
 nova-storage.workspace = true
+nova-library.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 log.workspace = true

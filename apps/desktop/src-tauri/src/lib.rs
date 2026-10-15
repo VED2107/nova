@@ -3,6 +3,7 @@
 //! The frontend never talks to libmpv. It sends validated `PlaybackCommand`s
 //! and receives `PlaybackSnapshot`s on the `playback://snapshot` event.
 
+mod library;
 mod video_surface;
 
 use nova_application::progress_service::{ProgressService, ResumeNotice};
@@ -288,14 +289,19 @@ pub fn run() {
             app.manage(Arc::clone(&queue));
 
             let db_path = app.path().app_data_dir()?.join("library.sqlite3");
-            let progress = open_store(&db_path).map(|store| {
+            let store = open_store(&db_path).map(Arc::new);
+            let library = store
+                .as_ref()
+                .map(|s| library::start(Arc::clone(s), app.handle()));
+            app.manage(library::LibraryState(library));
+            let progress = store.map(|store| {
                 log::info!(
                     "library database ready (schema v{})",
                     nova_storage::SCHEMA_VERSION
                 );
                 let emitter = app.handle().clone();
                 ProgressService::new(
-                    Arc::new(store),
+                    store,
                     ResumePolicy::default(),
                     Box::new(move |n: ResumeNotice| {
                         log::info!("resuming at {} ms", n.position_ms);
@@ -343,13 +349,26 @@ pub fn run() {
             queue_previous,
             queue_remove,
             queue_move,
-            queue_clear
+            queue_clear,
+            library::library_roots,
+            library::library_add_root,
+            library::library_remove_root,
+            library::library_rescan,
+            library::library_cancel_scans,
+            library::library_scan_status,
+            library::library_search,
+            library::library_continue_watching,
+            library::library_recently_added
         ])
         .build(tauri::generate_context!())
         .expect("failed to build NOVA")
         .run(|app, event| {
             if let tauri::RunEvent::Exit = event {
                 // Destroy the engine deterministically before the process exits.
+                // Stop scanning first: committed batches stay committed.
+                if let Some(lib) = &app.state::<library::LibraryState>().0 {
+                    lib.scans.shutdown();
+                }
                 let engine = app.state::<Engine>();
                 let player = engine.player.lock().unwrap().take();
                 // Persist the final position before the engine goes away.

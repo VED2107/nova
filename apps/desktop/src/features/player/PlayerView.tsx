@@ -17,7 +17,11 @@ let launchHandled = false;
 
 const MEDIA_EXTENSIONS = ["mp4", "mkv", "webm", "mov", "avi", "m4v", "ts", "m2ts", "wmv", "flv", "mp3", "flac", "m4a", "ogg", "opus", "wav"];
 
-export function PlayerView() {
+/**
+ * The player stays mounted while Home/Library are shown (audio keeps
+ * playing); it only handles keyboard shortcuts while `active`.
+ */
+export function PlayerView({ active, onBrowse }: { active: boolean; onBrowse: () => void }) {
   const s = usePlayback();
   const q = useQueue();
   const [queueOpen, setQueueOpen] = useState(false);
@@ -116,6 +120,7 @@ export function PlayerView() {
   // Keyboard shortcuts. Keyboard actions apply instantly (no animation).
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (!active) return;
       const target = e.target as HTMLElement | null;
       if (target?.closest("[role=menu]") && ["ArrowUp", "ArrowDown", " ", "Enter"].includes(e.key)) return;
       const action = shortcutFor(e, s);
@@ -148,7 +153,7 @@ export function PlayerView() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [s, isFullscreen, toggleFullscreen, pickFile, showControls, reportError]);
+  }, [active, s, isFullscreen, toggleFullscreen, pickFile, showControls, reportError]);
 
   // Single click toggles pause; double click toggles fullscreen.
   const clickTimer = useRef<number | undefined>(undefined);
@@ -172,7 +177,22 @@ export function PlayerView() {
       onMouseMove={showControls}
       onClick={onSurfaceClick}
       aria-label="NOVA player"
+      inert={!active}
     >
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onBrowse();
+        }}
+        className={[
+          "press absolute left-4 top-4 z-20 flex items-center gap-2 rounded-full bg-ink/70 px-3.5 py-1.5 text-sm font-medium text-cream backdrop-blur-md hover:bg-ink/85",
+          "transition-opacity duration-200 ease-(--ease-out-strong)",
+          hidden ? "pointer-events-none opacity-0" : "opacity-100",
+        ].join(" ")}
+      >
+        <span aria-hidden>←</span> Library
+      </button>
       {showEmpty && !error && <EmptyState onOpen={pickFile} />}
 
       {error && (

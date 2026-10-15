@@ -122,3 +122,9 @@ export const INITIAL_SNAPSHOT: PlaybackSnapshot = {
   abLoop: { aMs: null, bMs: null },
   error: null,
 };
+
+/** Must match crates/nova-library MEDIA_EXTENSIONS. */
+export const MEDIA_EXTENSIONS = [
+  "mp4", "m4v", "mkv", "webm", "mov", "avi", "wmv", "flv", "ts", "m2ts", "mts", "mpg", "mpeg",
+  "ogv", "3gp", "mp3", "flac", "m4a", "aac", "ogg", "opus", "wav", "wma",
+] as const;
