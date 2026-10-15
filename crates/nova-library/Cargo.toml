@@ -1,0 +1,16 @@
+[package]
+name = "nova-library"
+version = "0.1.0"
+description = "Background media-folder scanning for NOVA"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+nova-storage.workspace = true
+log.workspace = true
+serde.workspace = true
+
+[dev-dependencies]
+nova-domain.workspace = true

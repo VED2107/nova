@@ -3,6 +3,7 @@ resolver = "3"
 members = [
     "crates/nova-application",
     "crates/nova-domain",
+    "crates/nova-library",
     "crates/nova-playback-api",
     "crates/nova-playback-mpv",
     "crates/nova-storage",
@@ -19,6 +20,7 @@ license = "UNLICENSED"
 [workspace.dependencies]
 nova-application = { path = "crates/nova-application" }
 nova-domain = { path = "crates/nova-domain" }
+nova-library = { path = "crates/nova-library" }
 nova-playback-api = { path = "crates/nova-playback-api" }
 nova-playback-mpv = { path = "crates/nova-playback-mpv" }
 nova-storage = { path = "crates/nova-storage" }

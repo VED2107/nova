@@ -1876,6 +1876,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "nova-library"
+version = "0.1.0"
+dependencies = [
+ "log",
+ "nova-domain",
+ "nova-storage",
+ "serde",
+]
+
+[[package]]
 name = "nova-playback-api"
 version = "0.1.0"
 dependencies = [
