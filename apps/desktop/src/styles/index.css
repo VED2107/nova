@@ -71,7 +71,8 @@
   --color-danger: var(--danger);
   /* Darkroom (player) is always dark, independent of theme. */
   --color-room: #0b0b0a;
-  --color-room-glass: rgb(13 13 12 / 0.78);
+  /* Opaque enough on its own: backdrop-filter cannot blur the native video surface below the WebView. */
+  --color-room-glass: rgb(13 13 12 / 0.93);
   --color-room-ink: #f2efe8;
   --color-room-ink-2: #c9c6be;
   --color-room-ink-3: #a3a19a;

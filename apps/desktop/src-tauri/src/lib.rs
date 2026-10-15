@@ -146,6 +146,8 @@ fn launch_media_paths() -> Vec<String> {
         .skip(1)
         .map(PathBuf::from)
         .filter(|p| p.is_file())
+        // `nova clip.mp4` from a terminal is relative; the queue only takes absolute paths.
+        .filter_map(|p| std::path::absolute(p).ok())
         .map(|p| p.display().to_string())
         .collect()
 }

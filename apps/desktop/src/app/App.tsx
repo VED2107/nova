@@ -89,7 +89,9 @@ export function App() {
     const onKey = (e: KeyboardEvent) => {
       if (document.querySelector("dialog[open]")) return;
       const t = e.target as HTMLElement | null;
-      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA")) return;
+      // In a text field only chords that can't be typing (Ctrl/Alt combos, F-keys) count.
+      const typing = !e.ctrlKey && !e.altKey && !e.metaKey && !/^F\d+$/.test(e.key);
+      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA") && typing) return;
       const chord = chordOf(e);
       const id = chord && actionForChord(keymap, chord);
       if (id === "file.open") {

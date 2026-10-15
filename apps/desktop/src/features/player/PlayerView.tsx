@@ -418,6 +418,7 @@ export function PlayerView(props: { active: boolean; onBrowse: () => void; onOpe
       {error && (
         <ErrorPanel
           error={error}
+          fileName={error === s.error && s.path ? s.path.split(/[\\/]/).pop() : undefined}
           onOpen={() => void pickFiles()}
           onBrowse={props.onBrowse}
           onRetry={s.path && error === s.error ? () => run(q.currentId != null ? queue.select(q.currentId) : queue.open([s.path!])) : undefined}
@@ -486,7 +487,7 @@ export function PlayerView(props: { active: boolean; onBrowse: () => void; onOpe
         </IconButton>
       </div>
 
-      <ResumeToast sessionId={s.sessionId} />
+      <ResumeToast sessionId={s.sessionId} hasMedia={hasMedia} />
 
       {s.phase === "ended" && !error && (
         <EndedCard
@@ -678,11 +679,24 @@ function EmptyState({ onOpen, onBrowse, openHint }: { onOpen: () => void; onBrow
   );
 }
 
-function ErrorPanel({ error, onOpen, onRetry, onBrowse }: { error: PlaybackError; onOpen: () => void; onRetry?: () => void; onBrowse: () => void }) {
+function ErrorPanel({
+  error,
+  fileName,
+  onOpen,
+  onRetry,
+  onBrowse,
+}: {
+  error: PlaybackError;
+  fileName?: string;
+  onOpen: () => void;
+  onRetry?: () => void;
+  onBrowse: () => void;
+}) {
   const d = describeError(error);
   return (
     <div className="absolute inset-0 flex items-center bg-room px-[8vw]" role="alert" onClick={(e) => e.stopPropagation()}>
       <div className="max-w-xl">
+        {fileName && <p className="mb-2 truncate text-[13px] font-[600] text-room-ink-3">{fileName}</p>}
         <h2 className="spine-xl text-[48px] text-cream">{d.title}</h2>
         <p className="mt-3 text-[15px] leading-relaxed text-room-ink-2">{d.detail}</p>
         <ul className="mt-4 space-y-1.5 text-[14px] text-room-ink">
