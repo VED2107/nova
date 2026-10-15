@@ -222,10 +222,58 @@ fn libmpv_path() -> PathBuf {
     beside_exe.unwrap_or_else(|| PathBuf::from(NAME))
 }
 
+/// Saves a preference and applies engine-side ones immediately.
+#[tauri::command]
+fn prefs_set(
+    key: String,
+    value: String,
+    lib: State<'_, library::LibraryState>,
+    engine: State<'_, Engine>,
+    progress: State<'_, Progress>,
+) -> Result<std::collections::BTreeMap<String, String>, String> {
+    let store = &lib
+        .0
+        .as_ref()
+        .ok_or("The library database is unavailable.")?
+        .store;
+    if !store
+        .set_preference(&key, &value)
+        .map_err(|e| e.to_string())?
+    {
+        return Err(format!("Unknown setting {key}={value}"));
+    }
+    match key.as_str() {
+        "hwdec" => {
+            if let Ok(p) = engine.get() {
+                p.execute(PlaybackCommand::SetHardwareDecoding {
+                    enabled: value == "auto",
+                })
+                .map_err(|e| e.message)?;
+            }
+        }
+        "resume" => {
+            if let Some(p) = &progress.0 {
+                p.set_resume_enabled(value == "on");
+            }
+        }
+        _ => {}
+    }
+    store.preferences().map_err(|e| e.to_string())
+}
+
+/// App data root. `NOVA_DATA_DIR` isolates a profile (tests, demos, verification).
+fn data_dir(app: &tauri::App) -> Result<PathBuf, tauri::Error> {
+    match std::env::var_os("NOVA_DATA_DIR") {
+        Some(d) => Ok(PathBuf::from(d)),
+        None => app.path().app_data_dir(),
+    }
+}
+
 fn start_engine(
     app: &AppHandle,
     queue: Queue,
     progress: Option<Arc<ProgressService>>,
+    hwdec: String,
 ) -> Result<MpvPlayer, PlaybackError> {
     let window = app.get_webview_window("main").ok_or_else(|| {
         PlaybackError::new(PlaybackErrorKind::EngineUnavailable, "main window missing")
@@ -249,7 +297,7 @@ fn start_engine(
         library_path: libmpv_path(),
         window_handle: Some(wid),
         headless: false,
-        hwdec: std::env::var("NOVA_HWDEC").unwrap_or_else(|_| "auto-safe".into()),
+        hwdec: std::env::var("NOVA_HWDEC").unwrap_or(hwdec),
     };
     log::info!("starting libmpv from {}", config.library_path.display());
     let player = MpvPlayer::new(config, sink)?;
@@ -295,11 +343,30 @@ pub fn run() {
             }));
             app.manage(Arc::clone(&queue));
 
-            let db_path = app.path().app_data_dir()?.join("library.sqlite3");
+            let data = data_dir(app)?;
+            let db_path = data.join("library.sqlite3");
             let store = open_store(&db_path).map(Arc::new);
-            let library = store
+            let prefs = store
                 .as_ref()
-                .map(|s| library::start(Arc::clone(s), app.handle()));
+                .and_then(|s| s.preferences().ok())
+                .unwrap_or_default();
+            let pref = |k: &str, d: &str| prefs.get(k).cloned().unwrap_or_else(|| d.to_owned());
+            // Thumbnails are served to the WebView only from this folder.
+            let _ = std::fs::create_dir_all(data.join("thumbs"));
+            if let Err(e) = app
+                .asset_protocol_scope()
+                .allow_directory(data.join("thumbs"), false)
+            {
+                log::warn!("thumbnail folder not served: {e}");
+            }
+            let library = store.as_ref().map(|s| {
+                library::start(
+                    Arc::clone(s),
+                    app.handle(),
+                    libmpv_path(),
+                    data.join("thumbs"),
+                )
+            });
             app.manage(library::LibraryState(library));
             let progress = store.map(|store| {
                 log::info!(
@@ -321,12 +388,18 @@ pub fn run() {
                 )
             });
             if let Some(p) = &progress {
+                p.set_resume_enabled(pref("resume", "on") == "on");
                 queue.attach_progress(Arc::clone(p));
             }
+            let hwdec = if pref("hwdec", "auto") == "auto" {
+                "auto-safe"
+            } else {
+                "no"
+            };
             app.manage(Progress(progress.clone()));
 
             let engine = app.state::<Engine>();
-            match start_engine(app.handle(), Arc::clone(&queue), progress) {
+            match start_engine(app.handle(), Arc::clone(&queue), progress, hwdec.into()) {
                 Ok(p) => {
                     let p = Arc::new(p);
                     let backend: Arc<dyn PlaybackBackend> = p.clone();
@@ -366,7 +439,17 @@ pub fn run() {
             library::library_scan_status,
             library::library_search,
             library::library_continue_watching,
-            library::library_recently_added
+            library::library_recently_added,
+            library::library_thumb_dir,
+            library::library_clear_history,
+            library::playlists_list,
+            library::playlist_create,
+            library::playlist_rename,
+            library::playlist_delete,
+            library::playlist_entries,
+            library::media_durations,
+            library::prefs_get,
+            prefs_set
         ])
         .build(tauri::generate_context!())
         .expect("failed to build NOVA")
@@ -376,6 +459,7 @@ pub fn run() {
                 // Stop scanning first: committed batches stay committed.
                 if let Some(lib) = &app.state::<library::LibraryState>().0 {
                     lib.scans.shutdown();
+                    lib.thumbs.shutdown();
                 }
                 let engine = app.state::<Engine>();
                 let player = engine.player.lock().unwrap().take();

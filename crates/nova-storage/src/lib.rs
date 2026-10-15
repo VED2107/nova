@@ -7,6 +7,7 @@
 //!   crash; at most the last commit can be lost on power failure.
 //! - Media identity follows "paths are locations": see [`identity`].
 
+pub mod extras;
 pub mod identity;
 pub mod library;
 
@@ -90,6 +91,35 @@ const MIGRATIONS: &[&str] = &[
         INSERT INTO media_fts(rowid, title, folder) VALUES (new.id, new.title, new.folder);
     END;
     INSERT INTO media_fts(media_fts) VALUES ('rebuild');
+    "#,
+    // 3: media facts from the engine (thumbnail job), preferences, playlists
+    r#"
+    ALTER TABLE media_item ADD COLUMN duration_ms INTEGER CHECK (duration_ms IS NULL OR duration_ms >= 0);
+    ALTER TABLE media_item ADD COLUMN width INTEGER;
+    ALTER TABLE media_item ADD COLUMN height INTEGER;
+    -- 0 = pending, 1 = thumbnail ready, 2 = no thumbnail (audio-only or undecodable)
+    ALTER TABLE media_item ADD COLUMN thumb_state INTEGER NOT NULL DEFAULT 0 CHECK (thumb_state IN (0, 1, 2));
+    CREATE INDEX media_item_thumb ON media_item(thumb_state);
+
+    CREATE TABLE preference (
+        key           TEXT PRIMARY KEY,
+        value         TEXT NOT NULL,
+        updated_at_ms INTEGER NOT NULL
+    );
+
+    CREATE TABLE playlist (
+        id            INTEGER PRIMARY KEY,
+        name          TEXT NOT NULL CHECK (length(name) BETWEEN 1 AND 120),
+        created_at_ms INTEGER NOT NULL,
+        updated_at_ms INTEGER NOT NULL
+    );
+    CREATE TABLE playlist_item (
+        playlist_id INTEGER NOT NULL REFERENCES playlist(id) ON DELETE CASCADE,
+        position    INTEGER NOT NULL CHECK (position >= 0),
+        path        TEXT    NOT NULL,
+        title       TEXT    NOT NULL,
+        PRIMARY KEY (playlist_id, position)
+    );
     "#,
 ];
 
@@ -289,6 +319,12 @@ pub(crate) fn resolve_in(
              WHERE id = ?1",
             params![id, f.fingerprint, f.size_bytes as i64, f.modified_ms, now, title, folder],
         )?;
+        if changed {
+            tx.execute(
+                "UPDATE media_item SET thumb_state = 0, duration_ms = NULL WHERE id = ?1",
+                [id],
+            )?;
+        }
         let r = if changed {
             Resolution::ContentChanged
         } else {

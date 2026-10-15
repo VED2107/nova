@@ -16,6 +16,8 @@
 //!   leaves the database consistent. Only a completed scan flags unseen files
 //!   as missing.
 
+pub mod thumbs;
+
 use nova_storage::Store;
 use nova_storage::identity::FileIdentity;
 use nova_storage::library::{JobStatus, RootId, ScanEntry};

@@ -124,6 +124,12 @@ pub struct LibraryItem {
     pub size_bytes: i64,
     pub missing: bool,
     pub progress: Option<SavedProgress>,
+    /// Engine-measured duration (thumbnail job), when known.
+    pub duration_ms: Option<u64>,
+    pub width: Option<u32>,
+    pub height: Option<u32>,
+    /// A poster frame exists at `<thumb dir>/<id>.jpg`.
+    pub has_thumbnail: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -159,7 +165,7 @@ fn is_within(child: &Path, parent: &Path) -> bool {
 }
 
 const ITEM_COLUMNS: &str = "m.id, m.title, m.path, m.folder, m.size_bytes, m.missing,
-     p.position_ms, p.duration_ms, p.completed";
+     p.position_ms, p.duration_ms, p.completed, m.duration_ms, m.width, m.height, m.thumb_state";
 
 fn item_from_row(r: &rusqlite::Row<'_>) -> rusqlite::Result<LibraryItem> {
     let position: Option<i64> = r.get(6)?;
@@ -178,6 +184,14 @@ fn item_from_row(r: &rusqlite::Row<'_>) -> rusqlite::Result<LibraryItem> {
             }),
             None => None,
         },
+        duration_ms: r.get::<_, Option<i64>>(9)?.map(|d| d.max(0) as u64),
+        width: r
+            .get::<_, Option<i64>>(10)?
+            .and_then(|v| u32::try_from(v).ok()),
+        height: r
+            .get::<_, Option<i64>>(11)?
+            .and_then(|v| u32::try_from(v).ok()),
+        has_thumbnail: r.get::<_, i64>(12)? == 1,
     })
 }
 

@@ -9,6 +9,7 @@
 
 mod ffi;
 pub mod node;
+pub mod thumbnail;
 
 use ffi::*;
 use node::Node;
@@ -584,6 +585,9 @@ impl PlaybackBackend for MpvPlayer {
                 "sid",
                 &track_selector(track_id.as_deref(), TrackKind::Subtitle)?,
             )?,
+            PlaybackCommand::SetHardwareDecoding { enabled } => {
+                i.set_string("hwdec", if enabled { "auto-safe" } else { "no" })?
+            }
             PlaybackCommand::SetAbLoop { a_ms, b_ms } => {
                 let point = |ms: Option<u64>| {
                     ms.map_or_else(

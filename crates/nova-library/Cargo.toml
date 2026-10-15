@@ -9,6 +9,7 @@ publish.workspace = true
 
 [dependencies]
 nova-storage.workspace = true
+nova-playback-mpv.workspace = true
 log.workspace = true
 serde.workspace = true
 

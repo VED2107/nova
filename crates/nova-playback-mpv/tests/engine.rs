@@ -108,8 +108,10 @@ impl Harness {
                 start_ms: None,
             })
             .expect("open");
+        // Duration is a separate engine property that can land just after the
+        // phase flips to Playing; every fixture has one, so wait for both.
         self.wait("playing", 10_000, |s| {
-            s.session_id == ack.session_id && s.phase == P::Playing
+            s.session_id == ack.session_id && s.phase == P::Playing && s.duration_ms.is_some()
         })
     }
 }

@@ -71,6 +71,10 @@ pub enum PlaybackCommand {
         a_ms: Option<MediaTimeMs>,
         b_ms: Option<MediaTimeMs>,
     },
+    /// Allow hardware decoding (with automatic software fallback) or force software.
+    SetHardwareDecoding {
+        enabled: bool,
+    },
 }
 
 impl PlaybackCommand {

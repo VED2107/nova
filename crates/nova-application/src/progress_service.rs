@@ -60,6 +60,8 @@ enum Msg {
 }
 
 pub struct ProgressService {
+    /// When false, positions are still saved but files start from the beginning.
+    resume_enabled: std::sync::atomic::AtomicBool,
     repo: Arc<dyn ProgressRepository>,
     policy: ResumePolicy,
     tracked: Mutex<Option<Tracked>>,
@@ -96,6 +98,7 @@ impl ProgressService {
             .spawn(move || writer_loop(writer_repo, rx))
             .expect("spawn progress writer");
         Arc::new(Self {
+            resume_enabled: std::sync::atomic::AtomicBool::new(true),
             repo,
             policy,
             tracked: Mutex::new(None),
@@ -127,6 +130,11 @@ impl ProgressService {
         t.last_write = Some(now);
     }
 
+    pub fn set_resume_enabled(&self, enabled: bool) {
+        self.resume_enabled
+            .store(enabled, std::sync::atomic::Ordering::Relaxed);
+    }
+
     /// Identifies `path` and returns where playback should start. Failures
     /// are logged and never block playback.
     pub fn prepare(&self, path: &str) -> Prepared {
@@ -141,7 +149,14 @@ impl ProgressService {
             }
         };
         let start_ms = match self.repo.load(media) {
-            Ok(Some(saved)) => self.policy.resume_from(&saved),
+            Ok(Some(saved))
+                if self
+                    .resume_enabled
+                    .load(std::sync::atomic::Ordering::Relaxed) =>
+            {
+                self.policy.resume_from(&saved)
+            }
+            Ok(Some(_)) => None,
             Ok(None) => None,
             Err(e) => {
                 log::warn!("could not load progress: {e}");
@@ -451,5 +466,39 @@ mod tests {
         s.started(1, p);
         s.on_snapshot_at(&snap(1, PlaybackPhase::Paused, 50_000), Instant::now());
         assert!(notices.lock().unwrap().is_empty());
+    }
+}
+
+#[cfg(test)]
+mod resume_toggle_tests {
+    use super::*;
+
+    struct One(Mutex<Option<SavedProgress>>);
+    impl ProgressRepository for One {
+        fn identify(&self, _: &str) -> Result<MediaId, String> {
+            Ok(1)
+        }
+        fn load(&self, _: MediaId) -> Result<Option<SavedProgress>, String> {
+            Ok(*self.0.lock().unwrap())
+        }
+        fn save(&self, _: MediaId, p: SavedProgress) -> Result<(), String> {
+            *self.0.lock().unwrap() = Some(p);
+            Ok(())
+        }
+    }
+
+    #[test]
+    fn disabling_resume_starts_from_beginning_but_keeps_history() {
+        let saved = SavedProgress {
+            position_ms: 120_000,
+            duration_ms: Some(600_000),
+            completed: false,
+        };
+        let repo = Arc::new(One(Mutex::new(Some(saved))));
+        let s = ProgressService::new(repo.clone(), ResumePolicy::default(), Box::new(|_| {}));
+        assert_eq!(s.prepare("C:/a.mkv").start_ms, Some(118_000));
+        s.set_resume_enabled(false);
+        assert_eq!(s.prepare("C:/a.mkv").start_ms, None);
+        assert_eq!(*repo.0.lock().unwrap(), Some(saved));
     }
 }
