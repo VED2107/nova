@@ -44,6 +44,9 @@ export const GripIcon = (p: P) => <svg {...base(p)}><path d="M7.5 5.5v.1M7.5 10v
 export const KeyboardIcon = (p: P) => <svg {...base(p)}><rect x="2.5" y="5" width="15" height="10" rx="1.8" /><path d="M5.5 8h.1M8.5 8h.1M11.5 8h.1M14.5 8h.1M6.5 12h7" /></svg>;
 export const TrashIcon = (p: P) => <svg {...base(p)}><path d="M4 5.8h12M8 5.8V4h4v1.8M5.6 5.8l.7 10.4h7.4l.7-10.4" /></svg>;
 export const RefreshIcon = (p: P) => <svg {...base(p)}><path d="M15.8 8.3A6 6 0 0 0 4.6 7M4.2 11.7a6 6 0 0 0 11.2 1.3" /><path d="M15.8 3.8v4.5h-4.5M4.2 16.2v-4.5h4.5" /></svg>;
+export const GridIcon = (p: P) => <svg {...base(p)}><rect x="3.5" y="4" width="5.5" height="5" rx="1" /><rect x="11" y="4" width="5.5" height="5" rx="1" /><rect x="3.5" y="11" width="5.5" height="5" rx="1" /><rect x="11" y="11" width="5.5" height="5" rx="1" /></svg>;
+export const ListIcon = (p: P) => <svg {...base(p)}><path d="M7.5 5.5h9M7.5 10h9M7.5 14.5h9" /><path d="M3.6 5.5h.8M3.6 10h.8M3.6 14.5h.8" strokeWidth={2} /></svg>;
+export const MoreIcon = (p: P) => <svg {...base(p)}><circle cx="4.6" cy="10" r="1.25" fill="currentColor" stroke="none" /><circle cx="10" cy="10" r="1.25" fill="currentColor" stroke="none" /><circle cx="15.4" cy="10" r="1.25" fill="currentColor" stroke="none" /></svg>;
 export const CameraIcon = (p: P) => <svg {...base(p)}><path d="M3 6.8h3l1.4-2.3h5.2L14 6.8h3v9H3z" /><circle cx="10" cy="11.2" r="2.7" /></svg>;
 export const PencilIcon = (p: P) => <svg {...base(p)}><path d="M12.8 4.2 15.8 7.2 7.4 15.6H4.4v-3z" /><path d="m11 6 3 3" /></svg>;
 export const ReplayIcon = (p: P) => <svg {...base(p)}><path d="M4.3 10a5.7 5.7 0 1 0 1.8-4.2" /><path d="M4 3.6v3.6h3.6" /></svg>;

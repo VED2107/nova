@@ -102,11 +102,25 @@ pub enum PlaybackCommand {
     SetLoopFile {
         enabled: bool,
     },
+    /// Lift subtitles off the bottom edge, in the engine's scaled pixels
+    /// (720 = window height). The UI raises it while its controls cover the
+    /// bottom of the picture. Presentation only: not part of the snapshot.
+    SetSubtitleMargin {
+        margin: u32,
+    },
+    /// Keep the right `ratio` of the window clear of picture (0 = none), so a
+    /// side panel never covers the video or its subtitles. Presentation only.
+    SetVideoMarginRight {
+        ratio: f64,
+    },
     /// Load an external subtitle file for the current media and select it.
     AddSubtitle {
         path: String,
     },
 }
+
+/// Largest subtitle lift accepted, in scaled pixels of a 720-high window.
+pub const MAX_SUBTITLE_MARGIN: u32 = 400;
 
 /// Aspect ratios offered for override (VLC-equivalent set).
 pub const ASPECT_RATIOS: &[&str] = &[
@@ -160,6 +174,16 @@ impl PlaybackCommand {
             }
             Self::SetRotation { degrees } if !matches!(degrees, 0 | 90 | 180 | 270) => {
                 Err(PlaybackError::invalid("rotation must be 0, 90, 180 or 270"))
+            }
+            Self::SetSubtitleMargin { margin } if *margin > MAX_SUBTITLE_MARGIN => Err(
+                PlaybackError::invalid("subtitle margin must be at most 400"),
+            ),
+            Self::SetVideoMarginRight { ratio }
+                if !ratio.is_finite() || !(0.0..=0.6).contains(ratio) =>
+            {
+                Err(PlaybackError::invalid(
+                    "video margin must be between 0 and 0.6",
+                ))
             }
             Self::AddSubtitle { path } => {
                 let ok_ext = std::path::Path::new(path)
@@ -551,6 +575,15 @@ mod tests {
         );
         assert!(C::SetRotation { degrees: 90 }.validate().is_ok());
         assert!(C::SetRotation { degrees: 45 }.validate().is_err());
+        assert!(C::SetSubtitleMargin { margin: 120 }.validate().is_ok());
+        assert!(C::SetSubtitleMargin { margin: 401 }.validate().is_err());
+        assert!(C::SetVideoMarginRight { ratio: 0.26 }.validate().is_ok());
+        assert!(C::SetVideoMarginRight { ratio: 0.9 }.validate().is_err());
+        assert!(
+            C::SetVideoMarginRight { ratio: f64::NAN }
+                .validate()
+                .is_err()
+        );
         assert!(
             C::AddSubtitle {
                 path: "C:/x/y.exe".into()

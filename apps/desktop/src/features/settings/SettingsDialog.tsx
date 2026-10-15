@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { CloseIcon } from "../../components/icons";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { CheckIcon, CloseIcon, SearchIcon } from "../../components/icons";
 import { Button, Kbd, Segmented, Switch } from "../../components/ui/controls";
 import { ConfirmDialog, Dialog } from "../../components/ui/Dialog";
 import { library } from "../../services/library/client";
@@ -21,14 +21,32 @@ const SECTIONS: { id: Section; label: string }[] = [
 export function SettingsDialog(props: { open: boolean; onClose: () => void; initialSection?: Section }) {
   const [section, setSection] = useState<Section>(props.initialSection ?? "appearance");
   const [error, setError] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
+  const prefs = usePrefs();
+  const firstPrefs = useRef(true);
   useEffect(() => {
     if (props.open && props.initialSection) setSection(props.initialSection);
   }, [props.open, props.initialSection]);
+  // Preferences only change after Rust has stored them, so a change here means "saved".
+  useEffect(() => {
+    if (firstPrefs.current) {
+      firstPrefs.current = false;
+      return;
+    }
+    if (!props.open) return;
+    setError(null);
+    setSaved(true);
+    const t = window.setTimeout(() => setSaved(false), 1800);
+    return () => window.clearTimeout(t);
+  }, [prefs]);
 
   return (
     <Dialog open={props.open} onClose={props.onClose} title="Settings" width="min(860px, calc(100vw - 48px))">
       <div className="flex min-h-[520px]">
-        <nav aria-label="Settings sections" className="w-[190px] shrink-0 border-r border-seam bg-paper-sunk/50 p-2">
+        <nav aria-label="Settings sections" className="flex w-[190px] shrink-0 flex-col border-r border-seam bg-paper-sunk/50 p-2 pb-4">
+          <p role="status" aria-live="polite" className="sr-only">
+            {saved ? "Saved" : ""}
+          </p>
           {SECTIONS.map((s) => (
             <button
               key={s.id}
@@ -43,6 +61,10 @@ export function SettingsDialog(props: { open: boolean; onClose: () => void; init
               {s.label}
             </button>
           ))}
+          <p aria-hidden className={`mt-4 flex items-center gap-1.5 px-3 text-[12px] text-ink-3 transition-opacity duration-200 ${saved ? "opacity-100" : "opacity-0"}`}>
+            <CheckIcon size={14} className="text-ember-text" /> Saved
+          </p>
+          <p className="mt-1 px-3 text-[11.5px] leading-snug text-ink-3">Changes save as you make them.</p>
         </nav>
         <div className="min-w-0 flex-1 overflow-y-auto px-6 py-5">
           {error && (
@@ -136,6 +158,11 @@ function Controls({ onError }: { onError: (e: string) => void }) {
   const [capturing, setCapturing] = useState<string | null>(null);
   const [pending, setPending] = useState<{ action: string; chord: string; owner: string } | null>(null);
   const [resetAll, setResetAll] = useState(false);
+  const [find, setFind] = useState("");
+  const needle = find.trim().toLowerCase();
+  const matches = (a: (typeof ACTIONS)[number]) =>
+    !needle || a.label.toLowerCase().includes(needle) || map[a.id]!.some((c) => chordLabel(c).toLowerCase().includes(needle));
+  const shown = ACTIONS.filter(matches);
 
   const save = (next: Keymap) => set("keymap", JSON.stringify(next));
 
@@ -192,11 +219,24 @@ function Controls({ onError }: { onError: (e: string) => void }) {
           Press the new key combination for <strong>{ACTION_BY_ID.get(capturing)?.label}</strong>, or Esc to cancel.
         </p>
       )}
-      {GROUPS.map((g) => (
+      <label className="relative mx-3 mt-3 block">
+        <span className="sr-only">Find an action or key</span>
+        <SearchIcon size={16} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-ink-3" />
+        <input
+          type="search"
+          value={find}
+          onChange={(e) => setFind(e.currentTarget.value)}
+          onKeyDown={(e) => e.stopPropagation()}
+          placeholder="Find an action or a key, e.g. “subtitle” or “Shift+S”"
+          className="h-9 w-full rounded-[8px] border border-seam-strong bg-paper-raised pl-8 pr-3 text-[13.5px] text-ink placeholder:text-ink-3 focus:border-ink-3 focus:shadow-[0_0_0_3px_rgb(249_115_22/0.22)] focus-visible:outline-none"
+        />
+      </label>
+      {shown.length === 0 && <p className="px-3 py-4 text-[13px] text-ink-3">No action or key matches “{find.trim()}”.</p>}
+      {GROUPS.filter((g) => shown.some((a) => a.group === g)).map((g) => (
         <div key={g} className="mt-4">
           <h4 className="catalog px-3 pb-1 text-ink-3">{g}</h4>
           <ul className="border-t border-seam">
-            {ACTIONS.filter((a) => a.group === g).map((a) => {
+            {shown.filter((a) => a.group === g).map((a) => {
               const chords = map[a.id]!;
               const custom = a.id in overrides;
               return (

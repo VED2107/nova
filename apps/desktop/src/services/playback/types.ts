@@ -163,6 +163,8 @@ export type PlaybackCommand =
   | { type: "setAudioDelay"; ms: number }
   | { type: "setAspectRatio"; ratio: string | null }
   | { type: "setRotation"; degrees: number }
+  | { type: "setSubtitleMargin"; margin: number }
+  | { type: "setVideoMarginRight"; ratio: number }
   | { type: "setDeinterlace"; enabled: boolean }
   | { type: "setLoopFile"; enabled: boolean }
   | { type: "addSubtitle"; path: string };
