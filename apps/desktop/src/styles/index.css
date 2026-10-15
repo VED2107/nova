@@ -228,6 +228,17 @@ dialog::backdrop {
   background: rgb(11 11 10 / 0.42);
 }
 
+/* One-off cards (end of media) rise a few pixels into place. */
+.rise {
+  transition:
+    opacity 220ms var(--ease-out-strong),
+    transform 220ms var(--ease-out-strong);
+  @starting-style {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

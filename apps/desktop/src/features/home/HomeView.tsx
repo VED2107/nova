@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
-import { FolderIcon, PlayIcon, PlusIcon, TrashIcon } from "../../components/icons";
+import { FolderIcon, PencilIcon, PlayIcon, PlusIcon, TrashIcon } from "../../components/icons";
 import { Thumb } from "../../components/Thumb";
 import { Button, IconButton, Stamp } from "../../components/ui/controls";
-import { ConfirmDialog } from "../../components/ui/Dialog";
+import { ConfirmDialog, Dialog } from "../../components/ui/Dialog";
 import { library } from "../../services/library/client";
 import type { LibraryItem, PlaylistSummary, ScanRoot } from "../../services/library/types";
 import { catalogNo, folderName, formatDuration, specLine, stampFor, timeLeft, watchedFraction } from "../../services/library/view";
@@ -20,6 +20,7 @@ export function HomeView(props: {
   const [roots, setRoots] = useState<ScanRoot[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<PlaylistSummary | null>(null);
+  const [renaming, setRenaming] = useState<PlaylistSummary | null>(null);
 
   const load = useCallback(() => {
     const fail = (e: unknown) => setError(String(e));
@@ -127,9 +128,14 @@ export function HomeView(props: {
                             </span>
                           </span>
                         </button>
-                        <IconButton label={`Delete playlist ${p.name}`} size="sm" onClick={() => setDeleting(p)} className="ml-6 opacity-60 group-hover:opacity-100">
-                          <TrashIcon size={16} />
-                        </IconButton>
+                        <span className="ml-6 flex gap-0.5 opacity-60 group-focus-within:opacity-100 group-hover:opacity-100">
+                          <IconButton label={`Rename playlist ${p.name}`} size="sm" onClick={() => setRenaming(p)}>
+                            <PencilIcon size={16} />
+                          </IconButton>
+                          <IconButton label={`Delete playlist ${p.name}`} size="sm" onClick={() => setDeleting(p)}>
+                            <TrashIcon size={16} />
+                          </IconButton>
+                        </span>
                       </li>
                     ))}
                   </ul>
@@ -141,6 +147,12 @@ export function HomeView(props: {
       </div>
 
       <FolderRail roots={roots} onOpen={props.onOpenLibrary} onAdd={props.onAddFolder} />
+
+      <RenamePlaylist
+        playlist={renaming}
+        onClose={() => setRenaming(null)}
+        onSave={(name) => library.renamePlaylist(renaming!.id, name).then(() => (setRenaming(null), load()))}
+      />
 
       <ConfirmDialog
         open={deleting != null}
@@ -158,6 +170,51 @@ export function HomeView(props: {
         }}
       />
     </div>
+  );
+}
+
+/** Rename keeps the dialog open on failure so the message can be read and fixed. */
+function RenamePlaylist(props: { playlist: PlaylistSummary | null; onClose: () => void; onSave: (name: string) => Promise<unknown> }) {
+  const [name, setName] = useState("");
+  const [err, setErr] = useState<string | null>(null);
+  useEffect(() => {
+    setName(props.playlist?.name ?? "");
+    setErr(null);
+  }, [props.playlist]);
+  const trimmed = name.trim();
+  return (
+    <Dialog open={props.playlist != null} onClose={props.onClose} title="Rename playlist" width="min(400px, calc(100vw - 48px))">
+      <form
+        className="px-5 py-4"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (trimmed) props.onSave(trimmed).catch((x) => setErr(String(x)));
+        }}
+      >
+        <label className="block text-[13px] text-ink-2">
+          Name
+          <input
+            data-autofocus
+            value={name}
+            maxLength={120}
+            onChange={(e) => setName(e.currentTarget.value)}
+            aria-invalid={err != null}
+            className="mt-1.5 h-10 w-full rounded-[8px] border border-seam-strong bg-paper-raised px-3 text-[15px] text-ink focus:border-ember focus:outline-none"
+          />
+        </label>
+        <p className="mt-2 min-h-4 text-[12.5px] text-danger" role="alert">
+          {err}
+        </p>
+        <div className="mt-3 flex justify-end gap-2">
+          <Button variant="ghost" onClick={props.onClose}>
+            Cancel
+          </Button>
+          <Button variant="primary" type="submit" disabled={!trimmed || trimmed === props.playlist?.name}>
+            Rename
+          </Button>
+        </div>
+      </form>
+    </Dialog>
   );
 }
 

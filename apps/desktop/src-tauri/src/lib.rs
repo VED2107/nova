@@ -215,6 +215,39 @@ fn queue_shuffle(queue: State<'_, Queue>) -> QueueSnapshot {
     queue.shuffle(seed)
 }
 
+/// Shows a saved frame in Explorer. Only files inside Pictures\NOVA are accepted.
+#[tauri::command]
+fn reveal_screenshot(path: String, app: AppHandle) -> Result<(), String> {
+    let dir = app
+        .path()
+        .picture_dir()
+        .map_err(|e| e.to_string())?
+        .join("NOVA")
+        .canonicalize()
+        .map_err(|e| e.to_string())?;
+    let file = std::path::Path::new(&path)
+        .canonicalize()
+        .map_err(|_| "That frame is no longer in Pictures\\NOVA.".to_string())?;
+    if !file.starts_with(&dir) || !file.is_file() {
+        return Err("Only saved frames can be shown.".into());
+    }
+    #[cfg(windows)]
+    {
+        // canonicalize() adds the verbatim prefix, which Explorer does not accept.
+        let shown = file.to_string_lossy();
+        let arg = format!("/select,{}", shown.trim_start_matches(r"\\?\"));
+        std::process::Command::new("explorer.exe")
+            .arg(arg)
+            .spawn()
+            .map_err(|e| e.to_string())?;
+        Ok(())
+    }
+    #[cfg(not(windows))]
+    {
+        Err("Showing files is only available on Windows for now.".into())
+    }
+}
+
 /// Saves the current frame to Pictures\NOVA and returns the file path.
 /// The path is chosen here, never by the frontend.
 #[tauri::command]
@@ -494,6 +527,7 @@ pub fn run() {
             queue_set_repeat,
             queue_shuffle,
             playback_screenshot,
+            reveal_screenshot,
             library::library_roots,
             library::library_add_root,
             library::library_remove_root,

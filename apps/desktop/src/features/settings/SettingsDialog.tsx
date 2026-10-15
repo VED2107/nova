@@ -8,12 +8,13 @@ import { engineInfo, type EngineInfo } from "../../services/playback/client";
 import { setPref, usePrefs, type Prefs } from "../../services/prefs";
 import { bind, resetAction, unbind } from "./keymapEdit";
 
-type Section = "appearance" | "playback" | "controls" | "privacy" | "about";
+type Section = "appearance" | "playback" | "controls" | "privacy" | "formats" | "about";
 const SECTIONS: { id: Section; label: string }[] = [
   { id: "appearance", label: "Appearance" },
   { id: "playback", label: "Playback" },
   { id: "controls", label: "Keys & mouse" },
   { id: "privacy", label: "Library & privacy" },
+  { id: "formats", label: "Formats" },
   { id: "about", label: "About" },
 ];
 
@@ -53,6 +54,7 @@ export function SettingsDialog(props: { open: boolean; onClose: () => void; init
           {section === "playback" && <Playback onError={setError} />}
           {section === "controls" && <Controls onError={setError} />}
           {section === "privacy" && <Privacy onError={setError} />}
+          {section === "formats" && <Formats />}
           {section === "about" && <About />}
         </div>
       </div>
@@ -308,6 +310,86 @@ function Privacy({ onError }: { onError: (e: string) => void }) {
           library.clearHistory().then((n) => setDone(`Cleared ${n} ${n === 1 ? "entry" : "entries"}.`), (e) => onError(String(e)));
         }}
       />
+    </section>
+  );
+}
+
+/** Mirrors docs/compat/README.md. Keep the two in step; claim nothing the harness has not shown. */
+const FORMAT_GROUPS: { status: string; tone: string; meaning: string; items: string[] }[] = [
+  {
+    status: "Verified",
+    tone: "text-ink",
+    meaning: "A sample of the profile played on this engine in NOVA's test harness. Samples are synthetic encodes, not camera files.",
+    items: [
+      "H.264, HEVC Main/Main10, AV1, VP8, VP9, MPEG-2, MPEG-4 ASP, Theora — in MP4, MOV, MKV, WebM, AVI, TS/M2TS, VOB, OGV, 3GP",
+      "Camera-style profiles: XAVC-I / AVC-Intra / XDCAM HD422 in MXF, HEVC 4:2:2 10-bit, DV, Motion JPEG",
+      "ProRes 422 HQ and 4444, DNxHR/DNxHD, CineForm, HAP, FFV1, HuffYUV, Ut Video, v210",
+      "Audio: AAC, MP3, Opus, Vorbis, FLAC, ALAC, PCM, AC-3, E-AC-3, DTS core, TrueHD",
+    ],
+  },
+  {
+    status: "Partial",
+    tone: "text-ember-text",
+    meaning: "Plays, with a known limitation.",
+    items: [
+      "HDR10 and HLG: detected and reported; tone mapping and HDR output not yet checked by eye",
+      "Video with alpha is shown over black; VP9 alpha is dropped",
+      "Single DPX/EXR frames open; image sequences do not yet",
+    ],
+  },
+  {
+    status: "Expected",
+    tone: "text-ink-2",
+    meaning: "The engine has the decoder, but no sample has been tested yet.",
+    items: [
+      "Real files from Sony, Canon, Panasonic, GoPro, DJI and iPhone cameras (their codec profiles are verified above)",
+      "ProRes RAW, VVC/H.266, VC-1/WMV, JPEG 2000, Dolby Vision 5/8, DTS-HD MA, TrueHD Atmos (no object rendering)",
+    ],
+  },
+  {
+    status: "Needs the camera maker's software",
+    tone: "text-ink-2",
+    meaning: "NOVA recognises the file and explains your options, but does not decode it. No real RAW file has been tested.",
+    items: [
+      "RED R3D, Blackmagic RAW, ARRIRAW, Canon Cinema RAW Light",
+      "Sony X-OCN / RAW looks like ordinary MXF, so it is reported as an undecodable video codec instead",
+    ],
+  },
+  {
+    status: "Not supported",
+    tone: "text-danger",
+    meaning: "Will not play.",
+    items: [
+      "DRM-protected media (streaming downloads, encrypted DCPs, protected discs)",
+      "Editing projects (Premiere, After Effects, Resolve, Final Cut…) — NOVA explains they are projects, not media",
+      "CinemaDNG and other image sequences (planned)",
+    ],
+  },
+];
+
+function Formats() {
+  return (
+    <section>
+      <Heading>Formats</Heading>
+      <p className="mb-4 max-w-xl px-3 text-[13px] leading-relaxed text-ink-3">
+        What this build has actually been tested with. Files from real cameras vary; if something won't play, the player tells you why and what to try.
+      </p>
+      <div className="divide-y divide-seam border-y border-seam">
+        {FORMAT_GROUPS.map((g) => (
+          <div key={g.status} className="grid grid-cols-[minmax(130px,170px)_1fr] gap-4 px-3 py-3.5">
+            <div>
+              <p className={`text-[13.5px] font-[650] ${g.tone}`}>{g.status}</p>
+              <p className="mt-0.5 text-[12px] leading-snug text-ink-3">{g.meaning}</p>
+            </div>
+            <ul className="space-y-1 text-[13px] leading-snug text-ink">
+              {g.items.map((i) => (
+                <li key={i}>{i}</li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+      <p className="mt-3 px-3 text-[12px] text-ink-3">Hardware decoding depends on your graphics card and driver. NOVA falls back to software when the card can't decode a format.</p>
     </section>
   );
 }

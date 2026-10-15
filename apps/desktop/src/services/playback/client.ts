@@ -107,6 +107,8 @@ export const engineInfo = () => invoke<EngineInfo>("engine_info");
 export const mediaDetails = () => invoke<MediaDetails | null>("playback_media_details");
 /** Saves the current frame to Pictures\NOVA; returns the file path. */
 export const screenshot = (withSubtitles: boolean) => invoke<string>("playback_screenshot", { withSubtitles });
+/** Selects a saved frame in Explorer (only files inside Pictures\NOVA). */
+export const revealScreenshot = (path: string) => invoke<void>("reveal_screenshot", { path });
 export const launchMediaPaths = () => invoke<string[]>("launch_media_paths");
 
 export function isPlaybackError(e: unknown): e is PlaybackError {

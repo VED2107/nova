@@ -6,11 +6,13 @@ import type { LibraryItem, PlaylistSummary } from "../../services/library/types"
 const continueWatching = vi.fn<() => Promise<LibraryItem[]>>();
 const recentlyAdded = vi.fn<() => Promise<LibraryItem[]>>();
 const playlists = vi.fn<() => Promise<PlaylistSummary[]>>();
+const renamePlaylist = vi.fn<(id: number, name: string) => Promise<void>>();
 vi.mock("../../services/library/client", () => ({
   library: {
     continueWatching: () => continueWatching(),
     recentlyAdded: () => recentlyAdded(),
     playlists: () => playlists(),
+    renamePlaylist: (id: number, name: string) => renamePlaylist(id, name),
     roots: () => Promise.resolve([]),
     onChanged: () => Promise.resolve(() => {}),
   },
@@ -77,6 +79,26 @@ describe("HomeView", () => {
     expect(h.onPlayPlaylist).toHaveBeenCalledWith(expect.objectContaining({ id: 9 }));
     fireEvent.click(screen.getByRole("button", { name: "Delete playlist Evening" }));
     expect(screen.getByRole("button", { name: "Delete playlist" })).toBeTruthy();
+  });
+
+  it("renames a playlist and keeps the dialog open with the reason when it fails", async () => {
+    continueWatching.mockResolvedValue([]);
+    recentlyAdded.mockResolvedValue([]);
+    playlists.mockResolvedValue([{ id: 9, name: "Evening", itemCount: 2, knownDurationMs: null, updatedAtMs: 0 }]);
+    renamePlaylist.mockRejectedValueOnce("That name is taken.").mockResolvedValueOnce(undefined);
+    render(<HomeView {...handlers()} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Rename playlist Evening" }));
+    const input = screen.getByRole("textbox", { name: "Name" }) as HTMLInputElement;
+    expect(input.value).toBe("Evening");
+    const submit = screen.getByRole("button", { name: "Rename" }) as HTMLButtonElement;
+    expect(submit.disabled).toBe(true); // unchanged name
+    fireEvent.change(input, { target: { value: "  Late night  " } });
+    fireEvent.click(submit);
+    expect(await screen.findByText("That name is taken.")).toBeTruthy();
+    expect(renamePlaylist).toHaveBeenLastCalledWith(9, "Late night");
+    fireEvent.click(submit);
+    await vi.waitFor(() => expect(renamePlaylist).toHaveBeenCalledTimes(2));
+    await vi.waitFor(() => expect(screen.queryByRole("textbox", { name: "Name" })).toBeNull());
   });
 
   it("shows an empty shelf that leads to adding a folder", async () => {

@@ -2,12 +2,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
-import { ChevronLeftIcon, FileIcon, ImmersiveIcon, InfoIcon, QueueIcon } from "../../components/icons";
+import { CameraIcon, ChevronLeftIcon, FileIcon, ImmersiveIcon, InfoIcon, NextIcon, QueueIcon, ReplayIcon } from "../../components/icons";
 import { Symbol } from "../../components/Wordmark";
 import { Button, IconButton } from "../../components/ui/controls";
 import { Dialog } from "../../components/ui/Dialog";
 import { ACTIONS, actionForChord, chordLabel, chordOf, commandFor, effectiveKeymap, parseKeymap } from "../../services/playback/actions";
-import { engineInfo, execute, isPlaybackError, launchMediaPaths, queue, screenshot, useQueue, usePlayback, type EngineInfo } from "../../services/playback/client";
+import { engineInfo, execute, isPlaybackError, launchMediaPaths, queue, revealScreenshot, screenshot, useQueue, usePlayback, type EngineInfo } from "../../services/playback/client";
 import { describeError } from "../../services/playback/errors";
 import { formatTime } from "../../services/playback/format";
 import { nextAbLoop } from "../../services/playback/shortcuts";
@@ -46,7 +46,7 @@ export function PlayerView(props: { active: boolean; onBrowse: () => void; onOpe
   const [engine, setEngine] = useState<EngineInfo | null>(null);
   const [engineError, setEngineError] = useState<PlaybackError | null>(null);
   const [commandError, setCommandError] = useState<PlaybackError | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [notice, setNotice] = useState<Notice | null>(null);
   const [isFullscreen, setFullscreen] = useState(false);
   const [controlsVisible, setControlsVisible] = useState(true);
   const [nearBottom, setNearBottom] = useState(false);
@@ -57,9 +57,11 @@ export function PlayerView(props: { active: boolean; onBrowse: () => void; onOpe
   const panelRef = useRef<Panel>(null);
   panelRef.current = panel;
 
-  const flash = useCallback((text: string) => {
-    setNotice(text);
-    window.setTimeout(() => setNotice((n) => (n === text ? null : n)), 2600);
+  // Plain notices fade after 2.6 s; ones with an action stay long enough to use it.
+  const flash = useCallback((text: string, action?: Notice["action"]) => {
+    const n: Notice = { text, action };
+    setNotice(n);
+    window.setTimeout(() => setNotice((cur) => (cur === n ? null : cur)), action ? 8000 : 2600);
   }, []);
   const reportError = useCallback(
     (e: unknown) => {
@@ -208,7 +210,14 @@ export function PlayerView(props: { active: boolean; onBrowse: () => void; onOpe
           else void toggleFullscreen(false);
           break;
         case "video.snapshot":
-          screenshot(true).then((path) => flash(`Frame saved to Pictures\\NOVA · ${path.split(/[\\/]/).pop()}`), reportError);
+          screenshot(true).then(
+            (path) =>
+              flash(`Frame saved to Pictures\\NOVA · ${path.split(/[\\/]/).pop()}`, {
+                label: "Show in folder",
+                run: () => void revealScreenshot(path).catch((e) => flash(String(e))),
+              }),
+            (e) => flash(`Couldn't save the frame. ${isPlaybackError(e) ? e.message : String(e)}`),
+          );
           break;
         case "view.queue":
           setPanel((p) => (p === "queue" ? null : "queue"));
@@ -455,6 +464,11 @@ export function PlayerView(props: { active: boolean; onBrowse: () => void; onOpe
             </p>
           )}
         </div>
+        {hasMedia && (
+          <IconButton tone="room" label={`Save frame to Pictures (${hint("video.snapshot") ?? "Shift+S"})`} onClick={() => act("video.snapshot")}>
+            <CameraIcon />
+          </IconButton>
+        )}
         <IconButton tone="room" label={`Immersive mode (${hint("view.immersive") ?? "Z"})`} active={immersive} aria-pressed={immersive} onClick={() => act("view.immersive")}>
           <ImmersiveIcon />
         </IconButton>
@@ -474,11 +488,33 @@ export function PlayerView(props: { active: boolean; onBrowse: () => void; onOpe
 
       <ResumeToast sessionId={s.sessionId} />
 
+      {s.phase === "ended" && !error && (
+        <EndedCard
+          title={s.mediaTitle}
+          next={q.hasNext ? q.items[q.items.findIndex((i) => i.id === q.currentId) + 1]?.title : undefined}
+          onReplay={() => run(execute({ type: "play" }))}
+          onNext={() => run(queue.next())}
+          onBrowse={props.onBrowse}
+        />
+      )}
+
       {(notice || s.issues.length > 0) && (
         <div className="pointer-events-none absolute left-1/2 top-16 z-20 flex -translate-x-1/2 flex-col items-center gap-2">
           {notice && (
-            <p role="status" className="rounded-full bg-room-glass px-4 py-1.5 text-[13px] text-room-ink ring-1 ring-room-seam">
-              {notice}
+            <p role="status" className="pointer-events-auto flex items-center gap-3 rounded-full bg-room-glass py-1.5 pl-4 pr-1.5 text-[13px] text-room-ink ring-1 ring-room-seam">
+              <span className={notice.action ? "" : "pr-2.5"}>{notice.text}</span>
+              {notice.action && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    notice.action!.run();
+                  }}
+                  className="press rounded-full bg-white/10 px-3 py-1 text-[12.5px] font-[600] text-room-ink hover:bg-white/15"
+                >
+                  {notice.action.label}
+                </button>
+              )}
             </p>
           )}
           {s.issues.map((issue) => (
@@ -551,6 +587,35 @@ export function PlayerView(props: { active: boolean; onBrowse: () => void; onOpe
         }}
       />
     </main>
+  );
+}
+
+type Notice = { text: string; action?: { label: string; run: () => void } };
+
+/** End of the last title: say so, and offer the obvious next moves. */
+function EndedCard(props: { title: string | null; next?: string; onReplay: () => void; onNext: () => void; onBrowse: () => void }) {
+  return (
+    <div
+      role="status"
+      className="rise absolute bottom-36 left-6 z-20 w-[min(440px,calc(100vw-48px))] rounded-[12px] bg-room-glass p-5 ring-1 ring-room-seam backdrop-blur-xl"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <p className="text-[11.5px] font-[650] uppercase tracking-[0.14em] text-ember">Finished</p>
+      {props.title && <p className="spine mt-1 truncate text-[22px] text-room-ink">{props.title}</p>}
+      <div className="mt-4 flex flex-wrap gap-2">
+        {props.next && (
+          <Button variant="primary" onClick={props.onNext} icon={<NextIcon size={16} />} className="max-w-full">
+            <span className="truncate">Play next · {props.next}</span>
+          </Button>
+        )}
+        <Button tone="room" variant={props.next ? "quiet" : "primary"} onClick={props.onReplay} icon={<ReplayIcon size={16} />}>
+          Play again
+        </Button>
+        <Button tone="room" variant="ghost" onClick={props.onBrowse}>
+          Back to library
+        </Button>
+      </div>
+    </div>
   );
 }
 
