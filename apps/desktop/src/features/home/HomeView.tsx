@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { FolderIcon, PencilIcon, PlayIcon, PlusIcon, TrashIcon } from "../../components/icons";
+import { MediaCard as PosterCard } from "../../components/MediaCard";
 import { Thumb } from "../../components/Thumb";
 import { Button, IconButton, Stamp } from "../../components/ui/controls";
 import { ConfirmDialog, Dialog } from "../../components/ui/Dialog";
@@ -273,33 +274,6 @@ function LeadFeature({ item, onPlay }: { item: LibraryItem; onPlay: (i: LibraryI
         </div>
       </div>
     </article>
-  );
-}
-
-/** A title as a frame on the shelf: artwork first, then the facts NOVA actually has. */
-function PosterCard({ item, onPlay, showLeft }: { item: LibraryItem; onPlay: (i: LibraryItem) => void; showLeft?: boolean }) {
-  const stamp = stampFor(item);
-  const sub = showLeft ? (timeLeft(item.progress) ?? specLine(item)) : specLine(item);
-  return (
-    <button type="button" onClick={() => onPlay(item)} disabled={item.missing} title={item.path} className="press group block w-full rounded-[8px] text-left disabled:cursor-not-allowed">
-      <span className="relative block">
-        <Thumb
-          item={item}
-          progress={watchedFraction(item.progress)}
-          className={`aspect-video w-full rounded-[6px] ring-1 ring-seam transition-[box-shadow] duration-200 group-hover:ring-[var(--seam-strong)] ${item.missing ? "opacity-50 grayscale" : ""}`}
-        />
-        {stamp && stamp !== "progress" && (
-          <span className="absolute left-2 top-2 rounded-[3px] bg-paper px-0.5">
-            <Stamp kind={stamp} />
-          </span>
-        )}
-      </span>
-      <span className="mt-2.5 flex items-baseline gap-2">
-        <span className="spine min-w-0 flex-1 truncate text-[17px] text-ink">{item.title}</span>
-        <span className="catalog shrink-0 text-ink-3">{catalogNo(item.id)}</span>
-      </span>
-      <span className="mt-0.5 block truncate text-[12.5px] text-ink-3">{sub}</span>
-    </button>
   );
 }
 
