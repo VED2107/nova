@@ -639,7 +639,7 @@ function GoToTime(props: { open: boolean; durationMs: number | null; onClose: ()
         <label className="block text-[13px] text-ink-2">
           Time ({props.durationMs != null ? `up to ${formatTime(props.durationMs)}` : "hh:mm:ss"})
           <input
-            autoFocus
+            data-autofocus
             value={text}
             onChange={(e) => setText(e.currentTarget.value)}
             placeholder="1:02:30"
