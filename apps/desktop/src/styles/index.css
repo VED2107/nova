@@ -171,39 +171,56 @@ textarea {
   line-height: 16px;
 }
 
-/* Timeline input: track drawn by the component. */
+/* Timeline. The native input keeps keyboard and screen-reader behaviour with an
+   invisible thumb; the component draws the track and the beam playhead. */
 .seek-input {
   -webkit-appearance: none;
   appearance: none;
   background: transparent;
 }
 .seek-input::-webkit-slider-runnable-track {
-  height: 24px;
+  height: 28px;
   background: transparent;
 }
 .seek-input::-webkit-slider-thumb {
   -webkit-appearance: none;
-  margin-top: 5px;
   width: 14px;
-  height: 14px;
-  border-radius: 9999px;
-  background: var(--color-cream);
-  box-shadow:
-    0 0 0 3px rgb(249 115 22 / 0.9),
-    0 2px 6px rgb(0 0 0 / 0.5);
-  transform: scale(0);
-  transition: transform 160ms var(--ease-out-strong);
-}
-.timeline:hover .seek-input::-webkit-slider-thumb,
-.seek-input:focus-visible::-webkit-slider-thumb,
-.seek-input:active::-webkit-slider-thumb {
-  transform: scale(1);
+  height: 28px;
+  opacity: 0;
 }
 .seek-input:focus-visible {
   outline: none;
 }
-.seek-input:disabled::-webkit-slider-thumb {
-  display: none;
+.timeline-track {
+  height: 6px;
+  transform: scaleY(0.667);
+  transition: transform 160ms var(--ease-out-strong);
+}
+.timeline:hover .timeline-track,
+.timeline[data-scrubbing="true"] .timeline-track {
+  transform: scaleY(1);
+}
+/* The playhead is the Lumen beam: the N's diagonal at 15.3 degrees. A dark
+   keyline keeps it visible on bright footage. */
+.timeline-beam {
+  top: 50%;
+  width: 5px;
+  height: 22px;
+  border-radius: 1px;
+  background: var(--color-ember);
+  box-shadow: 0 0 0 1.5px rgb(11 11 10 / 0.55);
+  transform: translate(-50%, -50%) skewX(-15.3deg) scaleY(0.73);
+  transition: transform 160ms var(--ease-out-strong);
+}
+.timeline:hover .timeline-beam,
+.timeline[data-scrubbing="true"] .timeline-beam,
+.timeline:has(.seek-input:focus-visible) .timeline-beam {
+  transform: translate(-50%, -50%) skewX(-15.3deg);
+}
+.timeline:has(.seek-input:focus-visible) .timeline-beam {
+  box-shadow:
+    0 0 0 1.5px rgb(11 11 10 / 0.55),
+    0 0 0 3.5px var(--color-cream);
 }
 
 .level-input {

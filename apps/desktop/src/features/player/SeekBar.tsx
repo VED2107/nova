@@ -6,9 +6,10 @@ import type { AbLoop } from "../../services/playback/types";
 const SCRUB_SEEK_INTERVAL_MS = 80;
 
 /**
- * Timeline: native range input (keyboard + screen readers), drawn track,
- * hover time preview, A–B region. Scrubbing issues fast keyframe seeks and
- * one exact seek on release.
+ * The timeline. A native range input carries keyboard and screen-reader
+ * behaviour; the drawing on top is NOVA's: an ink track, ember elapsed, and the
+ * playhead as the Lumen beam (the N's diagonal, 15.3° off vertical).
+ * Scrubbing issues fast keyframe seeks and one exact seek on release.
  */
 export function SeekBar({ positionMs, durationMs, disabled, abLoop }: { positionMs: number; durationMs: number | null; disabled: boolean; abLoop: AbLoop }) {
   const [scrubMs, setScrubMs] = useState<number | null>(null);
@@ -20,6 +21,8 @@ export function SeekBar({ positionMs, durationMs, disabled, abLoop }: { position
   const pct = toPct(value);
   const a = abLoop.aMs != null ? toPct(abLoop.aMs) : null;
   const b = abLoop.bMs != null ? toPct(abLoop.bMs) : null;
+  const live = !disabled && max > 0;
+  const bubble = scrubMs != null ? { pct, ms: scrubMs } : hover;
 
   const commit = () => {
     if (scrubMs == null) return;
@@ -29,29 +32,31 @@ export function SeekBar({ positionMs, durationMs, disabled, abLoop }: { position
 
   return (
     <div
-      className="timeline group relative flex h-6 items-center"
+      className="timeline group relative flex h-7 items-center"
+      data-scrubbing={scrubMs != null}
       onPointerMove={(e) => {
-        if (max <= 0) return;
+        if (!live) return;
         const r = e.currentTarget.getBoundingClientRect();
         const p = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width));
         setHover({ pct: p * 100, ms: p * max });
       }}
       onPointerLeave={() => setHover(null)}
     >
-      <div className="pointer-events-none absolute inset-x-0 h-[3px] rounded-full bg-white/22 transition-[height] duration-150 ease-(--ease-out-strong) group-hover:h-[6px]">
-        {hover && scrubMs == null && <div className="absolute inset-y-0 left-0 rounded-full bg-white/18" style={{ width: `${hover.pct}%` }} />}
+      <div className="timeline-track pointer-events-none absolute inset-x-0 rounded-full bg-white/20">
+        {hover && scrubMs == null && <div className="absolute inset-y-0 left-0 rounded-full bg-white/16" style={{ width: `${hover.pct}%` }} />}
         <div className="absolute inset-y-0 left-0 rounded-full bg-ember" style={{ width: `${pct}%` }} />
         {a != null && b != null && (
-          <div aria-hidden className="absolute -inset-y-[3px] rounded-[2px] bg-cream/25 ring-1 ring-cream/70" style={{ left: `${a}%`, width: `${Math.max(0.4, b - a)}%` }} />
+          <div aria-hidden className="absolute -inset-y-[4px] rounded-[2px] bg-cream/20 ring-1 ring-cream/70" style={{ left: `${a}%`, width: `${Math.max(0.4, b - a)}%` }} />
         )}
-        {a != null && b == null && <div aria-hidden className="absolute -inset-y-[5px] w-[2px] rounded-full bg-cream" style={{ left: `${a}%` }} />}
+        {a != null && b == null && <div aria-hidden className="absolute -inset-y-[6px] w-[2px] rounded-full bg-cream" style={{ left: `${a}%` }} />}
       </div>
-      {(scrubMs != null || hover) && max > 0 && (
+      {live && <span aria-hidden className="timeline-beam pointer-events-none absolute" style={{ left: `${pct}%` }} />}
+      {bubble && live && (
         <div
-          className="pointer-events-none absolute -top-9 -translate-x-1/2 rounded-[5px] bg-room-glass px-2 py-0.5 text-[12px] font-[560] tabular-nums text-room-ink ring-1 ring-room-seam"
-          style={{ left: `${scrubMs != null ? pct : hover!.pct}%` }}
+          className="pointer-events-none absolute -top-8 -translate-x-1/2 rounded-[5px] bg-room-glass px-2 py-0.5 text-[12px] font-[600] tabular-nums text-room-ink ring-1 ring-room-seam"
+          style={{ left: `clamp(24px, ${bubble.pct}%, calc(100% - 24px))` }}
         >
-          {formatTime(scrubMs ?? hover!.ms)}
+          {formatTime(bubble.ms)}
         </div>
       )}
       <input
@@ -62,7 +67,7 @@ export function SeekBar({ positionMs, durationMs, disabled, abLoop }: { position
         max={max}
         step={100}
         value={value}
-        disabled={disabled || max <= 0}
+        disabled={!live}
         onChange={(e) => {
           const ms = Number(e.currentTarget.value);
           setScrubMs(ms);
@@ -75,7 +80,7 @@ export function SeekBar({ positionMs, durationMs, disabled, abLoop }: { position
         onPointerUp={commit}
         onKeyUp={commit}
         onBlur={commit}
-        className="seek-input relative h-6 w-full cursor-pointer disabled:cursor-default"
+        className="seek-input relative h-7 w-full cursor-pointer disabled:cursor-default"
       />
     </div>
   );

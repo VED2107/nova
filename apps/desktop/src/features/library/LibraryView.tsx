@@ -1,14 +1,31 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { FolderIcon, PlusIcon, RefreshIcon, SearchIcon, TrashIcon } from "../../components/icons";
-import { Button, IconButton, Segmented, Switch } from "../../components/ui/controls";
+import { CheckIcon, FolderIcon, GridIcon, ListIcon, PlusIcon, RefreshIcon, SearchIcon, TrashIcon } from "../../components/icons";
+import { MediaCard } from "../../components/MediaCard";
+import { Button, IconButton, Segmented } from "../../components/ui/controls";
 import { ConfirmDialog } from "../../components/ui/Dialog";
 import { library } from "../../services/library/client";
+import { queue } from "../../services/playback/client";
+import { ContextMenu } from "../player/ContextMenu";
 import type { LibraryItem, LibrarySort, ScanProgress, ScanRoot } from "../../services/library/types";
 import { folderName, pagesFor, visibleRange } from "../../services/library/view";
-import { ItemRow, ROW_HEIGHT } from "./ItemRow";
+import { ItemRow, ListHeader, ROW_HEIGHT } from "./ItemRow";
 
 const PAGE = 100;
 const SEARCH_DEBOUNCE_MS = 120;
+const GRID_MIN = 196;
+const GRID_GAP = 20;
+const GRID_TEXT = 62; // title + spec lines under the artwork
+const VIEW_KEY = "nova.library.view";
+type View = "grid" | "list";
+
+/** Per-device convenience; the library works the same without it. */
+function savedView(): View {
+  try {
+    return localStorage.getItem(VIEW_KEY) === "list" ? "list" : "grid";
+  } catch {
+    return "grid";
+  }
+}
 
 export function LibraryView(props: { onPlay: (item: LibraryItem) => void; onAddFolder: () => void; rootId?: number | null; onRootChange?: (id: number | null) => void }) {
   const [roots, setRoots] = useState<ScanRoot[]>([]);
@@ -22,6 +39,21 @@ export function LibraryView(props: { onPlay: (item: LibraryItem) => void; onAddF
   const [pages, setPages] = useState<Map<number, LibraryItem[]>>(new Map());
   const [range, setRange] = useState({ start: 0, end: 0 });
   const [removing, setRemoving] = useState<ScanRoot | null>(null);
+  const [view, setViewState] = useState<View>(savedView);
+  const [width, setWidth] = useState(0);
+  const [menu, setMenu] = useState<{ x: number; y: number; item: LibraryItem } | null>(null);
+  const setView = (v: View) => {
+    setViewState(v);
+    try {
+      localStorage.setItem(VIEW_KEY, v);
+    } catch {
+      /* private mode: keep the choice for this session only */
+    }
+  };
+  const openMenu = (e: React.MouseEvent, item: LibraryItem) => {
+    e.preventDefault();
+    setMenu({ x: e.clientX, y: e.clientY, item });
+  };
   const searchRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const generation = useRef(0);
@@ -80,10 +112,31 @@ export function LibraryView(props: { onPlay: (item: LibraryItem) => void; onAddF
     }
   }, [range, pages, query, sort, includeMissing, rootId]);
 
+  // Grid geometry: as many columns of at least GRID_MIN as fit; rows are virtualised like the list.
+  const cols = view === "grid" ? Math.max(1, Math.floor((width + GRID_GAP) / (GRID_MIN + GRID_GAP))) : 1;
+  const cardWidth = view === "grid" ? (width - (cols - 1) * GRID_GAP) / cols : width;
+  const rowHeight = view === "grid" ? Math.round((cardWidth * 9) / 16 + GRID_TEXT + GRID_GAP) : ROW_HEIGHT;
+  const rowCount = Math.ceil((total ?? 0) / cols);
+
   const measure = useCallback(() => {
     const el = listRef.current;
-    if (el) setRange(visibleRange(el.scrollTop, el.clientHeight, ROW_HEIGHT, total ?? 0));
-  }, [total]);
+    if (!el) return;
+    const r = visibleRange(el.scrollTop, el.clientHeight, rowHeight, rowCount);
+    setRange({ start: r.start * cols, end: Math.min(total ?? 0, r.end * cols) });
+  }, [total, rowHeight, rowCount, cols]);
+  useEffect(() => {
+    const el = listRef.current;
+    if (!el) return;
+    const update = () => setWidth(el.clientWidth);
+    update();
+    if (typeof ResizeObserver === "undefined") {
+      window.addEventListener("resize", update);
+      return () => window.removeEventListener("resize", update);
+    }
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
   useEffect(measure, [measure]);
   useEffect(() => {
     window.addEventListener("resize", measure);
@@ -108,6 +161,7 @@ export function LibraryView(props: { onPlay: (item: LibraryItem) => void; onAddF
     if (item) rows.push({ index: i, item });
   }
   const current = roots.find((r) => r.id === rootId) ?? null;
+  const hiddenMissing = current ? current.missingCount : roots.reduce((n, r) => n + r.missingCount, 0);
 
   return (
     <div className="flex h-full">
@@ -138,11 +192,11 @@ export function LibraryView(props: { onPlay: (item: LibraryItem) => void; onAddF
         )}
       </aside>
 
-      <section className="flex min-w-0 flex-1 flex-col px-8 pt-6" aria-label="Library items">
+      <section className="flex min-w-0 flex-1 flex-col px-[clamp(20px,3vw,40px)] pt-6" aria-label="Library items">
         <div className="flex items-end justify-between gap-6">
           <h2 className="spine-xl truncate text-[40px] text-ink">{current ? folderName(current.path) : "Library"}</h2>
-          <p className="shrink-0 pb-1.5 text-[13px] text-ink-3" aria-live="polite">
-            {total == null ? "Loading…" : `${total.toLocaleString()} ${total === 1 ? "title" : "titles"}`}
+          <p className="shrink-0 pb-1.5 text-[13px] tabular-nums text-ink-3" aria-live="polite">
+            {total == null ? "Loading…" : `${total.toLocaleString()} ${total === 1 ? "title" : "titles"}${includeMissing ? " including missing" : ""}`}
           </p>
         </div>
 
@@ -165,8 +219,8 @@ export function LibraryView(props: { onPlay: (item: LibraryItem) => void; onAddF
           </p>
         )}
 
-        <div className="mt-4 flex flex-wrap items-center gap-3">
-          <label className="relative min-w-[220px] flex-1">
+        <div className="mt-4 flex flex-wrap items-center gap-2.5">
+          <label className="relative min-w-[200px] max-w-[520px] flex-1">
             <span className="sr-only">Search library</span>
             <SearchIcon size={18} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-3" />
             <input
@@ -175,7 +229,7 @@ export function LibraryView(props: { onPlay: (item: LibraryItem) => void; onAddF
               value={query}
               onChange={(e) => setQuery(e.currentTarget.value)}
               placeholder="Search titles and folders"
-              className="h-10 w-full rounded-[8px] border border-seam-strong bg-paper-raised pl-10 pr-3 text-[14px] text-ink placeholder:text-ink-3 focus:border-ember focus:outline-none"
+              className="h-9 w-full rounded-[8px] border border-seam-strong bg-paper-raised pl-10 pr-3 text-[14px] text-ink placeholder:text-ink-3 focus:border-ink-3 focus:shadow-[0_0_0_3px_rgb(249_115_22/0.22)] focus-visible:outline-none"
             />
           </label>
           <Segmented
@@ -187,18 +241,47 @@ export function LibraryView(props: { onPlay: (item: LibraryItem) => void; onAddF
               { value: "added", label: "Newest" },
             ]}
           />
-          <div className="w-[190px]">
-            <Switch label="Show missing" checked={includeMissing} onChange={setIncludeMissing} />
+          <button
+            type="button"
+            aria-pressed={includeMissing}
+            title="Also list titles whose files were moved or deleted"
+            onClick={() => setIncludeMissing((v) => !v)}
+            className={`press flex h-8 items-center gap-1.5 rounded-[8px] border px-3 text-[13px] font-[560] ${
+              includeMissing ? "border-ink bg-ink text-paper" : "border-seam-strong text-ink-2 hover:text-ink"
+            }`}
+          >
+            {includeMissing && <CheckIcon size={15} />}
+            Missing files
+          </button>
+          <span className="flex-1" />
+          <div role="radiogroup" aria-label="View" className="inline-flex rounded-[8px] border border-seam-strong p-0.5">
+            {(["grid", "list"] as const).map((v) => (
+              <button
+                key={v}
+                type="button"
+                role="radio"
+                aria-checked={view === v}
+                aria-label={v === "grid" ? "Grid view" : "List view"}
+                title={v === "grid" ? "Grid view" : "List view"}
+                onClick={() => setView(v)}
+                className={`press flex size-7 items-center justify-center rounded-[6px] ${view === v ? "bg-ink text-paper" : "text-ink-2 hover:text-ink"}`}
+              >
+                {v === "grid" ? <GridIcon size={16} /> : <ListIcon size={16} />}
+              </button>
+            ))}
           </div>
         </div>
 
-        <div ref={listRef} onScroll={measure} className="relative mt-3 min-h-0 flex-1 overflow-y-auto border-t border-ink" role="list">
+        <div className={`mt-4 ${view === "list" && total ? "" : "border-t border-ink"}`}>{view === "list" && total ? <ListHeader /> : null}</div>
+        <div ref={listRef} onScroll={measure} className="relative min-h-0 flex-1 overflow-y-auto pb-6" role="list" aria-label={view === "grid" ? "Titles, grid" : "Titles, list"}>
           {total === 0 ? (
             <div className="max-w-md py-10 text-[14px] leading-relaxed text-ink-3">
               {query.trim()
                 ? `No titles match “${query.trim()}”. Search looks at file names and folder names.`
                 : roots.length
-                  ? "No media found here yet. Scans add titles as they find them."
+                  ? !includeMissing && hiddenMissing > 0
+                    ? `Nothing to show. ${hiddenMissing.toLocaleString()} ${hiddenMissing === 1 ? "title whose file was" : "titles whose files were"} moved or deleted ${hiddenMissing === 1 ? "is" : "are"} hidden; turn on “Missing files” to see ${hiddenMissing === 1 ? "it" : "them"}.`
+                    : "No media found here yet. Scans add titles as they find them."
                   : "Add a folder to start your catalogue."}
               {!roots.length && (
                 <div className="mt-4">
@@ -209,16 +292,46 @@ export function LibraryView(props: { onPlay: (item: LibraryItem) => void; onAddF
               )}
             </div>
           ) : (
-            <div style={{ height: (total ?? 0) * ROW_HEIGHT }} className="relative">
-              {rows.map(({ index, item }) => (
-                <div role="listitem" key={item.id}>
-                  <ItemRow item={item} onPlay={props.onPlay} style={{ top: index * ROW_HEIGHT }} />
-                </div>
-              ))}
+            <div style={{ height: rowCount * rowHeight }} className="relative">
+              {rows.map(({ index, item }) =>
+                view === "list" ? (
+                  <div role="listitem" key={item.id}>
+                    <ItemRow item={item} onPlay={props.onPlay} onContextMenu={openMenu} style={{ top: index * ROW_HEIGHT }} />
+                  </div>
+                ) : (
+                  <div
+                    role="listitem"
+                    key={item.id}
+                    className="absolute"
+                    style={{ top: Math.floor(index / cols) * rowHeight + 16, left: (index % cols) * (cardWidth + GRID_GAP), width: cardWidth }}
+                  >
+                    <MediaCard item={item} onPlay={props.onPlay} onContextMenu={openMenu} />
+                  </div>
+                ),
+              )}
             </div>
           )}
         </div>
       </section>
+
+      {menu && (
+        <ContextMenu
+          tone="paper"
+          x={menu.x}
+          y={menu.y}
+          label={`${menu.item.title} menu`}
+          groups={[
+            {
+              title: menu.item.title,
+              items: [
+                { label: menu.item.progress && !menu.item.progress.completed ? "Resume" : "Play", disabled: menu.item.missing, run: () => props.onPlay(menu.item) },
+                { label: "Add to queue", disabled: menu.item.missing, run: () => void queue.append([menu.item.path]).catch(fail) },
+              ],
+            },
+          ]}
+          onClose={() => setMenu(null)}
+        />
+      )}
 
       <ConfirmDialog
         open={removing != null}
