@@ -40,7 +40,48 @@ export type PlaybackErrorKind =
   | "unsupportedSource"
   | "loadFailed"
   | "engineUnavailable"
-  | "engineFailure";
+  | "engineFailure"
+  | "editingProject"
+  | "requiresExternalDecoder";
+
+export type PlaybackIssue =
+  | { kind: "videoDecoderMissing"; codec: string }
+  | { kind: "audioDecoderMissing"; codec: string };
+
+export interface VideoDetails {
+  codec: string | null;
+  codecDescription: string | null;
+  width: number | null;
+  height: number | null;
+  pixelFormat: string | null;
+  bitDepth: number | null;
+  chroma: string | null;
+  hasAlpha: boolean;
+  frameRate: number | null;
+  colorMatrix: string | null;
+  primaries: string | null;
+  transfer: string | null;
+  hdr: string | null;
+  hwdec: string | null;
+  decoder: string | null;
+}
+
+export interface AudioDetails {
+  codec: string | null;
+  codecDescription: string | null;
+  sampleRate: number | null;
+  channels: number | null;
+  channelLayout: string | null;
+  sampleFormat: string | null;
+}
+
+export interface MediaDetails {
+  container: string | null;
+  fileSizeBytes: number | null;
+  durationMs: number | null;
+  video: VideoDetails | null;
+  audio: AudioDetails | null;
+}
 
 export interface PlaybackError {
   kind: PlaybackErrorKind;
@@ -61,6 +102,7 @@ export interface PlaybackSnapshot {
   tracks: Track[];
   video: VideoInfo | null;
   abLoop: AbLoop;
+  issues: PlaybackIssue[];
   error: PlaybackError | null;
 }
 
@@ -120,11 +162,14 @@ export const INITIAL_SNAPSHOT: PlaybackSnapshot = {
   tracks: [],
   video: null,
   abLoop: { aMs: null, bMs: null },
+  issues: [],
   error: null,
 };
 
 /** Must match crates/nova-library MEDIA_EXTENSIONS. */
 export const MEDIA_EXTENSIONS = [
-  "mp4", "m4v", "mkv", "webm", "mov", "avi", "wmv", "flv", "ts", "m2ts", "mts", "mpg", "mpeg",
-  "ogv", "3gp", "mp3", "flac", "m4a", "aac", "ogg", "opus", "wav", "wma",
+  "mp4", "m4v", "mkv", "webm", "mov", "avi", "wmv", "flv", "ts", "m2ts", "mts", "m2t", "mpg",
+  "mpeg", "ogv", "3gp", "3g2", "mxf", "vob", "dv", "gxf", "f4v", "divx", "asf", "y4m", "mp3",
+  "flac", "m4a", "aac", "ogg", "opus", "wav", "wma", "aif", "aiff", "ac3", "eac3", "dts", "mka",
+  "alac", "thd",
 ] as const;

@@ -112,6 +112,13 @@ fn playback_execute(
 }
 
 #[tauri::command]
+fn playback_media_details(
+    engine: State<'_, Engine>,
+) -> Result<Option<nova_playback_api::MediaDetails>, PlaybackError> {
+    Ok(engine.get()?.media_details())
+}
+
+#[tauri::command]
 fn playback_snapshot(engine: State<'_, Engine>) -> Result<PlaybackSnapshot, PlaybackError> {
     Ok(engine.get()?.snapshot())
 }
@@ -339,6 +346,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             playback_execute,
             playback_snapshot,
+            playback_media_details,
             engine_info,
             launch_media_paths,
             queue_get,

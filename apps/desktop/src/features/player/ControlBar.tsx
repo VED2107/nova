@@ -8,6 +8,7 @@ import { execute, queue, useQueue, type EngineInfo } from "../../services/playba
 import { nextAbLoop } from "../../services/playback/shortcuts";
 import { formatTime, trackLabel } from "../../services/playback/format";
 import { MAX_VOLUME, SPEEDS, type PlaybackSnapshot, type TrackKind } from "../../services/playback/types";
+import { Inspector } from "./Inspector";
 import { SeekBar } from "./SeekBar";
 
 type MenuId = "audio" | "subs" | "speed" | "info" | null;
@@ -79,7 +80,6 @@ export function ControlBar(props: {
   const subItems = trackItems("subtitle");
   const subsOn = subItems.some((i) => i.selected);
   const audioItems = trackItems("audio");
-  const video = s.video;
   const loop = s.abLoop;
   const loopLabel =
     loop.aMs == null ? "Set loop start A (L)" : loop.bMs == null ? `Set loop end B (L) · A at ${formatTime(loop.aMs)}` : `Clear A–B loop (L) · ${formatTime(loop.aMs)}–${formatTime(loop.bMs)}`;
@@ -208,19 +208,7 @@ export function ControlBar(props: {
             <InfoIcon />
           </IconButton>
           <Menu open={menu === "info"} onClose={() => setMenu(null)} label="Playback info" align="right" sections={[]}>
-            <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 p-2.5 text-xs">
-              <dt className="text-ash">Video</dt>
-              <dd className="text-cream">
-                {video?.codec?.toUpperCase() ?? "—"}
-                {video?.width ? ` · ${video.width}×${video.height}` : ""}
-              </dd>
-              <dt className="text-ash">Decoder</dt>
-              <dd className="text-cream">{video ? (video.hwdec ? `Hardware (${video.hwdec})` : "Software") : "—"}</dd>
-              <dt className="text-ash">Engine</dt>
-              <dd className="truncate text-cream">{props.engine?.mpvVersion ?? "—"}</dd>
-              <dt className="text-ash">Output</dt>
-              <dd className="text-cream">{props.engine ? `${props.engine.videoOutput ?? "?"} / ${props.engine.gpuContext ?? "?"}` : "—"}</dd>
-            </dl>
+            <Inspector open={menu === "info"} sessionId={s.sessionId} engine={props.engine} />
           </Menu>
         </div>
 

@@ -98,3 +98,17 @@ describe("queue shortcuts", () => {
     expect(shortcutFor(key("q"), INITIAL_SNAPSHOT)).toEqual({ kind: "toggleQueue" });
   });
 });
+
+import { describeError } from "./errors";
+
+describe("error explanations", () => {
+  it("explains editing projects and RAW with the engine's specific message", () => {
+    const p = describeError({ kind: "editingProject", message: "This is a project file for Adobe Premiere Pro, not a video." });
+    expect(p.title).toMatch(/editing project/);
+    expect(p.detail).toContain("Premiere Pro");
+    expect(p.steps.join(" ")).toMatch(/Export/);
+    const r = describeError({ kind: "requiresExternalDecoder", message: "Blackmagic RAW can't be decoded…" });
+    expect(r.title).toMatch(/RAW/);
+    expect(r.detail).toContain("Blackmagic RAW");
+  });
+});

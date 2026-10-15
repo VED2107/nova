@@ -2,7 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { useSyncExternalStore } from "react";
 import { SnapshotStore } from "./store";
-import type { CommandAck, PlaybackCommand, PlaybackError, PlaybackSnapshot, QueueSnapshot } from "./types";
+import type { CommandAck, MediaDetails, PlaybackCommand, PlaybackError, PlaybackSnapshot, QueueSnapshot } from "./types";
 import { EMPTY_QUEUE } from "./types";
 
 export const SNAPSHOT_EVENT = "playback://snapshot";
@@ -102,6 +102,7 @@ export function execute(command: PlaybackCommand): Promise<CommandAck> {
 }
 
 export const engineInfo = () => invoke<EngineInfo>("engine_info");
+export const mediaDetails = () => invoke<MediaDetails | null>("playback_media_details");
 export const launchMediaPaths = () => invoke<string[]>("launch_media_paths");
 
 export function isPlaybackError(e: unknown): e is PlaybackError {

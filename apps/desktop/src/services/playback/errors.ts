@@ -27,6 +27,18 @@ export function describeError(err: PlaybackError): { title: string; detail: stri
         detail: "NOVA couldn't start its media engine (libmpv).",
         steps: ["Reinstall NOVA", "Developers: run scripts/fetch-libmpv.sh"],
       };
+    case "editingProject":
+      return {
+        title: "This is an editing project, not a video",
+        detail: err.message,
+        steps: ["Open it in the editing app that created it", "Export or render the timeline to a video file, then open that file in NOVA"],
+      };
+    case "requiresExternalDecoder":
+      return {
+        title: "This camera RAW format needs its maker's decoder",
+        detail: err.message,
+        steps: ["Use the manufacturer's player or DaVinci Resolve", "Or export a ProRes or H.264 version and open that"],
+      };
     default:
       return { title: "Something went wrong", detail: "The playback engine reported an error.", steps: ["Try opening the file again"] };
   }

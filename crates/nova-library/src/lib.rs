@@ -29,8 +29,10 @@ use std::time::{Duration, Instant, UNIX_EPOCH};
 
 /// Extensions treated as media (lowercase, without dot).
 pub const MEDIA_EXTENSIONS: &[&str] = &[
-    "mp4", "m4v", "mkv", "webm", "mov", "avi", "wmv", "flv", "ts", "m2ts", "mts", "mpg", "mpeg",
-    "ogv", "3gp", "mp3", "flac", "m4a", "aac", "ogg", "opus", "wav", "wma",
+    "mp4", "m4v", "mkv", "webm", "mov", "avi", "wmv", "flv", "ts", "m2ts", "mts", "m2t", "mpg",
+    "mpeg", "ogv", "3gp", "3g2", "mxf", "vob", "dv", "gxf", "f4v", "divx", "asf", "y4m", "mp3",
+    "flac", "m4a", "aac", "ogg", "opus", "wav", "wma", "aif", "aiff", "ac3", "eac3", "dts", "mka",
+    "alac", "thd",
 ];
 
 /// Folders never descended into.

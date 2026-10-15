@@ -6,7 +6,7 @@ import { OpenIcon } from "../../components/icons";
 import { engineInfo, execute, isPlaybackError, launchMediaPaths, queue, useQueue, usePlayback, type EngineInfo } from "../../services/playback/client";
 import { describeError } from "../../services/playback/errors";
 import { shortcutFor } from "../../services/playback/shortcuts";
-import type { PlaybackError } from "../../services/playback/types";
+import { MEDIA_EXTENSIONS, type PlaybackError } from "../../services/playback/types";
 import { ControlBar } from "./ControlBar";
 import { QueuePanel } from "./QueuePanel";
 import { ResumeToast } from "./ResumeToast";
@@ -15,7 +15,6 @@ const IDLE_HIDE_MS = 2500;
 // StrictMode runs effects twice in development; launch files must open once.
 let launchHandled = false;
 
-const MEDIA_EXTENSIONS = ["mp4", "mkv", "webm", "mov", "avi", "m4v", "ts", "m2ts", "wmv", "flv", "mp3", "flac", "m4a", "ogg", "opus", "wav"];
 
 /**
  * The player stays mounted while Home/Library are shown (audio keeps
@@ -56,7 +55,7 @@ export function PlayerView({ active, onBrowse }: { active: boolean; onBrowse: ()
       const picked = await openDialog({
         multiple: true,
         directory: false,
-        filters: [{ name: "Media", extensions: MEDIA_EXTENSIONS }, { name: "All files", extensions: ["*"] }],
+        filters: [{ name: "Media", extensions: [...MEDIA_EXTENSIONS] }, { name: "All files", extensions: ["*"] }],
       });
       if (picked) await openPaths(Array.isArray(picked) ? picked : [picked], append);
     },
@@ -245,6 +244,24 @@ export function PlayerView({ active, onBrowse }: { active: boolean; onBrowse: ()
       </div>
 
       <ResumeToast sessionId={s.sessionId} />
+
+      {s.issues.map((issue) => (
+        <div
+          key={issue.kind}
+          role="status"
+          onClick={(e) => e.stopPropagation()}
+          className="absolute left-1/2 top-16 z-20 max-w-lg -translate-x-1/2 rounded-xl border border-white/10 bg-ink/90 px-4 py-3 text-sm text-cream shadow-xl backdrop-blur-xl"
+        >
+          <p className="font-medium">
+            {issue.kind === "videoDecoderMissing" ? "NOVA can't decode this video" : "NOVA can't decode this audio"}
+            <span className="font-normal text-ash"> · codec: {issue.codec}</span>
+          </p>
+          <p className="mt-1 text-xs leading-relaxed text-ash">
+            {issue.kind === "videoDecoderMissing" ? "Sound is playing without picture. " : "Video is playing without sound. "}
+            The file uses a codec that isn't available in NOVA's engine. Export it to H.264, HEVC or ProRes, or open it in the app that recorded it.
+          </p>
+        </div>
+      ))}
 
       <QueuePanel open={queueOpen} onClose={() => setQueueOpen(false)} onAddFiles={() => void pickFiles(true)} onError={reportError} />
     </main>
