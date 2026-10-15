@@ -1,10 +1,11 @@
 import { useState, type ReactNode } from "react";
 import { Menu, type MenuItem } from "../../components/Menu";
 import {
-  AudioTrackIcon, ExitFullscreenIcon, FullscreenIcon, InfoIcon, MuteIcon, PauseIcon, PlayIcon,
-  SpeedIcon, SubtitlesIcon, VolumeIcon,
+  AudioTrackIcon, ExitFullscreenIcon, FullscreenIcon, InfoIcon, LoopIcon, MuteIcon, NextIcon, PauseIcon,
+  PlayIcon, PreviousIcon, QueueIcon, SpeedIcon, SubtitlesIcon, VolumeIcon,
 } from "../../components/icons";
-import { execute, type EngineInfo } from "../../services/playback/client";
+import { execute, queue, useQueue, type EngineInfo } from "../../services/playback/client";
+import { nextAbLoop } from "../../services/playback/shortcuts";
 import { formatTime, trackLabel } from "../../services/playback/format";
 import { MAX_VOLUME, SPEEDS, type PlaybackSnapshot, type TrackKind } from "../../services/playback/types";
 import { SeekBar } from "./SeekBar";
@@ -46,7 +47,11 @@ export function ControlBar(props: {
   onToggleFullscreen: () => void;
   onMenuChange: (open: boolean) => void;
   engine: EngineInfo | null;
+  queueOpen: boolean;
+  onToggleQueue: () => void;
+  onError: (e: unknown) => void;
 }) {
+  const q = useQueue();
   const s = props.snapshot;
   const [menu, setMenuState] = useState<MenuId>(null);
   const setMenu = (m: MenuId) => {
@@ -75,14 +80,28 @@ export function ControlBar(props: {
   const subsOn = subItems.some((i) => i.selected);
   const audioItems = trackItems("audio");
   const video = s.video;
+  const loop = s.abLoop;
+  const loopLabel =
+    loop.aMs == null ? "Set loop start A (L)" : loop.bMs == null ? `Set loop end B (L) · A at ${formatTime(loop.aMs)}` : `Clear A–B loop (L) · ${formatTime(loop.aMs)}–${formatTime(loop.bMs)}`;
+  const multi = q.items.length > 1;
 
   return (
     <div className="flex flex-col gap-2 px-5 pb-4 pt-10">
-      <SeekBar positionMs={s.positionMs} durationMs={s.durationMs} disabled={!hasMedia} />
+      <SeekBar positionMs={s.positionMs} durationMs={s.durationMs} disabled={!hasMedia} abLoop={s.abLoop} />
       <div className="flex items-center gap-1.5">
         <IconButton big label={isPaused ? "Play (Space)" : "Pause (Space)"} disabled={!hasMedia} onClick={() => void execute({ type: "togglePause" })}>
           {isPaused ? <PlayIcon width={22} height={22} /> : <PauseIcon width={22} height={22} />}
         </IconButton>
+        {multi && (
+          <>
+            <IconButton label="Previous (Shift+P)" disabled={!hasMedia && !q.hasPrevious} onClick={() => void queue.previous().catch(props.onError)}>
+              <PreviousIcon width={18} height={18} />
+            </IconButton>
+            <IconButton label="Next (Shift+N)" disabled={!q.hasNext} onClick={() => void queue.next().catch(props.onError)}>
+              <NextIcon width={18} height={18} />
+            </IconButton>
+          </>
+        )}
 
         <div className="group/vol ml-1 flex items-center">
           <IconButton label={s.isMuted ? "Unmute (M)" : "Mute (M)"} onClick={() => void execute({ type: "setMuted", muted: !s.isMuted })}>
@@ -114,6 +133,21 @@ export function ControlBar(props: {
         <div className="ml-4 min-w-0 flex-1 truncate text-sm text-ash" title={s.path ?? undefined}>
           {s.mediaTitle}
         </div>
+
+        <button
+          type="button"
+          aria-label={loopLabel}
+          title={loopLabel}
+          disabled={!hasMedia}
+          onClick={() => void execute(nextAbLoop(s))}
+          className={[
+            "press flex h-9 shrink-0 items-center gap-1 rounded-full px-2 text-xs font-semibold tabular-nums disabled:opacity-35",
+            loop.aMs != null ? "text-ember hover:bg-white/10" : "text-cream/85 hover:bg-white/10 hover:text-cream",
+          ].join(" ")}
+        >
+          <LoopIcon />
+          <span aria-hidden>{loop.aMs == null ? "A–B" : loop.bMs == null ? "A·" : "A–B"}</span>
+        </button>
 
         <div className="relative">
           <IconButton label="Playback speed" expanded={menu === "speed"} active={s.speed !== 1} disabled={!hasMedia} onClick={() => toggle("speed")}>
@@ -189,6 +223,10 @@ export function ControlBar(props: {
             </dl>
           </Menu>
         </div>
+
+        <IconButton label={props.queueOpen ? "Hide queue (Q)" : "Show queue (Q)"} active={props.queueOpen} onClick={props.onToggleQueue}>
+          <QueueIcon />
+        </IconButton>
 
         <IconButton label={props.isFullscreen ? "Exit fullscreen (F)" : "Fullscreen (F)"} onClick={props.onToggleFullscreen}>
           {props.isFullscreen ? <ExitFullscreenIcon /> : <FullscreenIcon />}

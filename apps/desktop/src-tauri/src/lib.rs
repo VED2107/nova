@@ -5,6 +5,8 @@
 
 mod video_surface;
 
+use nova_application::queue_service::QueueService;
+use nova_domain::queue::{QueueItemId, QueueSnapshot};
 use nova_playback_api::{
     Capabilities, CommandAck, PlaybackBackend, PlaybackCommand, PlaybackError, PlaybackErrorKind,
     PlaybackSnapshot,
@@ -16,6 +18,9 @@ use std::sync::{Arc, Mutex};
 use tauri::{AppHandle, Emitter, Manager, State};
 
 pub const SNAPSHOT_EVENT: &str = "playback://snapshot";
+pub const QUEUE_EVENT: &str = "queue://changed";
+
+type Queue = Arc<QueueService>;
 
 #[derive(Default)]
 struct Engine {
@@ -79,14 +84,63 @@ fn engine_info(engine: State<'_, Engine>) -> Result<EngineInfo, PlaybackError> {
     })
 }
 
-/// Media path passed on the command line (OS "Open with", file association).
+/// Media paths passed on the command line (OS "Open with", file association).
 #[tauri::command]
-fn launch_media_path() -> Option<String> {
+fn launch_media_paths() -> Vec<String> {
     std::env::args_os()
         .skip(1)
         .map(PathBuf::from)
-        .find(|p| p.is_file())
+        .filter(|p| p.is_file())
         .map(|p| p.display().to_string())
+        .collect()
+}
+
+#[tauri::command]
+fn queue_get(queue: State<'_, Queue>) -> QueueSnapshot {
+    queue.snapshot()
+}
+
+#[tauri::command]
+fn queue_open(paths: Vec<String>, queue: State<'_, Queue>) -> Result<QueueSnapshot, PlaybackError> {
+    queue.open(paths)
+}
+
+#[tauri::command]
+fn queue_append(
+    paths: Vec<String>,
+    queue: State<'_, Queue>,
+) -> Result<QueueSnapshot, PlaybackError> {
+    queue.append(paths)
+}
+
+#[tauri::command]
+fn queue_select(id: QueueItemId, queue: State<'_, Queue>) -> Result<QueueSnapshot, PlaybackError> {
+    queue.select(id)
+}
+
+#[tauri::command]
+fn queue_next(queue: State<'_, Queue>) -> Result<QueueSnapshot, PlaybackError> {
+    queue.next()
+}
+
+#[tauri::command]
+fn queue_previous(queue: State<'_, Queue>) -> Result<QueueSnapshot, PlaybackError> {
+    queue.previous()
+}
+
+#[tauri::command]
+fn queue_remove(id: QueueItemId, queue: State<'_, Queue>) -> QueueSnapshot {
+    queue.remove(id)
+}
+
+#[tauri::command]
+fn queue_move(id: QueueItemId, to: usize, queue: State<'_, Queue>) -> QueueSnapshot {
+    queue.move_item(id, to)
+}
+
+#[tauri::command]
+fn queue_clear(queue: State<'_, Queue>) -> QueueSnapshot {
+    queue.clear()
 }
 
 /// Resolution order: NOVA_LIBMPV_PATH, next to the executable, then the
@@ -113,7 +167,7 @@ fn libmpv_path() -> PathBuf {
     beside_exe.unwrap_or_else(|| PathBuf::from(NAME))
 }
 
-fn start_engine(app: &AppHandle) -> Result<MpvPlayer, PlaybackError> {
+fn start_engine(app: &AppHandle, queue: Queue) -> Result<MpvPlayer, PlaybackError> {
     let window = app.get_webview_window("main").ok_or_else(|| {
         PlaybackError::new(PlaybackErrorKind::EngineUnavailable, "main window missing")
     })?;
@@ -122,6 +176,11 @@ fn start_engine(app: &AppHandle) -> Result<MpvPlayer, PlaybackError> {
     let sink = Arc::new(move |snapshot: PlaybackSnapshot| {
         if let Err(e) = emitter.emit(SNAPSHOT_EVENT, &snapshot) {
             log::warn!("snapshot emit failed: {e}");
+        }
+        // Runs on the engine event thread: hand the advance to another thread.
+        if queue.on_snapshot(&snapshot) {
+            let queue = Arc::clone(&queue);
+            std::thread::spawn(move || queue.advance_after_end());
         }
     });
     let config = MpvConfig {
@@ -145,8 +204,8 @@ fn spawn_stats_logger(player: std::sync::Weak<MpvPlayer>) {
             let s = p.snapshot();
             log::info!(
                 target: "nova::stats",
-                "phase={:?} pos={}ms avsync={:?}s decoder_drops={:?} vo_drops={:?} vo_delayed={:?} vf_fps={:?} display_fps={:?} vo={:?} gpu={:?} hwdec={:?}",
-                s.phase, s.position_ms, d.avsync_secs, d.decoder_drops, d.vo_drops, d.vo_delayed_frames,
+                "session={} phase={:?} pos={}ms avsync={:?}s decoder_drops={:?} vo_drops={:?} vo_delayed={:?} vf_fps={:?} display_fps={:?} vo={:?} gpu={:?} hwdec={:?}",
+                s.session_id, s.phase, s.position_ms, d.avsync_secs, d.decoder_drops, d.vo_drops, d.vo_delayed_frames,
                 d.estimated_vf_fps, d.display_fps, d.current_vo, d.gpu_api, d.hwdec_current
             );
             drop(p);
@@ -166,10 +225,19 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .manage(Engine::default())
         .setup(|app| {
+            let emitter = app.handle().clone();
+            let queue: Queue = QueueService::new(Box::new(move |snapshot| {
+                if let Err(e) = emitter.emit(QUEUE_EVENT, &snapshot) {
+                    log::warn!("queue emit failed: {e}");
+                }
+            }));
+            app.manage(Arc::clone(&queue));
             let engine = app.state::<Engine>();
-            match start_engine(app.handle()) {
+            match start_engine(app.handle(), Arc::clone(&queue)) {
                 Ok(p) => {
                     let p = Arc::new(p);
+                    let backend: Arc<dyn PlaybackBackend> = p.clone();
+                    queue.attach(&backend);
                     if std::env::var_os("NOVA_STATS").is_some() {
                         spawn_stats_logger(Arc::downgrade(&p));
                     }
@@ -186,7 +254,16 @@ pub fn run() {
             playback_execute,
             playback_snapshot,
             engine_info,
-            launch_media_path
+            launch_media_paths,
+            queue_get,
+            queue_open,
+            queue_append,
+            queue_select,
+            queue_next,
+            queue_previous,
+            queue_remove,
+            queue_move,
+            queue_clear
         ])
         .build(tauri::generate_context!())
         .expect("failed to build NOVA")

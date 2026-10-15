@@ -58,6 +58,12 @@ pub enum PlaybackCommand {
     SelectSubtitleTrack {
         track_id: Option<String>,
     },
+    /// Sets or clears the A–B loop points. Playback loops between A and B
+    /// while both are set; `None` clears a point.
+    SetAbLoop {
+        a_ms: Option<MediaTimeMs>,
+        b_ms: Option<MediaTimeMs>,
+    },
 }
 
 impl PlaybackCommand {
@@ -87,6 +93,10 @@ impl PlaybackCommand {
             {
                 Err(PlaybackError::invalid("malformed track id"))
             }
+            Self::SetAbLoop {
+                a_ms: Some(a),
+                b_ms: Some(b),
+            } if a >= b => Err(PlaybackError::invalid("loop end must be after loop start")),
             _ => Ok(()),
         }
     }
@@ -193,7 +203,16 @@ pub struct PlaybackSnapshot {
     pub is_muted: bool,
     pub tracks: Vec<Track>,
     pub video: Option<VideoInfo>,
+    pub ab_loop: AbLoop,
     pub error: Option<PlaybackError>,
+}
+
+/// Engine-confirmed A–B loop points.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AbLoop {
+    pub a_ms: Option<MediaTimeMs>,
+    pub b_ms: Option<MediaTimeMs>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -336,6 +355,25 @@ mod tests {
         assert!(off.validate().is_ok());
         let bad = PlaybackCommand::SelectSubtitleTrack {
             track_id: Some("sub:1,quit".into()),
+        };
+        assert!(bad.validate().is_err());
+    }
+
+    #[test]
+    fn validates_ab_loop_order() {
+        let ok = PlaybackCommand::SetAbLoop {
+            a_ms: Some(1_000),
+            b_ms: Some(2_000),
+        };
+        assert!(ok.validate().is_ok());
+        let only_a = PlaybackCommand::SetAbLoop {
+            a_ms: Some(1_000),
+            b_ms: None,
+        };
+        assert!(only_a.validate().is_ok());
+        let bad = PlaybackCommand::SetAbLoop {
+            a_ms: Some(2_000),
+            b_ms: Some(2_000),
         };
         assert!(bad.validate().is_err());
     }

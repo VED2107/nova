@@ -60,8 +60,29 @@ export interface PlaybackSnapshot {
   isMuted: boolean;
   tracks: Track[];
   video: VideoInfo | null;
+  abLoop: AbLoop;
   error: PlaybackError | null;
 }
+
+export interface AbLoop {
+  aMs: number | null;
+  bMs: number | null;
+}
+
+export interface QueueItem {
+  id: number;
+  path: string;
+  title: string;
+}
+
+export interface QueueSnapshot {
+  items: QueueItem[];
+  currentId: number | null;
+  hasNext: boolean;
+  hasPrevious: boolean;
+}
+
+export const EMPTY_QUEUE: QueueSnapshot = { items: [], currentId: null, hasNext: false, hasPrevious: false };
 
 export type PlaybackCommand =
   | { type: "open"; path: string }
@@ -75,7 +96,8 @@ export type PlaybackCommand =
   | { type: "setMuted"; muted: boolean }
   | { type: "setSpeed"; multiplier: number }
   | { type: "selectAudioTrack"; trackId: string | null }
-  | { type: "selectSubtitleTrack"; trackId: string | null };
+  | { type: "selectSubtitleTrack"; trackId: string | null }
+  | { type: "setAbLoop"; aMs: number | null; bMs: number | null };
 
 export interface CommandAck {
   sessionId: number;
@@ -97,5 +119,6 @@ export const INITIAL_SNAPSHOT: PlaybackSnapshot = {
   isMuted: false,
   tracks: [],
   video: null,
+  abLoop: { aMs: null, bMs: null },
   error: null,
 };

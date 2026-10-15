@@ -3,12 +3,14 @@
 A privacy-first, open-source desktop media player from **SNOWBROS**.
 No account, no telemetry, works offline.
 
-> Status: **M0 — architecture and rendering feasibility.** Windows only.
+> Status: **M0 complete, M1 (playback core) in progress.** Windows only.
 > Not ready for end users. See [docs/testing/m0-results.md](docs/testing/m0-results.md).
 
 ## What works today (verified on Windows 11)
 
-- Open a local file via the file picker (`O` / `Ctrl+O`), drag-and-drop, or as a command-line argument
+- Open one or more local files via the file picker (`O` / `Ctrl+O`), drag-and-drop, or command-line arguments
+- Play queue: next/previous, auto-advance when the engine confirms end of media, reorder, remove, append (drop onto the open queue)
+- A–B loop (`L`: set A → set B → clear), shown on the seek bar
 - Native video (libmpv, D3D11, hardware decoding with software fallback) under a transparent React UI
 - Play/pause, seek bar (scrub + exact seek on release), ±5 s / ±30 s keys, volume/mute, speed, audio and subtitle track selection, fullscreen
 - Engine-confirmed state only: the UI shows what libmpv reports, never what it hopes happened
@@ -23,6 +25,8 @@ apps/desktop/            Tauri 2 shell + React 19 / TypeScript / Tailwind 4 UI
   src/features/player    player surface and controls
   src-tauri/             typed Tauri commands, engine bootstrap, native surface z-order
 crates/
+  nova-domain/           pure domain rules (play queue)
+  nova-application/      use cases (queue service driving a PlaybackBackend)
   nova-playback-api/     backend-neutral contract + pure state reducer (no engine deps)
   nova-playback-mpv/     libmpv backend (runtime-loaded) + real-engine integration tests
 docs/adr/                architecture decisions (engine, rendering, licensing)
@@ -61,6 +65,9 @@ Tests: see [docs/testing/README.md](docs/testing/README.md).
 | F / double-click | Fullscreen; Esc exits |
 | O / Ctrl+O | Open file |
 | Home | Back to start |
+| L | A–B loop: set A, set B, clear |
+| Shift+N / Shift+P | Next / previous in queue (previous restarts if > 3 s in) |
+| Q | Show / hide queue |
 
 ## Known limitations
 
@@ -71,7 +78,9 @@ Tests: see [docs/testing/README.md](docs/testing/README.md).
 - The dev libmpv build imports `vulkan-1.dll` (from GPU drivers); clean-machine behavior unverified.
 - Depends on libmpv's child window class name `mpv` for z-ordering (ADR 0002).
 - FFmpeg writes some demuxer warnings directly to stderr despite `terminal=no`.
-- No library, playlists/queue, resume, persistence or settings yet (M1–M2).
+- No library, saved playlists, resume, persistence or settings yet (M2).
+- Queue does not auto-skip files that fail to load; playback stops on the error screen.
+- Queue panel and A–B controls are type-checked and logic-tested but were not visually verified in M1 (no GUI automation while the machine was in use).
 - TypeScript contract types are hand-mirrored from Rust; generate them or add a contract test (follow-up).
 - App icon is a placeholder.
 - CI workflow is written but has not run yet.

@@ -19,3 +19,11 @@ export const SpeedIcon = (p: P) => <svg {...base(p)}><path d="M4.5 16a8 8 0 1 1 
 export const InfoIcon = (p: P) => <svg {...base(p)}><circle cx="12" cy="12" r="8.5" /><path d="M12 11v5.5M12 7.8v.2" /></svg>;
 export const OpenIcon = (p: P) => <svg {...base(p)}><path d="M3.5 7.5a2 2 0 0 1 2-2h4l2 2h7a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z" /></svg>;
 export const CheckIcon = (p: P) => <svg {...base(p)}><path d="m5 12.5 4.5 4.5L19 7.5" /></svg>;
+export const NextIcon = (p: P) => <svg {...base(p)}><path d="M6 5.5v13l9-6.5z" fill="currentColor" stroke="none" /><path d="M18 5.5v13" strokeWidth={2.2} /></svg>;
+export const PreviousIcon = (p: P) => <svg {...base(p)}><path d="M18 5.5v13l-9-6.5z" fill="currentColor" stroke="none" /><path d="M6 5.5v13" strokeWidth={2.2} /></svg>;
+export const QueueIcon = (p: P) => <svg {...base(p)}><path d="M4 6.5h12M4 11.5h12M4 16.5h7" /><path d="M15 14.5v5l4-2.5z" fill="currentColor" stroke="none" /></svg>;
+export const LoopIcon = (p: P) => <svg {...base(p)}><path d="M17 3.5 20 6.5l-3 3" /><path d="M4 12v-1.5a4 4 0 0 1 4-4h12" /><path d="M7 20.5 4 17.5l3-3" /><path d="M20 12v1.5a4 4 0 0 1-4 4H4" /></svg>;
+export const CloseIcon = (p: P) => <svg {...base(p)}><path d="m6.5 6.5 11 11m0-11-11 11" /></svg>;
+export const ChevronUpIcon = (p: P) => <svg {...base(p)}><path d="m6.5 14.5 5.5-5.5 5.5 5.5" /></svg>;
+export const ChevronDownIcon = (p: P) => <svg {...base(p)}><path d="m6.5 9.5 5.5 5.5 5.5-5.5" /></svg>;
+export const PlusIcon = (p: P) => <svg {...base(p)}><path d="M12 5.5v13M5.5 12h13" /></svg>;

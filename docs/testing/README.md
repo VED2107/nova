@@ -17,6 +17,8 @@ pnpm install
 | --- | --- |
 | `cargo test -p nova-playback-api` | State reducer rules, stale-session filtering, input validation, JSON contract shape |
 | `cargo test -p nova-playback-mpv` | **Real libmpv** (headless: `vo=null`, `ao=null`) against the fixture corpus: load, duration, tracks, pause/seek/resume, rapid seeks, EOF and replay, invalid/truncated media, missing files, rapid file switching, track selection, volume/mute/speed confirmation, stop, and engine create/destroy leak check |
+| `cargo test -p nova-domain` | Queue rules: ordering, cursor after remove/move, ends |
+| `cargo test -p nova-application` | Queue service against a fake backend: auto-advance once per own session, previous-restarts, validation |
 | `pnpm --filter @nova/desktop test` | Frontend: snapshot ordering, time/track formatting, keyboard shortcut mapping |
 | `pnpm --filter @nova/desktop check` | TypeScript strict type check |
 

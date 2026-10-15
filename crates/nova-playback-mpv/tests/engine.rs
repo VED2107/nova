@@ -246,6 +246,67 @@ fn play_at_end_restarts_from_beginning() {
 }
 
 #[test]
+fn ab_loop_repeats_section_and_resets_on_open() {
+    let mut h = Harness::new();
+    h.open_and_play("h264_aac_1080p30_30s.mp4");
+    h.exec(Cmd::SetAbLoop {
+        a_ms: Some(2_000),
+        b_ms: Some(3_000),
+    });
+    h.wait("loop confirmed", 3_000, |s| {
+        s.ab_loop.a_ms == Some(2_000) && s.ab_loop.b_ms == Some(3_000)
+    });
+    h.exec(Cmd::Seek {
+        position_ms: 2_000,
+        exact: true,
+    });
+    // Watch for 3 s of real time: position must stay within [A, B + tolerance].
+    let deadline = Instant::now() + Duration::from_secs(3);
+    let mut wrapped = false;
+    let mut last_pos = 0;
+    while Instant::now() < deadline {
+        if let Ok(s) = h.rx.recv_timeout(Duration::from_millis(200)) {
+            if s.phase == P::Playing {
+                assert!(s.position_ms <= 3_150, "escaped loop: {}", brief(&s));
+                if s.position_ms + 500 < last_pos {
+                    wrapped = true;
+                }
+                last_pos = s.position_ms;
+            }
+        }
+    }
+    assert!(wrapped, "playback never jumped back to A");
+
+    h.exec(Cmd::SetAbLoop {
+        a_ms: None,
+        b_ms: None,
+    });
+    h.wait("loop cleared", 3_000, |s| {
+        s.ab_loop.a_ms.is_none() && s.ab_loop.b_ms.is_none()
+    });
+
+    h.exec(Cmd::SetAbLoop {
+        a_ms: Some(1_000),
+        b_ms: Some(2_000),
+    });
+    h.wait("loop set again", 3_000, |s| s.ab_loop.b_ms == Some(2_000));
+    let s = h.open_and_play("vp9_opus_720p30_10s.webm");
+    assert_eq!(
+        s.ab_loop.a_ms, None,
+        "loop must not leak into the next file"
+    );
+    assert!(h.player.property_string("ab-loop-a").as_deref() == Some("no"));
+    assert!(
+        h.player
+            .execute(Cmd::SetAbLoop {
+                a_ms: Some(5),
+                b_ms: Some(1)
+            })
+            .is_err()
+    );
+}
+
+#[test]
 fn invalid_media_reports_load_failure() {
     let mut h = Harness::new();
     let ack = h

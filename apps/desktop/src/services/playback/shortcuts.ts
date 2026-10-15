@@ -5,7 +5,10 @@ export type ShortcutAction =
   | { kind: "command"; command: PlaybackCommand }
   | { kind: "toggleFullscreen" }
   | { kind: "exitFullscreen" }
-  | { kind: "openFile" };
+  | { kind: "openFile" }
+  | { kind: "queueNext" }
+  | { kind: "queuePrevious" }
+  | { kind: "toggleQueue" };
 
 export interface KeyInput {
   key: string;
@@ -19,13 +22,41 @@ const SEEK_SMALL_MS = 5_000;
 const SEEK_LARGE_MS = 30_000;
 const VOLUME_STEP = 5;
 
+/**
+ * A–B loop cycles like most players: set A at the current position, then B,
+ * then clear. B must be after A; pressing at or before A restarts with a new A.
+ */
+export function nextAbLoop(s: PlaybackSnapshot): PlaybackCommand {
+  const { aMs, bMs } = s.abLoop;
+  const pos = Math.round(s.positionMs);
+  if (aMs == null) return { type: "setAbLoop", aMs: pos, bMs: null };
+  if (bMs == null) {
+    return pos > aMs ? { type: "setAbLoop", aMs, bMs: pos } : { type: "setAbLoop", aMs: pos, bMs: null };
+  }
+  return { type: "setAbLoop", aMs: null, bMs: null };
+}
+
 /** Maps a key press to an action. Pure, so it is unit-tested. */
 export function shortcutFor(e: KeyInput, s: PlaybackSnapshot): ShortcutAction | null {
   if (e.altKey || e.metaKey) return null;
   if (e.ctrlKey) return e.key.toLowerCase() === "o" ? { kind: "openFile" } : null;
   const hasMedia = s.phase !== "idle" && s.phase !== "error" && s.phase !== "stopped";
   const cmd = (command: PlaybackCommand): ShortcutAction => ({ kind: "command", command });
+  if (e.shiftKey && (e.key === "N" || e.key === "n")) return { kind: "queueNext" };
+  if (e.shiftKey && (e.key === "P" || e.key === "p")) return { kind: "queuePrevious" };
   switch (e.key) {
+    case "MediaTrackNext":
+      return { kind: "queueNext" };
+    case "MediaTrackPrevious":
+      return { kind: "queuePrevious" };
+    case "MediaPlayPause":
+      return hasMedia ? cmd({ type: "togglePause" }) : null;
+    case "q":
+    case "Q":
+      return { kind: "toggleQueue" };
+    case "l":
+    case "L":
+      return hasMedia ? cmd(nextAbLoop(s)) : null;
     case " ":
     case "k":
     case "K":

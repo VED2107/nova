@@ -1,5 +1,6 @@
 use crate::{
-    MediaTimeMs, PlaybackError, PlaybackPhase, PlaybackSnapshot, SessionId, Track, VideoInfo,
+    AbLoop, MediaTimeMs, PlaybackError, PlaybackPhase, PlaybackSnapshot, SessionId, Track,
+    VideoInfo,
 };
 
 /// Backend-neutral facts observed from an engine. Backends translate native
@@ -29,6 +30,8 @@ pub enum EngineEvent {
     TracksChanged(Vec<Track>),
     VideoChanged(Option<VideoInfo>),
     TitleChanged(Option<String>),
+    AbLoopAChanged(Option<MediaTimeMs>),
+    AbLoopBChanged(Option<MediaTimeMs>),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -64,6 +67,7 @@ pub struct PlaybackState {
     muted: bool,
     tracks: Vec<Track>,
     video: Option<VideoInfo>,
+    ab_loop: AbLoop,
     error: Option<PlaybackError>,
 }
 
@@ -86,6 +90,7 @@ impl Default for PlaybackState {
             muted: false,
             tracks: Vec::new(),
             video: None,
+            ab_loop: AbLoop::default(),
             error: None,
         }
     }
@@ -189,6 +194,8 @@ impl PlaybackState {
             EngineEvent::SpeedChanged(s) => self.speed = s,
             EngineEvent::TracksChanged(t) => self.tracks = t,
             EngineEvent::VideoChanged(v) => self.video = v,
+            EngineEvent::AbLoopAChanged(a) => self.ab_loop.a_ms = a,
+            EngineEvent::AbLoopBChanged(b) => self.ab_loop.b_ms = b,
             EngineEvent::TitleChanged(t) => {
                 if t.is_some() {
                     self.title = t;
@@ -216,6 +223,7 @@ impl PlaybackState {
             is_muted: self.muted,
             tracks: self.tracks.clone(),
             video: self.video.clone(),
+            ab_loop: self.ab_loop,
             error: self.error.clone(),
         }
     }
@@ -224,7 +232,7 @@ impl PlaybackState {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{PlaybackErrorKind, PlaybackPhase as P};
+    use crate::{AbLoop, PlaybackErrorKind, PlaybackPhase as P};
 
     fn started(state: &mut PlaybackState, session: SessionId) {
         assert!(state.apply(
@@ -404,6 +412,22 @@ mod tests {
         assert_eq!(s.snapshot().seq, seq);
         assert!(s.apply(1, EngineEvent::PauseChanged(true)));
         assert_eq!(s.snapshot().seq, seq + 1);
+    }
+
+    #[test]
+    fn ab_loop_is_per_session() {
+        let mut s = playing(1);
+        s.apply(1, EngineEvent::AbLoopAChanged(Some(1_000)));
+        s.apply(1, EngineEvent::AbLoopBChanged(Some(3_000)));
+        assert_eq!(
+            s.snapshot().ab_loop,
+            AbLoop {
+                a_ms: Some(1_000),
+                b_ms: Some(3_000)
+            }
+        );
+        started(&mut s, 2);
+        assert_eq!(s.snapshot().ab_loop, AbLoop::default());
     }
 
     #[test]

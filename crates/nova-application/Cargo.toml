@@ -1,0 +1,13 @@
+[package]
+name = "nova-application"
+version = "0.1.0"
+description = "NOVA use cases: coordinates domain rules with a playback backend"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+nova-domain.workspace = true
+nova-playback-api.workspace = true
+log.workspace = true

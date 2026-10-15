@@ -3,17 +3,25 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { OpenIcon } from "../../components/icons";
-import { engineInfo, execute, isPlaybackError, launchMediaPath, usePlayback, type EngineInfo } from "../../services/playback/client";
+import { engineInfo, execute, isPlaybackError, launchMediaPaths, queue, useQueue, usePlayback, type EngineInfo } from "../../services/playback/client";
 import { describeError } from "../../services/playback/errors";
 import { shortcutFor } from "../../services/playback/shortcuts";
 import type { PlaybackError } from "../../services/playback/types";
 import { ControlBar } from "./ControlBar";
+import { QueuePanel } from "./QueuePanel";
 
 const IDLE_HIDE_MS = 2500;
+// StrictMode runs effects twice in development; launch files must open once.
+let launchHandled = false;
+
 const MEDIA_EXTENSIONS = ["mp4", "mkv", "webm", "mov", "avi", "m4v", "ts", "m2ts", "wmv", "flv", "mp3", "flac", "m4a", "ogg", "opus", "wav"];
 
 export function PlayerView() {
   const s = usePlayback();
+  const q = useQueue();
+  const [queueOpen, setQueueOpen] = useState(false);
+  const queueOpenRef = useRef(false);
+  queueOpenRef.current = queueOpen;
   const [engine, setEngine] = useState<EngineInfo | null>(null);
   const [engineError, setEngineError] = useState<PlaybackError | null>(null);
   const [commandError, setCommandError] = useState<PlaybackError | null>(null);
@@ -24,23 +32,32 @@ export function PlayerView() {
   const overControls = useRef(false);
   const hideTimer = useRef<number | undefined>(undefined);
 
-  const openPath = useCallback(async (path: string) => {
-    setCommandError(null);
-    try {
-      await execute({ type: "open", path });
-    } catch (e) {
-      if (isPlaybackError(e)) setCommandError(e);
-    }
+  const reportError = useCallback((e: unknown) => {
+    if (isPlaybackError(e)) setCommandError(e);
   }, []);
 
-  const pickFile = useCallback(async () => {
-    const picked = await openDialog({
-      multiple: false,
-      directory: false,
-      filters: [{ name: "Media", extensions: MEDIA_EXTENSIONS }, { name: "All files", extensions: ["*"] }],
-    });
-    if (typeof picked === "string") await openPath(picked);
-  }, [openPath]);
+  /** Replaces the queue (or appends to it) and lets Rust start playback. */
+  const openPaths = useCallback(
+    async (paths: string[], append = false) => {
+      if (paths.length === 0) return;
+      setCommandError(null);
+      await (append ? queue.append(paths) : queue.open(paths)).catch(reportError);
+    },
+    [reportError],
+  );
+
+  const pickFiles = useCallback(
+    async (append = false) => {
+      const picked = await openDialog({
+        multiple: true,
+        directory: false,
+        filters: [{ name: "Media", extensions: MEDIA_EXTENSIONS }, { name: "All files", extensions: ["*"] }],
+      });
+      if (picked) await openPaths(Array.isArray(picked) ? picked : [picked], append);
+    },
+    [openPaths],
+  );
+  const pickFile = useCallback(() => pickFiles(false), [pickFiles]);
 
   const toggleFullscreen = useCallback(async (force?: boolean) => {
     const win = getCurrentWindow();
@@ -52,9 +69,10 @@ export function PlayerView() {
   // Engine info, launch path, window + drag-drop wiring.
   useEffect(() => {
     engineInfo().then(setEngine, (e) => isPlaybackError(e) && setEngineError(e));
-    launchMediaPath().then((p) => {
-      if (p) void openPath(p);
-    });
+    if (!launchHandled) {
+      launchHandled = true;
+      launchMediaPaths().then((paths) => void openPaths(paths));
+    }
     const win = getCurrentWindow();
     const unResize = win.onResized(async () => setFullscreen(await win.isFullscreen()));
     const unDrop = getCurrentWebview().onDragDropEvent((e) => {
@@ -63,14 +81,15 @@ export function PlayerView() {
       else if (p.type === "leave") setDragOver(false);
       else if (p.type === "drop") {
         setDragOver(false);
-        if (p.paths[0]) void openPath(p.paths[0]);
+        // Dropping onto an open queue adds to it; otherwise it replaces it.
+        void openPaths(p.paths, queueOpenRef.current);
       }
     });
     return () => {
       unResize.then((f) => f());
       unDrop.then((f) => f());
     };
-  }, [openPath]);
+  }, [openPaths]);
 
   // Refresh decoder/output info once a file is actually playing.
   useEffect(() => {
@@ -81,7 +100,7 @@ export function PlayerView() {
     setControlsVisible(true);
     window.clearTimeout(hideTimer.current);
     hideTimer.current = window.setTimeout(() => {
-      if (!menuOpen.current && !overControls.current) setControlsVisible(false);
+      if (!menuOpen.current && !overControls.current && !queueOpenRef.current) setControlsVisible(false);
     }, IDLE_HIDE_MS);
   }, []);
 
@@ -115,11 +134,20 @@ export function PlayerView() {
         case "openFile":
           void pickFile();
           break;
+        case "queueNext":
+          void queue.next().catch(reportError);
+          break;
+        case "queuePrevious":
+          void queue.previous().catch(reportError);
+          break;
+        case "toggleQueue":
+          setQueueOpen((o) => !o);
+          break;
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [s, isFullscreen, toggleFullscreen, pickFile, showControls]);
+  }, [s, isFullscreen, toggleFullscreen, pickFile, showControls, reportError]);
 
   // Single click toggles pause; double click toggles fullscreen.
   const clickTimer = useRef<number | undefined>(undefined);
@@ -150,7 +178,11 @@ export function PlayerView() {
         <ErrorPanel
           error={error}
           onOpen={pickFile}
-          onRetry={s.path && error === s.error ? () => openPath(s.path!) : undefined}
+          onRetry={
+            s.path && error === s.error
+              ? () => void (q.currentId != null ? queue.select(q.currentId) : queue.open([s.path!])).catch(reportError)
+              : undefined
+          }
         />
       )}
 
@@ -185,8 +217,13 @@ export function PlayerView() {
             menuOpen.current = open;
             if (!open) showControls();
           }}
+          queueOpen={queueOpen}
+          onToggleQueue={() => setQueueOpen((o) => !o)}
+          onError={reportError}
         />
       </div>
+
+      <QueuePanel open={queueOpen} onClose={() => setQueueOpen(false)} onAddFiles={() => void pickFiles(true)} onError={reportError} />
     </main>
   );
 }

@@ -70,6 +70,31 @@ describe("shortcuts", () => {
     expect(shortcutFor(key("f"), playing)).toEqual({ kind: "toggleFullscreen" });
     expect(shortcutFor(key("o", { ctrlKey: true }), playing)).toEqual({ kind: "openFile" });
     expect(shortcutFor(key("f", { altKey: true }), playing)).toBeNull();
-    expect(shortcutFor(key("q"), playing)).toBeNull();
+    expect(shortcutFor(key("z"), playing)).toBeNull();
+  });
+});
+
+describe("A–B loop cycling", () => {
+  const at = (positionMs: number, aMs: number | null, bMs: number | null) =>
+    snap({ seq: 1, phase: "playing", positionMs, abLoop: { aMs, bMs } });
+  it("sets A, then B, then clears", () => {
+    expect(shortcutFor(key("l"), at(1000, null, null))).toEqual({ kind: "command", command: { type: "setAbLoop", aMs: 1000, bMs: null } });
+    expect(shortcutFor(key("l"), at(4000, 1000, null))).toEqual({ kind: "command", command: { type: "setAbLoop", aMs: 1000, bMs: 4000 } });
+    expect(shortcutFor(key("l"), at(2000, 1000, 4000))).toEqual({ kind: "command", command: { type: "setAbLoop", aMs: null, bMs: null } });
+  });
+  it("restarts A when B would be before A", () => {
+    expect(shortcutFor(key("l"), at(500, 1000, null))).toEqual({ kind: "command", command: { type: "setAbLoop", aMs: 500, bMs: null } });
+  });
+  it("needs media", () => {
+    expect(shortcutFor(key("l"), INITIAL_SNAPSHOT)).toBeNull();
+  });
+});
+
+describe("queue shortcuts", () => {
+  it("maps Shift+N / Shift+P / media keys / Q", () => {
+    expect(shortcutFor(key("N", { shiftKey: true }), INITIAL_SNAPSHOT)).toEqual({ kind: "queueNext" });
+    expect(shortcutFor(key("P", { shiftKey: true }), INITIAL_SNAPSHOT)).toEqual({ kind: "queuePrevious" });
+    expect(shortcutFor(key("MediaTrackNext"), INITIAL_SNAPSHOT)).toEqual({ kind: "queueNext" });
+    expect(shortcutFor(key("q"), INITIAL_SNAPSHOT)).toEqual({ kind: "toggleQueue" });
   });
 });

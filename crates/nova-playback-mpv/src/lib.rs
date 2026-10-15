@@ -112,6 +112,8 @@ const P_TRACKS: u64 = 8;
 const P_TITLE: u64 = 9;
 const P_HWDEC: u64 = 10;
 const P_VIDEO_PARAMS: u64 = 11;
+const P_AB_A: u64 = 12;
+const P_AB_B: u64 = 13;
 
 const OBSERVED: &[(u64, &str, c_int)] = &[
     (P_PAUSE, "pause", MPV_FORMAT_FLAG),
@@ -125,6 +127,8 @@ const OBSERVED: &[(u64, &str, c_int)] = &[
     (P_TITLE, "media-title", MPV_FORMAT_STRING),
     (P_HWDEC, "hwdec-current", MPV_FORMAT_STRING),
     (P_VIDEO_PARAMS, "video-params", MPV_FORMAT_NODE),
+    (P_AB_A, "ab-loop-a", MPV_FORMAT_DOUBLE),
+    (P_AB_B, "ab-loop-b", MPV_FORMAT_DOUBLE),
 ];
 
 fn engine_err(msg: impl Into<String>) -> PlaybackError {
@@ -420,6 +424,9 @@ impl Inner {
         let session = sessions.next;
         // `pause` is player-wide in mpv; opening media means "play it".
         self.set_flag("pause", false)?;
+        // A–B loop points are player-wide in mpv but per-media in NOVA.
+        self.set_string("ab-loop-a", "no")?;
+        self.set_string("ab-loop-b", "no")?;
         let result = self.command_ret(&["loadfile", &path_str, "replace"]);
         let entry = result
             .as_ref()
@@ -515,6 +522,16 @@ impl PlaybackBackend for MpvPlayer {
                 "sid",
                 &track_selector(track_id.as_deref(), TrackKind::Subtitle)?,
             )?,
+            PlaybackCommand::SetAbLoop { a_ms, b_ms } => {
+                let point = |ms: Option<u64>| {
+                    ms.map_or_else(
+                        || "no".to_owned(),
+                        |ms| format!("{:.3}", ms as f64 / 1000.0),
+                    )
+                };
+                i.set_string("ab-loop-a", &point(a_ms))?;
+                i.set_string("ab-loop-b", &point(b_ms))?;
+            }
         }
         Ok(ack)
     }
@@ -756,6 +773,8 @@ impl EventLoop {
                 }
             }
             P_MUTE => self.apply(EngineEvent::MuteChanged(flag())),
+            P_AB_A => self.apply(EngineEvent::AbLoopAChanged(double().map(secs_to_ms))),
+            P_AB_B => self.apply(EngineEvent::AbLoopBChanged(double().map(secs_to_ms))),
             P_SPEED => {
                 if let Some(s) = double() {
                     self.apply(EngineEvent::SpeedChanged(s))
