@@ -7,6 +7,7 @@
 //! Locking rule: the internal mutex is never held while calling the backend,
 //! because backends may deliver snapshots synchronously from `execute`.
 
+use crate::progress_service::{Prepared, ProgressService};
 use nova_domain::queue::{Queue, QueueItem, QueueItemId, QueueSnapshot};
 use nova_playback_api::{
     MediaSource, MediaSourceError, PlaybackBackend, PlaybackCommand, PlaybackError,
@@ -31,6 +32,7 @@ struct State {
 pub struct QueueService {
     /// Weak: the shell owns the engine and must be able to destroy it at exit.
     backend: OnceLock<Weak<dyn PlaybackBackend>>,
+    progress: OnceLock<Arc<ProgressService>>,
     state: Mutex<State>,
     sink: QueueSink,
 }
@@ -56,12 +58,18 @@ impl QueueService {
     pub fn new(sink: QueueSink) -> Arc<Self> {
         Arc::new(Self {
             backend: OnceLock::new(),
+            progress: OnceLock::new(),
             state: Mutex::new(State::default()),
             sink,
         })
     }
 
     /// Attaches the backend once it exists (it needs this service's snapshot hook first).
+    /// Enables resume positions and progress tracking for queued media.
+    pub fn attach_progress(&self, progress: Arc<ProgressService>) {
+        let _ = self.progress.set(progress);
+    }
+
     pub fn attach(&self, backend: &Arc<dyn PlaybackBackend>) {
         let _ = self.backend.set(Arc::downgrade(backend));
     }
@@ -95,7 +103,20 @@ impl QueueService {
             return Ok(self.publish());
         };
         let backend = self.backend()?;
-        let result = backend.execute(PlaybackCommand::Open { path: item.path });
+        let prepared = self.progress.get().map_or(
+            Prepared {
+                media: None,
+                start_ms: None,
+            },
+            |p| p.prepare(&item.path),
+        );
+        let result = backend.execute(PlaybackCommand::Open {
+            path: item.path,
+            start_ms: prepared.start_ms,
+        });
+        if let (Ok(ack), Some(progress)) = (&result, self.progress.get()) {
+            progress.started(ack.session_id, prepared);
+        }
         {
             let mut st = self.lock();
             if let Ok(ack) = &result {
@@ -251,7 +272,7 @@ mod tests {
                 .unwrap()
                 .iter()
                 .filter_map(|c| match c {
-                    PlaybackCommand::Open { path } => Some(file(path)),
+                    PlaybackCommand::Open { path, .. } => Some(file(path)),
                     _ => None,
                 })
                 .collect()
@@ -270,7 +291,7 @@ mod tests {
             unimplemented!()
         }
         fn execute(&self, command: PlaybackCommand) -> Result<CommandAck, PlaybackError> {
-            let session = if let PlaybackCommand::Open { path } = &command {
+            let session = if let PlaybackCommand::Open { path, .. } = &command {
                 let id = self.session.fetch_add(1, Ordering::SeqCst) + 1;
                 let mut s = self.snap.lock().unwrap();
                 s.session_id = id;
@@ -370,6 +391,7 @@ mod tests {
         svc.open(files(2)).unwrap();
         fake.execute(PlaybackCommand::Open {
             path: "C:/other.mp4".into(),
+            start_ms: None,
         })
         .unwrap();
         let ended = fake.set(PlaybackPhase::Ended, 1_000);

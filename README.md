@@ -3,7 +3,7 @@
 A privacy-first, open-source desktop media player from **SNOWBROS**.
 No account, no telemetry, works offline.
 
-> Status: **M0 complete, M1 (playback core) in progress.** Windows only.
+> Status: **M0 complete, M1 mostly done, M2 (persistence) started.** Windows only.
 > Not ready for end users. See [docs/testing/m0-results.md](docs/testing/m0-results.md).
 
 ## What works today (verified on Windows 11)
@@ -11,6 +11,7 @@ No account, no telemetry, works offline.
 - Open one or more local files via the file picker (`O` / `Ctrl+O`), drag-and-drop, or command-line arguments
 - Play queue: next/previous, auto-advance when the engine confirms end of media, reorder, remove, append (drop onto the open queue)
 - A–B loop (`L`: set A → set B → clear), shown on the seek bar
+- Resume where you left off, across restarts and crashes (local SQLite; moved/renamed files keep their progress), with a "Start over" option
 - Native video (libmpv, D3D11, hardware decoding with software fallback) under a transparent React UI
 - Play/pause, seek bar (scrub + exact seek on release), ±5 s / ±30 s keys, volume/mute, speed, audio and subtitle track selection, fullscreen
 - Engine-confirmed state only: the UI shows what libmpv reports, never what it hopes happened
@@ -25,8 +26,9 @@ apps/desktop/            Tauri 2 shell + React 19 / TypeScript / Tailwind 4 UI
   src/features/player    player surface and controls
   src-tauri/             typed Tauri commands, engine bootstrap, native surface z-order
 crates/
-  nova-domain/           pure domain rules (play queue)
-  nova-application/      use cases (queue service driving a PlaybackBackend)
+  nova-domain/           pure domain rules (play queue, resume policy)
+  nova-application/      use cases (queue, progress tracking) over ports
+  nova-storage/          SQLite: migrations, media identity, progress repository
   nova-playback-api/     backend-neutral contract + pure state reducer (no engine deps)
   nova-playback-mpv/     libmpv backend (runtime-loaded) + real-engine integration tests
 docs/adr/                architecture decisions (engine, rendering, licensing)
@@ -35,7 +37,8 @@ scripts/                 pinned libmpv fetch, synthetic fixture generation
 
 Decisions: [ADR 0001 engine](docs/adr/0001-playback-engine-libmpv.md) ·
 [ADR 0002 rendering](docs/adr/0002-video-rendering-in-tauri.md) ·
-[ADR 0003 licensing](docs/adr/0003-libmpv-distribution-and-licensing.md)
+[ADR 0003 licensing](docs/adr/0003-libmpv-distribution-and-licensing.md) ·
+[ADR 0004 persistence](docs/adr/0004-local-persistence-and-resume.md)
 
 ## Develop (Windows)
 
@@ -78,7 +81,8 @@ Tests: see [docs/testing/README.md](docs/testing/README.md).
 - The dev libmpv build imports `vulkan-1.dll` (from GPU drivers); clean-machine behavior unverified.
 - Depends on libmpv's child window class name `mpv` for z-ordering (ADR 0002).
 - FFmpeg writes some demuxer warnings directly to stderr despite `terminal=no`.
-- No library, saved playlists, resume, persistence or settings yet (M2).
+- No library scanning/search, saved playlists or settings yet (M2–M3).
+- Media opened outside the queue (none today in the UI) is not progress-tracked.
 - Queue does not auto-skip files that fail to load; playback stops on the error screen.
 - Queue panel and A–B controls are type-checked and logic-tested but were not visually verified in M1 (no GUI automation while the machine was in use).
 - TypeScript contract types are hand-mirrored from Rust; generate them or add a contract test (follow-up).

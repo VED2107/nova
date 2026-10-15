@@ -36,6 +36,10 @@ ff -f lavfi -i "$(vsrc 1280x720 30)" -f lavfi -i "$(asrc 660)" -t 10 \
   -c:v libvpx-vp9 -deadline realtime -cpu-used 8 -b:v 2M -c:a libopus -b:a 96k \
   "$OUT/vp9_opus_720p30_10s.webm"
 
+# Long enough for resume rules (>= 60 s). Low resolution keeps it small.
+echo "h264_aac_360p30_180s.mp4"
+ff -f lavfi -i "$(vsrc 640x360 30)" -f lavfi -i "$(asrc 750)" -t 180   -c:v libx264 -preset veryfast -crf 30 -pix_fmt yuv420p -c:a aac -b:a 64k -movflags +faststart   "$OUT/h264_aac_360p30_180s.mp4"
+
 # Multi-track: two audio tracks with language tags + two subtitle tracks.
 SRT_EN="$OUT/.tmp_en.srt"; SRT_FR="$OUT/.tmp_fr.srt"
 printf '1\n00:00:01,000 --> 00:00:04,000\nHello from NOVA (en)\n\n2\n00:00:05,000 --> 00:00:09,000\nSecond English line\n' > "$SRT_EN"

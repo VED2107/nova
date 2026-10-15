@@ -5,13 +5,16 @@
 
 mod video_surface;
 
+use nova_application::progress_service::{ProgressService, ResumeNotice};
 use nova_application::queue_service::QueueService;
+use nova_domain::progress::ResumePolicy;
 use nova_domain::queue::{QueueItemId, QueueSnapshot};
 use nova_playback_api::{
     Capabilities, CommandAck, PlaybackBackend, PlaybackCommand, PlaybackError, PlaybackErrorKind,
     PlaybackSnapshot,
 };
 use nova_playback_mpv::{MpvConfig, MpvPlayer};
+use nova_storage::{Store, StoreError};
 use serde::Serialize;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
@@ -19,8 +22,52 @@ use tauri::{AppHandle, Emitter, Manager, State};
 
 pub const SNAPSHOT_EVENT: &str = "playback://snapshot";
 pub const QUEUE_EVENT: &str = "queue://changed";
+pub const RESUMED_EVENT: &str = "playback://resumed";
 
 type Queue = Arc<QueueService>;
+
+/// Progress tracking is optional: playback works without a database.
+struct Progress(Option<Arc<ProgressService>>);
+
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ResumedPayload {
+    session_id: u64,
+    position_ms: u64,
+}
+
+/// Opens the library database. A corrupt file is moved aside (never deleted)
+/// and a fresh one created; a database from a newer NOVA is left untouched
+/// and NOVA runs without persistence.
+fn open_store(path: &std::path::Path) -> Option<Store> {
+    match Store::open(path) {
+        Ok(s) => return Some(s),
+        Err(StoreError::TooNew { found, supported }) => {
+            log::error!(
+                "library database is schema v{found}, this NOVA supports v{supported}; progress will not be saved"
+            );
+            return None;
+        }
+        Err(e) => log::error!("library database unusable ({e}); moving it aside"),
+    }
+    let stamp = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0);
+    for suffix in ["", "-wal", "-shm"] {
+        let from = PathBuf::from(format!("{}{suffix}", path.display()));
+        if from.exists() {
+            let to = PathBuf::from(format!("{}.corrupt-{stamp}{suffix}", path.display()));
+            if let Err(e) = std::fs::rename(&from, &to) {
+                log::error!("could not move aside {}: {e}", from.display());
+                return None;
+            }
+        }
+    }
+    Store::open(path)
+        .map_err(|e| log::error!("fresh library database failed: {e}"))
+        .ok()
+}
 
 #[derive(Default)]
 struct Engine {
@@ -167,7 +214,11 @@ fn libmpv_path() -> PathBuf {
     beside_exe.unwrap_or_else(|| PathBuf::from(NAME))
 }
 
-fn start_engine(app: &AppHandle, queue: Queue) -> Result<MpvPlayer, PlaybackError> {
+fn start_engine(
+    app: &AppHandle,
+    queue: Queue,
+    progress: Option<Arc<ProgressService>>,
+) -> Result<MpvPlayer, PlaybackError> {
     let window = app.get_webview_window("main").ok_or_else(|| {
         PlaybackError::new(PlaybackErrorKind::EngineUnavailable, "main window missing")
     })?;
@@ -176,6 +227,9 @@ fn start_engine(app: &AppHandle, queue: Queue) -> Result<MpvPlayer, PlaybackErro
     let sink = Arc::new(move |snapshot: PlaybackSnapshot| {
         if let Err(e) = emitter.emit(SNAPSHOT_EVENT, &snapshot) {
             log::warn!("snapshot emit failed: {e}");
+        }
+        if let Some(p) = &progress {
+            p.on_snapshot(&snapshot);
         }
         // Runs on the engine event thread: hand the advance to another thread.
         if queue.on_snapshot(&snapshot) {
@@ -232,8 +286,34 @@ pub fn run() {
                 }
             }));
             app.manage(Arc::clone(&queue));
+
+            let db_path = app.path().app_data_dir()?.join("library.sqlite3");
+            let progress = open_store(&db_path).map(|store| {
+                log::info!(
+                    "library database ready (schema v{})",
+                    nova_storage::SCHEMA_VERSION
+                );
+                let emitter = app.handle().clone();
+                ProgressService::new(
+                    Arc::new(store),
+                    ResumePolicy::default(),
+                    Box::new(move |n: ResumeNotice| {
+                        log::info!("resuming at {} ms", n.position_ms);
+                        let payload = ResumedPayload {
+                            session_id: n.session_id,
+                            position_ms: n.position_ms,
+                        };
+                        let _ = emitter.emit(RESUMED_EVENT, payload);
+                    }),
+                )
+            });
+            if let Some(p) = &progress {
+                queue.attach_progress(Arc::clone(p));
+            }
+            app.manage(Progress(progress.clone()));
+
             let engine = app.state::<Engine>();
-            match start_engine(app.handle(), Arc::clone(&queue)) {
+            match start_engine(app.handle(), Arc::clone(&queue), progress) {
                 Ok(p) => {
                     let p = Arc::new(p);
                     let backend: Arc<dyn PlaybackBackend> = p.clone();
@@ -272,6 +352,11 @@ pub fn run() {
                 // Destroy the engine deterministically before the process exits.
                 let engine = app.state::<Engine>();
                 let player = engine.player.lock().unwrap().take();
+                // Persist the final position before the engine goes away.
+                if let Some(progress) = &app.state::<Progress>().0 {
+                    progress.shutdown(player.as_ref().map(|p| p.snapshot()).as_ref());
+                    log::info!("progress saved");
+                }
                 drop(player);
                 log::info!("engine shut down");
             }

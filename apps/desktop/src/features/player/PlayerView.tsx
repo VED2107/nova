@@ -9,6 +9,7 @@ import { shortcutFor } from "../../services/playback/shortcuts";
 import type { PlaybackError } from "../../services/playback/types";
 import { ControlBar } from "./ControlBar";
 import { QueuePanel } from "./QueuePanel";
+import { ResumeToast } from "./ResumeToast";
 
 const IDLE_HIDE_MS = 2500;
 // StrictMode runs effects twice in development; launch files must open once.
@@ -222,6 +223,8 @@ export function PlayerView() {
           onError={reportError}
         />
       </div>
+
+      <ResumeToast sessionId={s.sessionId} />
 
       <QueuePanel open={queueOpen} onClose={() => setQueueOpen(false)} onAddFiles={() => void pickFiles(true)} onError={reportError} />
     </main>

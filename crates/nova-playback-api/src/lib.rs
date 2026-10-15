@@ -29,6 +29,10 @@ pub type MediaTimeMs = u64;
 pub enum PlaybackCommand {
     Open {
         path: String,
+        /// Start position (e.g. resume). Applied by the engine before the
+        /// first frame, so no visible seek happens.
+        #[serde(default)]
+        start_ms: Option<MediaTimeMs>,
     },
     Play,
     Pause,
@@ -376,6 +380,28 @@ mod tests {
             b_ms: Some(2_000),
         };
         assert!(bad.validate().is_err());
+    }
+
+    #[test]
+    fn open_start_is_optional_in_json() {
+        let cmd: PlaybackCommand =
+            serde_json::from_str(r#"{"type":"open","path":"C:/a.mp4"}"#).unwrap();
+        assert_eq!(
+            cmd,
+            PlaybackCommand::Open {
+                path: "C:/a.mp4".into(),
+                start_ms: None
+            }
+        );
+        let cmd: PlaybackCommand =
+            serde_json::from_str(r#"{"type":"open","path":"C:/a.mp4","startMs":1500}"#).unwrap();
+        assert_eq!(
+            cmd,
+            PlaybackCommand::Open {
+                path: "C:/a.mp4".into(),
+                start_ms: Some(1500)
+            }
+        );
     }
 
     #[test]

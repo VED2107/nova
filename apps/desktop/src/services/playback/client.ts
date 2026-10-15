@@ -7,6 +7,24 @@ import { EMPTY_QUEUE } from "./types";
 
 export const SNAPSHOT_EVENT = "playback://snapshot";
 export const QUEUE_EVENT = "queue://changed";
+export const RESUMED_EVENT = "playback://resumed";
+
+export interface ResumeNotice {
+  sessionId: number;
+  positionMs: number;
+}
+
+let resumeNotice: ResumeNotice | null = null;
+const resumeListeners = new Set<() => void>();
+export function useResumeNotice(): ResumeNotice | null {
+  return useSyncExternalStore(
+    (l) => {
+      resumeListeners.add(l);
+      return () => resumeListeners.delete(l);
+    },
+    () => resumeNotice,
+  );
+}
 
 export interface EngineInfo {
   capabilities: {
@@ -67,6 +85,10 @@ export async function startPlaybackBridge(): Promise<void> {
   started = true;
   await listen<PlaybackSnapshot>(SNAPSHOT_EVENT, (e) => store.push(e.payload));
   await listen<QueueSnapshot>(QUEUE_EVENT, (e) => setQueue(e.payload));
+  await listen<ResumeNotice>(RESUMED_EVENT, (e) => {
+    resumeNotice = e.payload;
+    resumeListeners.forEach((l) => l());
+  });
   invoke<QueueSnapshot>("queue_get").then(setQueue, () => {});
   try {
     store.push(await invoke<PlaybackSnapshot>("playback_snapshot"));

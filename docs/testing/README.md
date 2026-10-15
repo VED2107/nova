@@ -19,6 +19,7 @@ pnpm install
 | `cargo test -p nova-playback-mpv` | **Real libmpv** (headless: `vo=null`, `ao=null`) against the fixture corpus: load, duration, tracks, pause/seek/resume, rapid seeks, EOF and replay, invalid/truncated media, missing files, rapid file switching, track selection, volume/mute/speed confirmation, stop, and engine create/destroy leak check |
 | `cargo test -p nova-domain` | Queue rules: ordering, cursor after remove/move, ends |
 | `cargo test -p nova-application` | Queue service against a fake backend: auto-advance once per own session, previous-restarts, validation |
+| `cargo test -p nova-storage` | SQLite migrations, newer-schema refusal, corrupt file, identity (moved/copied/replaced), constraints; **`resume_restart`**: real libmpv + services + SQLite file across two simulated restarts |
 | `pnpm --filter @nova/desktop test` | Frontend: snapshot ordering, time/track formatting, keyboard shortcut mapping |
 | `pnpm --filter @nova/desktop check` | TypeScript strict type check |
 
@@ -58,6 +59,7 @@ reproducible. Generated files are git-ignored.
 | `h264_aac_1080p30_30s.mp4` | Baseline H.264/AAC, timecode + sync pattern |
 | `hevc_aac_1080p24_10s.mkv` | HEVC/Matroska |
 | `vp9_opus_720p30_10s.webm` | VP9/Opus/WebM |
+| `h264_aac_360p30_180s.mp4` | 3-minute file for resume rules (≥ 60 s) |
 | `multitrack_h264_2a_2s_10s.mkv` | 2 audio (eng/fra, titled) + 2 subtitle tracks |
 | `truncated_h264.mp4` | First 200 KB of the baseline (damaged file) |
 | `not_media.mp4` | Text file with a media extension |

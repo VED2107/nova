@@ -59,6 +59,8 @@ Choose **B** before M4 (Windows beta). Until then:
 | --- | --- |
 | Tauri 2.12, tauri-plugin-dialog/log | MIT OR Apache-2.0 |
 | React 19, Vite 8, Tailwind CSS 4 | MIT |
+| rusqlite 0.40 | MIT |
+| SQLite (bundled amalgamation) | Public domain |
 | serde, thiserror, log, libloading | MIT OR Apache-2.0 / ISC (libloading) |
 | WebView2 runtime | Microsoft; installed system component, not bundled |
 | 7-Zip `7zr.exe` (only used by the fetch script, not shipped) | Public domain / LGPL per 7-zip.org |

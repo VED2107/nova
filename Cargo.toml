@@ -5,6 +5,7 @@ members = [
     "crates/nova-domain",
     "crates/nova-playback-api",
     "crates/nova-playback-mpv",
+    "crates/nova-storage",
     "apps/desktop/src-tauri",
 ]
 
@@ -20,6 +21,7 @@ nova-application = { path = "crates/nova-application" }
 nova-domain = { path = "crates/nova-domain" }
 nova-playback-api = { path = "crates/nova-playback-api" }
 nova-playback-mpv = { path = "crates/nova-playback-mpv" }
+nova-storage = { path = "crates/nova-storage" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 thiserror = "2"

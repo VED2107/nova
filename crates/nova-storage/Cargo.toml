@@ -1,0 +1,20 @@
+[package]
+name = "nova-storage"
+version = "0.1.0"
+description = "SQLite persistence for NOVA (migrations, media identity, progress)"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+nova-application.workspace = true
+nova-domain.workspace = true
+log.workspace = true
+# `bundled` compiles the SQLite amalgamation (public domain) so behavior does
+# not depend on a system SQLite.
+rusqlite = { version = "0.40", features = ["bundled"] }
+
+[dev-dependencies]
+nova-playback-api.workspace = true
+nova-playback-mpv.workspace = true

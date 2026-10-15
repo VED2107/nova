@@ -402,7 +402,7 @@ impl Inner {
         self.set_flag("pause", false)
     }
 
-    fn open(&self, path: &str) -> Result<CommandAck, PlaybackError> {
+    fn open(&self, path: &str, start_ms: Option<u64>) -> Result<CommandAck, PlaybackError> {
         let source = MediaSource::from_user_path(path).map_err(|e| {
             let kind = match e {
                 MediaSourceError::NotFound => PlaybackErrorKind::NotFound,
@@ -427,7 +427,16 @@ impl Inner {
         // A–B loop points are player-wide in mpv but per-media in NOVA.
         self.set_string("ab-loop-a", "no")?;
         self.set_string("ab-loop-b", "no")?;
-        let result = self.command_ret(&["loadfile", &path_str, "replace"]);
+        // Per-file options are restored by mpv when the file ends.
+        let options = match start_ms {
+            Some(ms) if ms > 0 => format!("start={:.3}", ms as f64 / 1000.0),
+            _ => String::new(),
+        };
+        let result = if options.is_empty() {
+            self.command_ret(&["loadfile", &path_str, "replace"])
+        } else {
+            self.command_ret(&["loadfile", &path_str, "replace", "-1", &options])
+        };
         let entry = result
             .as_ref()
             .ok()
@@ -485,7 +494,7 @@ impl PlaybackBackend for MpvPlayer {
             session_id: session,
         };
         match command {
-            PlaybackCommand::Open { path } => return i.open(&path),
+            PlaybackCommand::Open { path, start_ms } => return i.open(&path, start_ms),
             PlaybackCommand::Play => i.play()?,
             PlaybackCommand::Pause => i.set_flag("pause", true)?,
             PlaybackCommand::TogglePause => {

@@ -105,6 +105,7 @@ impl Harness {
             .player
             .execute(Cmd::Open {
                 path: fixture(name),
+                start_ms: None,
             })
             .expect("open");
         self.wait("playing", 10_000, |s| {
@@ -307,12 +308,36 @@ fn ab_loop_repeats_section_and_resets_on_open() {
 }
 
 #[test]
+fn open_with_start_position_begins_there() {
+    let mut h = Harness::new();
+    let ack = h
+        .player
+        .execute(Cmd::Open {
+            path: fixture("h264_aac_1080p30_30s.mp4"),
+            start_ms: Some(20_000),
+        })
+        .expect("open");
+    let s = h.wait("playing", 10_000, |s| {
+        s.session_id == ack.session_id && s.phase == P::Playing
+    });
+    assert!(s.position_ms >= 19_900, "started at {}", s.position_ms);
+    // The start option is per-file: the next plain open starts at 0.
+    let s = h.open_and_play("vp9_opus_720p30_10s.webm");
+    assert!(
+        s.position_ms < 1_000,
+        "leaked start option: {}",
+        s.position_ms
+    );
+}
+
+#[test]
 fn invalid_media_reports_load_failure() {
     let mut h = Harness::new();
     let ack = h
         .player
         .execute(Cmd::Open {
             path: fixture("not_media.mp4"),
+            start_ms: None,
         })
         .expect("accepted");
     let s = h.wait("error", 10_000, |s| {
@@ -328,6 +353,7 @@ fn truncated_media_never_hangs() {
         .player
         .execute(Cmd::Open {
             path: fixture("truncated_h264.mp4"),
+            start_ms: None,
         })
         .expect("accepted");
     let s = h.wait("terminal state", 15_000, |s| {
@@ -344,6 +370,7 @@ fn missing_file_is_rejected_synchronously() {
         .player
         .execute(Cmd::Open {
             path: missing.to_string_lossy().into(),
+            start_ms: None,
         })
         .unwrap_err();
     assert_eq!(err.kind, PlaybackErrorKind::NotFound);
@@ -351,6 +378,7 @@ fn missing_file_is_rejected_synchronously() {
         .player
         .execute(Cmd::Open {
             path: "https://example.com/x.mp4".into(),
+            start_ms: None,
         })
         .unwrap_err();
     assert_eq!(err.kind, PlaybackErrorKind::UnsupportedSource);
@@ -371,7 +399,10 @@ fn rapid_file_switching_ends_on_last_file() {
         for f in files {
             last = h
                 .player
-                .execute(Cmd::Open { path: fixture(f) })
+                .execute(Cmd::Open {
+                    path: fixture(f),
+                    start_ms: None,
+                })
                 .expect("open")
                 .session_id;
         }
