@@ -12,6 +12,7 @@ No account, no telemetry, works offline.
 - Play queue: next/previous, auto-advance when the engine confirms end of media, reorder, remove, append (drop onto the open queue)
 - A–B loop (`L`: set A → set B → clear), shown on the seek bar
 - Media library: add folders, background scanning (cancellable), search, Home with Continue Watching
+- Professional formats verified on synthetic samples (ProRes, DNxHR/HD, CineForm, XAVC-I/AVC-Intra/XDCAM-style MXF, HDR10/HLG, 4K/8K, pro audio). Camera RAW and editing projects are detected and explained. See [docs/compat](docs/compat/README.md)
 - Resume where you left off, across restarts and crashes (local SQLite; moved/renamed files keep their progress), with a "Start over" option
 - Native video (libmpv, D3D11, hardware decoding with software fallback) under a transparent React UI
 - Play/pause, seek bar (scrub + exact seek on release), ±5 s / ±30 s keys, volume/mute, speed, audio and subtitle track selection, fullscreen
@@ -41,7 +42,8 @@ Decisions: [ADR 0001 engine](docs/adr/0001-playback-engine-libmpv.md) ·
 [ADR 0002 rendering](docs/adr/0002-video-rendering-in-tauri.md) ·
 [ADR 0003 licensing](docs/adr/0003-libmpv-distribution-and-licensing.md) ·
 [ADR 0004 persistence](docs/adr/0004-local-persistence-and-resume.md) ·
-[ADR 0005 library](docs/adr/0005-media-library-scanning-and-search.md)
+[ADR 0005 library](docs/adr/0005-media-library-scanning-and-search.md) ·
+[ADR 0006 compatibility](docs/adr/0006-media-compatibility-policy.md)
 
 ## Develop (Windows)
 

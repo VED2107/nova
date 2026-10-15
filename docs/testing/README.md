@@ -26,6 +26,10 @@ pnpm install
 
 Override the engine with `NOVA_LIBMPV_PATH=...`.
 
+## Media compatibility harness
+
+See [docs/compat/README.md](../compat/README.md). The harness is opt-in (`--ignored`) because the corpus is about 650 MB and a run takes about 75 s.
+
 ## Manual / visual verification (rendering gate)
 
 Headless tests cannot prove pixels reach the screen or A/V sync. For that:
