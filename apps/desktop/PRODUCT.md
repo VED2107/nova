@@ -4,7 +4,7 @@
 ## Platform
 web
 
-The UI is React in a Tauri 2 WebView on Windows; macOS and Linux are later. It is a desktop app, not a website. The video is a native libmpv surface underneath a transparent WebView.
+The UI is React in a Tauri 2 WebView on Windows. NOVA is Windows-only by design. It is a desktop app, not a website. The video is a native libmpv surface underneath a transparent WebView.
 
 ## Users
 - **Primary: everyday viewers.** They open a file, watch it, come back later and find it again.

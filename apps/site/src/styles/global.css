@@ -1,0 +1,573 @@
+/* NOVA preview site — tokens and base styles.
+   Values follow the desktop app (apps/desktop/src/styles/index.css):
+   Daylight = cream stock, Night = ink stock, Darkroom = the player.
+   Ember is a FILL colour on cream (2.6:1); text uses --ember-text (5.2:1). */
+
+@font-face {
+  font-family: "Archivo";
+  src: url("/fonts/Archivo-VF-latin.woff2") format("woff2");
+  font-weight: 100 900;
+  font-stretch: 62% 125%;
+  font-display: swap;
+}
+
+:root {
+  color-scheme: light dark;
+  --paper: #f7f4ee;
+  --paper-raised: #fbf9f5;
+  --paper-sunk: #efebe3;
+  --ink: #171715;
+  --ink-2: #45443f;
+  --ink-3: #64635c;
+  --seam: rgb(23 23 21 / 0.12);
+  --seam-strong: rgb(23 23 21 / 0.28);
+  --hover: rgb(23 23 21 / 0.05);
+  --ember: #f97316;
+  --ember-text: #a84a08;
+  --focus: #a84a08;
+  --on-ember: #171715;
+  --danger: #b42318;
+
+  /* Darkroom: always dark, whatever the theme. */
+  --room: #0b0b0a;
+  --room-raised: #141412;
+  --room-ink: #f2efe8;
+  --room-ink-2: #c9c6be;
+  --room-ink-3: #a3a19a;
+  --room-seam: rgb(242 239 232 / 0.14);
+
+  --font: "Archivo", "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  /* The beam's slope: 48 across per 176 down (15.3° from vertical). */
+  --beam-skew: -15.3deg;
+
+  --gutter: clamp(16px, 4vw, 48px);
+  --wrap: min(1320px, 100% - 2 * var(--gutter));
+  --s1: 4px;
+  --s2: 8px;
+  --s3: 12px;
+  --s4: 16px;
+  --s5: 24px;
+  --s6: 32px;
+  --s7: 48px;
+  --s8: 72px;
+  --s9: 112px;
+  --s10: 160px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #141412;
+    --paper-raised: #1c1c19;
+    --paper-sunk: #0e0e0d;
+    --ink: #f2efe8;
+    --ink-2: #c9c6be;
+    --ink-3: #a19f98;
+    --seam: rgb(242 239 232 / 0.12);
+    --seam-strong: rgb(242 239 232 / 0.26);
+    --hover: rgb(242 239 232 / 0.06);
+    --ember-text: #fb9a52;
+    --focus: #f97316;
+    --danger: #ff8a7a;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+/* Component display rules must never un-hide something the markup hides. */
+[hidden] {
+  display: none !important;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  scroll-padding-top: 88px;
+}
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 1.0625rem;
+  line-height: 1.6;
+  font-optical-sizing: auto;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-x: clip;
+}
+
+img,
+svg,
+video {
+  display: block;
+  max-width: 100%;
+}
+img {
+  height: auto;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  margin: 0;
+  font-weight: 700;
+  text-wrap: balance;
+}
+p {
+  margin: 0;
+  text-wrap: pretty;
+}
+ul,
+ol {
+  margin: 0;
+  padding: 0;
+}
+figure {
+  margin: 0;
+}
+
+a {
+  color: inherit;
+  text-decoration-line: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+  text-decoration-color: var(--seam-strong);
+  transition: text-decoration-color 160ms ease;
+}
+a:hover {
+  text-decoration-color: currentColor;
+}
+
+::selection {
+  background: rgb(249 115 22 / 0.3);
+  color: inherit;
+}
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--seam-strong) transparent;
+}
+input,
+textarea {
+  caret-color: var(--ember);
+  font: inherit;
+  color: inherit;
+}
+button {
+  font: inherit;
+  color: inherit;
+}
+code,
+kbd {
+  font-family: var(--font);
+  font-variant-numeric: tabular-nums slashed-zero;
+}
+code {
+  font-stretch: 92%;
+  font-weight: 560;
+  font-size: 0.92em;
+  background: var(--paper-sunk);
+  border: 1px solid var(--seam);
+  border-radius: 4px;
+  padding: 0.05em 0.35em;
+  overflow-wrap: anywhere;
+}
+
+/* ---------------------------------------------------------------- Voices */
+
+/* Condensed spine voice for titles and catalogue headings. */
+.spine {
+  font-stretch: 72%;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  word-spacing: 0.08em;
+  line-height: 1.05;
+}
+.spine-xl {
+  font-stretch: 66%;
+  font-weight: 740;
+  letter-spacing: -0.02em;
+  word-spacing: 0.12em;
+  line-height: 0.94;
+}
+/* Small catalogue labels. They label data ("No. 042", a timecode), never sit above a heading as a kicker. */
+.catalog {
+  font-stretch: 88%;
+  font-weight: 600;
+  font-size: 0.72rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
+}
+.lede {
+  font-size: clamp(1.15rem, 0.9rem + 0.8vw, 1.45rem);
+  line-height: 1.45;
+  color: var(--ink-2);
+  max-width: 38ch;
+}
+.muted {
+  color: var(--ink-3);
+}
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+.wrap {
+  width: var(--wrap);
+  margin-inline: auto;
+}
+.prose-measure {
+  max-width: 68ch;
+}
+.visually-hidden {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.skip {
+  position: absolute;
+  left: var(--gutter);
+  top: -100px;
+  z-index: 100;
+  background: var(--ink);
+  color: var(--paper);
+  padding: var(--s2) var(--s4);
+  border-radius: 6px;
+  text-decoration: none;
+}
+.skip:focus {
+  top: var(--s2);
+}
+
+/* ---------------------------------------------------------------- Controls */
+
+.btn {
+  --btn-bg: var(--ink);
+  --btn-fg: var(--paper);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
+  min-height: 44px;
+  padding: 0 var(--s5);
+  border-radius: 6px;
+  border: 1px solid var(--btn-bg);
+  background: var(--btn-bg);
+  color: var(--btn-fg);
+  font-weight: 600;
+  font-size: 0.98rem;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    transform 140ms var(--ease-out),
+    background-color 160ms ease,
+    border-color 160ms ease;
+}
+.btn:hover {
+  --btn-bg: color-mix(in oklab, var(--ink) 86%, var(--paper));
+}
+.btn:active {
+  transform: scale(0.97);
+}
+.btn.ghost {
+  --btn-fg: var(--ink);
+  background: transparent;
+  border-color: var(--seam-strong);
+}
+.btn.ghost:hover {
+  background: var(--hover);
+  border-color: var(--ink-3);
+}
+.btn svg {
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
+.room .btn {
+  --btn-bg: var(--room-ink);
+  --btn-fg: var(--room);
+}
+.room .btn.ghost {
+  --btn-fg: var(--room-ink);
+  border-color: var(--room-seam);
+}
+
+.link-arrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  font-weight: 600;
+  text-decoration: none;
+}
+.link-arrow::after {
+  content: "";
+  width: 0.9em;
+  height: 0.9em;
+  background: currentColor;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3 8h9M8.5 4.5 12 8l-3.5 3.5' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
+    center / contain no-repeat;
+  transition: transform 180ms var(--ease-out);
+}
+.link-arrow:hover::after {
+  transform: translateX(3px);
+}
+
+/* Ink-stamp status marks, as in the app's library ("In progress"). Each tier
+   differs by border style as well as tone, never by colour alone. */
+.stamp {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  padding: 0.18em 0.5em 0.14em;
+  border: 1.5px solid currentColor;
+  border-radius: 3px;
+  font-stretch: 88%;
+  font-weight: 650;
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  line-height: 1.3;
+  white-space: nowrap;
+  color: var(--ink);
+}
+/* Partial: ink, hatched at the beam's angle (as in the Atlas tier bar). */
+.stamp[data-tier="partial"] {
+  color: var(--ink);
+  background: repeating-linear-gradient(105deg, color-mix(in oklab, currentColor 16%, transparent) 0 2px, transparent 2px 5px);
+}
+.stamp[data-tier="expected"],
+.stamp[data-tier="planned"] {
+  color: var(--ink-2);
+  border-style: dashed;
+}
+.stamp[data-tier="external"] {
+  color: var(--ink-2);
+  border-style: double;
+  border-width: 3px;
+  padding: 0.08em 0.45em 0.04em;
+}
+.stamp[data-tier="unsupported"],
+.stamp[data-tier="deferred"],
+.stamp[data-tier="none"] {
+  color: var(--ink-3);
+  border-style: dotted;
+}
+/* Preview: a filled ink stamp. */
+.stamp[data-tier="preview"] {
+  color: var(--paper);
+  background: var(--ink);
+  border-color: var(--ink);
+}
+.room .stamp {
+  color: var(--room-ink);
+}
+.room .stamp[data-tier="preview"] {
+  color: var(--room);
+  background: var(--room-ink);
+  border-color: var(--room-ink);
+}
+.room .stamp[data-tier="expected"],
+.room .stamp[data-tier="external"],
+.room .stamp[data-tier="unsupported"] {
+  color: var(--room-ink-2);
+}
+
+kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.9em;
+  height: 1.75em;
+  padding: 0 0.45em;
+  border: 1px solid var(--seam-strong);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  background: var(--paper-raised);
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* ---------------------------------------------------------------- Sections */
+
+.section {
+  padding-block: var(--s9);
+}
+.section.tight {
+  padding-block: var(--s8);
+}
+.room {
+  background: var(--room);
+  color: var(--room-ink);
+  --paper: var(--room);
+  --paper-raised: var(--room-raised);
+  --paper-sunk: #050505;
+  --ink: var(--room-ink);
+  --ink-2: var(--room-ink-2);
+  --ink-3: var(--room-ink-3);
+  --seam: var(--room-seam);
+  --seam-strong: rgb(242 239 232 / 0.28);
+  --hover: rgb(242 239 232 / 0.07);
+  --ember-text: #fb9a52;
+  --focus: #f97316;
+  color-scheme: dark;
+}
+.sunk {
+  background: var(--paper-sunk);
+}
+
+/* Section heading: a spine title on a hairline, as in the app's shelves. */
+.shead {
+  padding-bottom: var(--s3);
+  border-bottom: 1.5px solid currentColor;
+  margin-bottom: var(--s7);
+}
+.shead h2 {
+  font-size: clamp(2.25rem, 1.4rem + 3.6vw, 4.5rem);
+}
+.shead h1 {
+  font-size: clamp(3rem, 1.4rem + 6vw, 6rem);
+}
+
+
+/* ---------------------------------------------------------------- Plates */
+
+/* A darkroom plate: the app's own picture in a frame, captioned like a
+   catalogue print with its provenance. */
+.plate {
+  background: var(--room);
+  color: var(--room-ink);
+  border-radius: 10px;
+  padding: clamp(8px, 1.2vw, 14px);
+  box-shadow:
+    0 1px 0 rgb(255 255 255 / 0.04) inset,
+    0 24px 60px -24px rgb(23 23 21 / 0.45),
+    0 6px 16px -8px rgb(23 23 21 / 0.3);
+}
+.plate img {
+  width: 100%;
+  border-radius: 5px;
+  background: #000;
+}
+.plate.light img {
+  background: var(--paper);
+}
+.plate figcaption {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s1) var(--s4);
+  justify-content: space-between;
+  padding: var(--s3) var(--s1) var(--s1);
+  font-size: 0.82rem;
+  line-height: 1.4;
+  color: var(--room-ink-2);
+}
+.plate figcaption .catalog {
+  color: var(--room-ink-3);
+}
+.plate figcaption .credit {
+  color: var(--room-ink-3);
+  font-size: 0.75rem;
+}
+.plate figcaption a {
+  text-decoration-color: rgb(242 239 232 / 0.3);
+}
+
+/* ---------------------------------------------------------------- Spec rows */
+
+.specs {
+  list-style: none;
+  border-top: 1px solid var(--seam);
+}
+.specs > li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--s2) var(--s5);
+  align-items: baseline;
+  padding: var(--s4) 0;
+  border-bottom: 1px solid var(--seam);
+}
+.specs > li .note {
+  grid-column: 1 / -1;
+  font-size: 0.9rem;
+  color: var(--ink-3);
+  max-width: 70ch;
+}
+
+/* ---------------------------------------------------------------- Tables */
+
+.table-scroll {
+  overflow-x: auto;
+  margin-block: var(--s5);
+  border-block: 1px solid var(--seam);
+}
+.table-scroll:focus-visible {
+  outline-offset: -3px;
+}
+table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 0.92rem;
+  font-variant-numeric: tabular-nums;
+}
+th,
+td {
+  text-align: left;
+  vertical-align: top;
+  padding: var(--s3) var(--s4) var(--s3) 0;
+  border-bottom: 1px solid var(--seam);
+}
+th {
+  font-stretch: 88%;
+  font-weight: 650;
+  font-size: 0.72rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+tbody th {
+  font-stretch: 100%;
+  font-weight: 650;
+  font-size: inherit;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--ink);
+}
+tr:last-child td,
+tr:last-child th {
+  border-bottom: 0;
+}
+
+/* ---------------------------------------------------------------- Reveal */
+
+/* Content is visible by default; motion is an enhancement only. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

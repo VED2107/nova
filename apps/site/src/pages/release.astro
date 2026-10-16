@@ -1,0 +1,304 @@
+---
+import Base from "../layouts/Base.astro";
+import SectionHead from "../components/SectionHead.astro";
+import Stamp from "../components/Stamp.astro";
+import { RELEASE_GATES, VERSION } from "../data/facts";
+
+import data from "../data/releases.json";
+
+/** Release records live in src/data/releases.json; scripts/check-dist.mjs enforces the download rules. */
+interface ReleaseRecord {
+  version: string;
+  date: string;
+  channel: string;
+  engine: "lgpl" | "gpl-dev";
+  platforms: { name: string; state: string }[];
+  download: { url: string; sha256: string; size: string; signed: boolean; notices: string } | null;
+  notes: string[];
+}
+const releases = data.releases as ReleaseRecord[];
+const latest = releases.find((r) => r.download && r.engine === "lgpl");
+
+const stateLabel = { open: "Open", "not-started": "Not started", done: "Done" } as const;
+const stateTier = { open: "partial", "not-started": "none", done: "verified" } as const;
+const openGates = RELEASE_GATES.filter((g) => g.state !== "done").length;
+---
+
+<Base
+  title="Release"
+  description="NOVA's release status: 0.1.0-rc.1 is a local release candidate, tested on one Windows 11 machine and not distributed. What has to happen before a public download."
+>
+  <section class="section">
+    <div class="wrap">
+      <SectionHead title="Release" as="h1" />
+      <div class="board">
+        <div class="now">
+          <p class="ver spine-xl num">{VERSION.version}</p>
+          <p class="state"><Stamp tier="preview" label="Not distributed" /> {VERSION.channel}, {VERSION.date}</p>
+          <p class="body">
+            Built from <code>main</code> as a Windows x64 installer and tested on the development machine only. It will not be
+            published: it bundles the GPL development build of the engine. Licensing is now decided: NOVA is MIT OR
+            Apache-2.0, and releases will bundle an LGPL engine built from source. When that build exists and the open
+            conditions below are met, this page gets a download.
+          </p>
+        </div>
+        <div class="dl" aria-labelledby="dl-h">
+          <h2 id="dl-h" class="visually-hidden">Download</h2>
+          {
+            latest && latest.download ? (
+              <>
+                <p class="dl-empty spine">NOVA {latest.version}</p>
+                <a class="btn" href={latest.download.url}>Download for Windows ({latest.download.size})</a>
+                <p class="small">SHA-256 <code>{latest.download.sha256}</code></p>
+                <p class="small">
+                  {latest.download.signed ? "Signed installer." : "Unsigned installer: Windows may warn before running it."}{" "}
+                  <a href={latest.download.notices}>Licences and engine source</a>
+                </p>
+              </>
+            ) : (
+              <>
+                <p class="dl-empty spine">No public download yet.</p>
+                <p>
+                  The licensing decision is made; the LGPL engine build it requires is not. There is no installer, archive or
+                  store listing to point to, and nothing should be shared on NOVA's behalf until a release appears here with
+                  its checksum.
+                </p>
+              </>
+            )
+          }
+          <p class="muted small">{openGates} of {RELEASE_GATES.length} release conditions are still open.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section sunk" aria-labelledby="gates-h">
+    <div class="wrap">
+      <SectionHead id="gates-h" title="Before a public release" />
+      <ol class="gates">
+        {
+          RELEASE_GATES.map((g, i) => (
+            <li>
+              <span class="gn catalog num">{String(i + 1).padStart(2, "0")}</span>
+              <div>
+                <h3 class="spine">{g.name}</h3>
+                <p>{g.detail}</p>
+                {g.doc && (
+                  <a class="link-arrow" href={`/docs/${g.doc}`}>
+                    Record
+                  </a>
+                )}
+              </div>
+              <Stamp tier={stateTier[g.state]} label={stateLabel[g.state]} />
+            </li>
+          ))
+        }
+      </ol>
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="hist-h">
+    <div class="wrap">
+      <SectionHead id="hist-h" title="Release records" />
+      {
+        releases.map((r) => (
+          <article class="record">
+            <header>
+              <h3 class="spine num">{r.version}</h3>
+              <p class="muted">
+                {r.channel} · {r.date}
+              </p>
+            </header>
+            <dl class="fields">
+              <div>
+                <dt>Download</dt>
+                <dd>
+                  {r.download ? (
+                    <a href={r.download.url}>Download {r.version}</a>
+                  ) : (
+                    <span class="muted">Not available</span>
+                  )}
+                </dd>
+              </div>
+              <div>
+                <dt>SHA-256</dt>
+                <dd>{r.download ? <code>{r.download.sha256}</code> : <span class="muted">Published with a release</span>}</dd>
+              </div>
+              <div>
+                <dt>Signature</dt>
+                <dd>{r.download ? (r.download.signed ? "Signed" : "Unsigned") : <span class="muted">Not signed; SmartScreen untested</span>}</dd>
+              </div>
+              <div>
+                <dt>Engine</dt>
+                <dd>{r.engine === "lgpl" ? "LGPL libmpv/FFmpeg, built from source" : <span class="muted">GPL development build (not redistributable)</span>}</dd>
+              </div>
+              <div>
+                <dt>Platforms</dt>
+                <dd>
+                  <ul class="plat">
+                    {r.platforms.map((p) => (
+                      <li>
+                        <span>{p.name}</span>
+                        <span class="muted">{p.state}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </dd>
+              </div>
+              <div>
+                <dt>Highlights</dt>
+                <dd>
+                  <ul class="notes">
+                    {r.notes.map((n) => (
+                      <li>{n}</li>
+                    ))}
+                  </ul>
+                </dd>
+              </div>
+            </dl>
+          </article>
+        ))
+      }
+      <p class="muted small">Full notes are in the repository's changelog, which will be published with the source.</p>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .board {
+    display: grid;
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+    gap: var(--s8);
+    align-items: start;
+  }
+  .now {
+    display: grid;
+    gap: var(--s4);
+  }
+  .ver {
+    font-size: clamp(3.5rem, 2rem + 6vw, 6rem);
+  }
+  .state {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--s3);
+    font-weight: 600;
+  }
+  .body {
+    color: var(--ink-2);
+    max-width: 62ch;
+  }
+  .dl {
+    display: grid;
+    gap: var(--s3);
+    padding: var(--s6);
+    border: 1.5px dashed var(--seam-strong);
+    border-radius: 10px;
+    color: var(--ink-2);
+  }
+  .dl-empty {
+    font-size: 2.2rem;
+    color: var(--ink);
+  }
+  .small {
+    font-size: 0.88rem;
+  }
+  .gates {
+    list-style: none;
+    border-top: 1.5px solid var(--ink);
+  }
+  .gates li {
+    display: grid;
+    grid-template-columns: 3rem minmax(0, 1fr) 8rem;
+    gap: var(--s5);
+    align-items: baseline;
+    padding-block: var(--s5);
+    border-bottom: 1px solid var(--seam);
+  }
+  .gates li > :global(:last-child) {
+    justify-self: end;
+  }
+  .gates div {
+    display: grid;
+    gap: var(--s2);
+  }
+  .gates h3 {
+    font-size: 1.6rem;
+  }
+  .gates p {
+    color: var(--ink-2);
+    max-width: 72ch;
+  }
+  .gn {
+    color: var(--ink-3);
+  }
+  .record {
+    display: grid;
+    grid-template-columns: minmax(0, 3fr) minmax(0, 8fr);
+    gap: var(--s7);
+    padding-block: var(--s5);
+    border-top: 1.5px solid var(--ink);
+  }
+  .record h3 {
+    font-size: 2.2rem;
+  }
+  .fields {
+    margin: 0;
+    display: grid;
+  }
+  .fields > div {
+    display: grid;
+    grid-template-columns: 9rem minmax(0, 1fr);
+    gap: var(--s4);
+    padding-block: var(--s3);
+    border-bottom: 1px solid var(--seam);
+  }
+  dt {
+    font-stretch: 88%;
+    font-weight: 650;
+    font-size: 0.72rem;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    padding-top: 0.3em;
+  }
+  dd {
+    margin: 0;
+  }
+  .plat {
+    list-style: none;
+    display: grid;
+    gap: var(--s1);
+  }
+  .plat li {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: var(--s3);
+  }
+  .notes {
+    padding-left: 1.1em;
+    display: grid;
+    gap: var(--s1);
+    color: var(--ink-2);
+  }
+  @media (max-width: 900px) {
+    .board,
+    .record {
+      grid-template-columns: 1fr;
+      gap: var(--s6);
+    }
+    .gates li {
+      grid-template-columns: 2.2rem minmax(0, 1fr);
+    }
+    .gates li > :global(:last-child) {
+      grid-column: 2;
+      justify-self: start;
+    }
+    .fields > div {
+      grid-template-columns: 1fr;
+      gap: var(--s1);
+    }
+  }
+</style>

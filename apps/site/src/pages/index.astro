@@ -1,0 +1,375 @@
+---
+import Base from "../layouts/Base.astro";
+import Wordmark from "../components/Wordmark.astro";
+import Plate from "../components/Plate.astro";
+import SectionHead from "../components/SectionHead.astro";
+import Projector, { type Chapter } from "../components/Projector.astro";
+import TierLedger from "../components/TierLedger.astro";
+import Stamp from "../components/Stamp.astro";
+import { SUMMARY } from "../data/compat";
+import { VERSION } from "../data/facts";
+
+const chapters: Chapter[] = [
+  {
+    id: "continue",
+    label: "Continue",
+    shot: "homeDay",
+    title: "Back where you were",
+    text: "Home opens on the title you were watching, with the time left and one Resume button. Progress survives restarts, and moved or renamed files keep it.",
+    status: "verified",
+    statusNote: "Resume after restart exercised in the installed app.",
+  },
+  {
+    id: "library",
+    label: "Library",
+    shot: "grid",
+    title: "A catalogue of your folders",
+    text: "Add folders and NOVA scans them in the background: thumbnails, durations, a spec line and a catalogue number for every title.",
+    status: "verified",
+    statusNote: "Thumbnails and spec lines verified; search typing not re-run for RC1.",
+  },
+  {
+    id: "playing",
+    label: "Playing",
+    shot: "playing",
+    title: "The picture first",
+    text: "One quiet deck under the film. The playhead is the beam from the N, and subtitles rise above the controls when they appear.",
+    status: "verified",
+    statusNote: "Play, seek, volume, speed, fullscreen, frame step.",
+  },
+  {
+    id: "details",
+    label: "Details",
+    shot: "details",
+    title: "What was actually decoded",
+    text: "Container, codec, resolution, frame rate, bit depth, chroma, alpha, dynamic range and the decoder in use, hardware or software, all reported by the engine.",
+    status: "verified",
+    statusNote: "Inspected in the running app.",
+  },
+  {
+    id: "queue",
+    label: "Queue",
+    shot: "queue",
+    title: "Line up the evening",
+    text: "Queue several files, reorder them, repeat or shuffle, and save the queue as a playlist. The picture re-centres beside the open panel.",
+    status: "verified",
+    statusNote: "Reorder, repeat, shuffle, save, rename.",
+  },
+  {
+    id: "error",
+    label: "Error",
+    shot: "error",
+    title: "A reason, not a shrug",
+    text: "When a file can't be played, NOVA names it, says why it probably failed, and offers three ways forward.",
+    status: "verified",
+    statusNote: "Failed-media screen exercised for RC1.",
+  },
+];
+---
+
+<Base
+  title="NOVA"
+  description="NOVA is a preview Windows media player that plays local files, remembers where you stopped and tells you exactly what it decoded. Not yet available to download."
+>
+  <section class="hero">
+    <div class="wrap">
+      <Wordmark class="hero-mark" sweep />
+      <div class="hero-grid">
+        <div class="hero-copy">
+          <h1 class="spine">A calm, honest media player for Windows.</h1>
+          <p class="lede">
+            NOVA plays the video and audio files on your computer, remembers where you stopped, and tells you exactly what
+            it decoded, and what it can't.
+          </p>
+          <div class="actions">
+            <a class="btn" href="#projector">
+              See it play
+              <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5 3.5v9l7-4.5z" fill="currentColor"></path></svg>
+            </a>
+            <a class="btn ghost" href="/atlas">Check a format</a>
+          </div>
+          <p class="status-line">
+            <Stamp tier="preview" label="Preview" />
+            <span>{VERSION.version} · Windows · not yet downloadable</span>
+          </p>
+        </div>
+        <Plate shot="playing" no="01" eager sizes="(min-width: 1100px) 58vw, 100vw" class="hero-plate" />
+      </div>
+    </div>
+  </section>
+
+  <section class="section promises" aria-labelledby="promises-h">
+    <div class="wrap">
+      <SectionHead id="promises-h" title="What it does, and how we know" />
+      <ol class="claims">
+        <li>
+          <h3 class="spine">Plays what you open, exactly.</h3>
+          <p>
+            Exact seeking within 100 ms, position advancing in real time, no decoder drops: measured on{" "}
+            {SUMMARY.samples} synthetic samples, once in software and once with hardware decoding.
+          </p>
+          <p class="proof"><Stamp tier="verified" label="Verified in harness" /><a href="/atlas">Media Atlas</a></p>
+        </li>
+        <li>
+          <h3 class="spine">Picks up where you stopped.</h3>
+          <p>Progress is saved on your computer and survives restarts. Moved or renamed files keep it. Clips under a minute start from the beginning, on purpose.</p>
+          <p class="proof"><Stamp tier="verified" label="Verified" /><a href="/product#continuity">Continuity</a></p>
+        </li>
+        <li>
+          <h3 class="spine">Says what it decoded.</h3>
+          <p>One key shows codec, bit depth, chroma, HDR and whether the GPU or the processor is doing the work. Useful when footage looks wrong.</p>
+          <p class="proof"><Stamp tier="verified" label="Verified" /><a href="/product#insight">Insight</a></p>
+        </li>
+        <li>
+          <h3 class="spine">Explains instead of failing.</h3>
+          <p>Broken files get a reason and next steps. Editing projects and camera RAW are recognised and explained. If one stream can't be decoded, the rest keeps playing.</p>
+          <p class="proof"><Stamp tier="verified" label="Verified" /><a href="/product#insight">How it explains</a></p>
+        </li>
+        <li>
+          <h3 class="spine">Keeps to your computer.</h3>
+          <p>No account. No telemetry or analytics code. The engine runs with web fetching, scripts and outside config files switched off. We have not yet captured network traffic to prove the absence of connections.</p>
+          <p class="proof"><Stamp tier="partial" label="Checked in code" /><a href="/trust#privacy">Privacy</a></p>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="section room" id="projector" aria-labelledby="projector-h">
+    <div class="wrap">
+      <SectionHead id="projector-h" title="See it play" />
+      <p class="room-lede">
+        Six chapters from the real app, captured from NOVA 0.1.0 playing open films. Use the timeline, or the arrow keys
+        once it has focus.
+      </p>
+      <Projector chapters={chapters} label="Chapters of the NOVA app" />
+      <p class="more"><a class="link-arrow" href="/product">Every feature, with its test status</a></p>
+    </div>
+  </section>
+
+  <section class="section atlas-teaser" aria-labelledby="atlas-h">
+    <div class="wrap">
+      <SectionHead id="atlas-h" title="Check a format before you trust it" />
+      <div class="atlas-grid">
+        <div class="atlas-copy">
+          <p class="lede">
+            The Media Atlas lists every format NOVA has been tested with, and every one it hasn't, with the evidence behind
+            each tier.
+          </p>
+          <form class="quick" action="/atlas" method="get" role="search">
+            <label for="quick-q">Search the Atlas</label>
+            <div>
+              <input id="quick-q" name="q" type="search" placeholder="ProRes, .mxf, HDR10…" autocomplete="off" />
+              <button class="btn" type="submit">Search</button>
+            </div>
+          </form>
+          <p class="caveat">
+            A file being recognised is not a promise that every codec or profile inside it will play. MXF, MOV and MKV are
+            containers; the codec inside decides.
+          </p>
+        </div>
+        <TierLedger linked />
+      </div>
+    </div>
+  </section>
+
+  <section class="section close sunk" aria-labelledby="close-h">
+    <div class="wrap close-grid">
+      <h2 id="close-h" class="spine-xl">Preview. Not yet downloadable.</h2>
+      <div class="close-copy">
+        <p>
+          NOVA {VERSION.version} has been built and tested on one Windows 11 machine. Licensing is decided: NOVA is MIT
+          OR Apache-2.0, and releases will bundle an LGPL playback engine built from source. That engine build doesn't
+          exist yet, and the current installer bundles a GPL development build, so it isn't published.
+        </p>
+        <p>Until then this site shows the real app, the real test results and what is still open.</p>
+        <div class="actions">
+          <a class="btn" href="/release">Release status</a>
+          <a class="btn ghost" href="/trust">How NOVA is built and tested</a>
+        </div>
+      </div>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .hero {
+    padding-block: var(--s6) var(--s9);
+  }
+  .hero :global(.hero-mark) {
+    width: 100%;
+    color: var(--ink);
+  }
+  .hero-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    gap: var(--s7);
+    align-items: start;
+    margin-top: clamp(var(--s6), 5vw, var(--s8));
+  }
+  .hero-copy {
+    display: grid;
+    gap: var(--s5);
+    padding-top: var(--s2);
+  }
+  .hero-copy h1 {
+    font-size: clamp(2.3rem, 1.4rem + 2.6vw, 3.6rem);
+    max-width: 14ch;
+  }
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s3);
+    margin-top: var(--s2);
+  }
+  .status-line {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--s3);
+    font-size: 0.9rem;
+    color: var(--ink-3);
+    padding-top: var(--s4);
+    border-top: 1px solid var(--seam);
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .hero-copy > *,
+    .hero :global(.hero-plate) {
+      animation: arrive 900ms var(--ease-out) both;
+    }
+    .hero-copy > :nth-child(2) {
+      animation-delay: 60ms;
+    }
+    .hero-copy > :nth-child(n + 3) {
+      animation-delay: 120ms;
+    }
+    .hero :global(.hero-plate) {
+      animation-delay: 260ms;
+      animation-duration: 1100ms;
+    }
+  }
+  @keyframes arrive {
+    from {
+      opacity: 0;
+      transform: translateY(14px);
+    }
+  }
+
+  .claims {
+    list-style: none;
+    border-top: 1px solid var(--seam);
+  }
+  .claims li {
+    display: grid;
+    grid-template-columns: minmax(0, 4fr) minmax(0, 5fr) minmax(0, 3fr);
+    gap: var(--s3) var(--s6);
+    align-items: baseline;
+    padding-block: var(--s5);
+    border-bottom: 1px solid var(--seam);
+  }
+  .claims h3 {
+    font-size: clamp(1.6rem, 1.2rem + 1.2vw, 2.2rem);
+  }
+  .claims p {
+    color: var(--ink-2);
+    max-width: 60ch;
+  }
+  .proof {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--s2) var(--s3);
+    justify-self: end;
+    font-size: 0.92rem;
+    font-weight: 600;
+  }
+
+  .room-lede {
+    color: var(--room-ink-2);
+    max-width: 62ch;
+    margin: calc(-1 * var(--s5)) 0 var(--s7);
+  }
+  .more {
+    margin-top: var(--s6);
+    text-align: right;
+  }
+
+  .atlas-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    gap: var(--s7);
+    align-items: start;
+  }
+  .atlas-copy {
+    display: grid;
+    gap: var(--s5);
+  }
+  .quick {
+    display: grid;
+    gap: var(--s2);
+  }
+  .quick label {
+    font-stretch: 88%;
+    font-weight: 650;
+    font-size: 0.72rem;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+  .quick div {
+    display: flex;
+    gap: var(--s2);
+  }
+  .quick input {
+    flex: 1;
+    min-width: 0;
+    min-height: 48px;
+    padding: 0 var(--s4);
+    font-size: 1.05rem;
+    background: var(--paper-raised);
+    border: 1.5px solid var(--seam-strong);
+    border-radius: 8px;
+  }
+  .quick input:focus-visible {
+    outline: none;
+    border-color: var(--focus);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--ember) 30%, transparent);
+  }
+  .quick .btn {
+    min-height: 48px;
+  }
+  .caveat {
+    font-size: 0.92rem;
+    color: var(--ink-3);
+    max-width: 52ch;
+  }
+
+  .close-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 6fr) minmax(0, 5fr);
+    gap: var(--s7);
+    align-items: end;
+  }
+  .close h2 {
+    font-size: clamp(3rem, 1.6rem + 6vw, 6rem);
+  }
+  .close-copy {
+    display: grid;
+    gap: var(--s4);
+    color: var(--ink-2);
+    max-width: 56ch;
+  }
+
+  @media (max-width: 1000px) {
+    .hero-grid,
+    .atlas-grid,
+    .close-grid {
+      grid-template-columns: 1fr;
+    }
+    .claims li {
+      grid-template-columns: 1fr;
+    }
+    .proof {
+      justify-self: start;
+    }
+  }
+</style>

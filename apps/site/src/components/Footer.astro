@@ -1,0 +1,92 @@
+---
+import Wordmark from "./Wordmark.astro";
+import { NAV } from "../data/nav";
+import { VERSION } from "../data/facts";
+---
+
+<footer class="site-footer room">
+  <div class="wrap">
+    <div class="top">
+      <a class="mark" href="/" aria-label="NOVA, home"><Wordmark /></a>
+      <p class="line spine">Light passes through the frame. That is what a player does.</p>
+    </div>
+    <div class="cols">
+      <nav aria-label="Footer">
+        <h2 class="catalog">Site</h2>
+        <ul>
+          <li><a href="/">Home</a></li>
+          {NAV.map((n) => <li><a href={n.href}>{n.label}</a></li>)}
+        </ul>
+      </nav>
+      <div>
+        <h2 class="catalog">Status</h2>
+        <p>
+          {VERSION.version}, {VERSION.channel.toLowerCase()}. Not distributed. NOVA is MIT OR Apache-2.0 (<a
+            href="/docs/adr-0003">ADR 0003</a>); downloads open once the LGPL engine build and the licence review are done.
+        </p>
+      </div>
+      <div>
+        <h2 class="catalog">Credits</h2>
+        <p>
+          Product images show Blender Foundation open films (CC BY 3.0) playing in NOVA. Typeface: Archivo (SIL OFL 1.1).
+          <a href="/trust#credits">Full credits</a>
+        </p>
+      </div>
+    </div>
+    <p class="fine">
+      NOVA by SNOWBROS. Not affiliated with VideoLAN, the mpv project, MPC-HC or the Blender Foundation. No analytics,
+      trackers or third-party requests on this site.
+    </p>
+  </div>
+</footer>
+
+<style>
+  .site-footer {
+    padding-block: var(--s9) var(--s6);
+  }
+  .top {
+    display: grid;
+    gap: var(--s5);
+    padding-bottom: var(--s7);
+    border-bottom: 1.5px solid var(--room-ink);
+  }
+  .mark {
+    color: var(--room-ink);
+    width: min(100%, 520px);
+  }
+  .mark :global(.wordmark) {
+    width: 100%;
+  }
+  .line {
+    font-size: clamp(1.5rem, 1rem + 2vw, 2.4rem);
+    color: var(--room-ink-2);
+    max-width: 24ch;
+  }
+  .cols {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+    gap: var(--s6) var(--s7);
+    padding-block: var(--s7);
+    font-size: 0.95rem;
+    color: var(--room-ink-2);
+  }
+  .cols h2 {
+    color: var(--room-ink-3);
+    margin-bottom: var(--s3);
+  }
+  .cols ul {
+    list-style: none;
+    display: grid;
+    gap: var(--s2);
+  }
+  .cols a {
+    color: var(--room-ink);
+  }
+  .fine {
+    padding-top: var(--s5);
+    border-top: 1px solid var(--room-seam);
+    font-size: 0.82rem;
+    color: var(--room-ink-3);
+    max-width: 90ch;
+  }
+</style>

@@ -1,0 +1,225 @@
+---
+import Base from "../layouts/Base.astro";
+import SectionHead from "../components/SectionHead.astro";
+import Stamp from "../components/Stamp.astro";
+import { COMPARE_CHECKED, COMPARE_ROWS, COMPARE_SOURCES, PLAYERS } from "../data/facts";
+
+const novaStamp = {
+  verified: { tier: "verified", label: "Verified" },
+  partial: { tier: "partial", label: "Partial" },
+  planned: { tier: "planned", label: "Planned" },
+  decided: { tier: "verified", label: "Decided" },
+  none: { tier: "none", label: "Not yet" },
+} as const;
+---
+
+<Base
+  title="Compare"
+  description="NOVA beside VLC, mpv and MPC-HC on sourced, scoped criteria, including where NOVA is behind. Facts about other players are linked to their official pages."
+>
+  <section class="section">
+    <div class="wrap">
+      <SectionHead title="NOVA beside the players you know" as="h1" />
+      <div class="intro">
+        <p class="lede">
+          VLC, mpv and MPC-HC are mature, widely used players; NOVA is a preview. This table compares what can be stated
+          from each project's own pages, and nothing it can't.
+        </p>
+        <p class="rules">
+          Facts about other players were taken from their official pages on {COMPARE_CHECKED} and are numbered to their
+          source. Cells we did not check say so. NOVA's cells carry their test status. NOVA is not affiliated with any of
+          these projects, and it is built on mpv's library.
+        </p>
+      </div>
+
+      <div class="table-scroll compare" tabindex="0" role="region" aria-label="Comparison table (scrolls sideways)">
+        <table>
+          <caption class="visually-hidden">NOVA compared with VLC, mpv and MPC-HC</caption>
+          <thead>
+            <tr>
+              <th scope="col"><span class="visually-hidden">Criterion</span></th>
+              {PLAYERS.map((p) => <th scope="col" class:list={{ nova: p === "NOVA" }}>{p}</th>)}
+            </tr>
+          </thead>
+          <tbody>
+            {
+              COMPARE_ROWS.map((r) => (
+                <tr>
+                  <th scope="row">{r.label}</th>
+                  {r.cells.map((c, i) => (
+                    <td class:list={{ nova: i === 0, unchecked: c.src === undefined && i > 0 }}>
+                      <span>{c.text}</span>
+                      {i === 0 && c.status && (
+                        <span class="st">
+                          <Stamp {...novaStamp[c.status]} />
+                        </span>
+                      )}
+                      {c.src !== undefined && (
+                        <a class="ref" href={`#src-${c.src + 1}`} aria-label={`Source ${c.src + 1}`}>
+                          [{c.src + 1}]
+                        </a>
+                      )}
+                    </td>
+                  ))}
+                </tr>
+              ))
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <ol class="sources">
+        {
+          COMPARE_SOURCES.map((s, i) => (
+            <li id={`src-${i + 1}`}>
+              <a href={s.url} rel="noopener noreferrer">{s.label}</a>
+            </li>
+          ))
+        }
+      </ol>
+    </div>
+  </section>
+
+  <section class="section sunk" aria-labelledby="choose-h">
+    <div class="wrap">
+      <SectionHead id="choose-h" title="Choose something else if…" />
+      <div class="choose">
+        <div>
+          <h3 class="spine">You need it today.</h3>
+          <p>NOVA can't be downloaded yet. VLC, mpv and MPC-HC are released and maintained.</p>
+        </div>
+        <div>
+          <h3 class="spine">You're not on Windows.</h3>
+          <p>NOVA is made for Windows only, by design. VLC runs on nearly everything; mpv runs on Linux, Windows and macOS.</p>
+        </div>
+        <div>
+          <h3 class="spine">You stream from the network.</h3>
+          <p>NOVA plays local files. The engine's web fetching is switched off, and network sources are not part of this version.</p>
+        </div>
+        <div>
+          <h3 class="spine">You want scripts and config files.</h3>
+          <p>NOVA runs its engine with user scripts and outside config files switched off. mpv itself is built for exactly that kind of control.</p>
+        </div>
+      </div>
+      <p class="why">
+        Where NOVA aims to be different: a calm library and player for local files that remembers where you were, says
+        exactly what the engine decoded, and explains files it can't play, with every claim on this site tied to a test.
+        <a class="link-arrow" href="/product">See the evidence</a>
+      </p>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .intro {
+    display: grid;
+    grid-template-columns: minmax(0, 6fr) minmax(0, 5fr);
+    gap: var(--s7);
+    margin-bottom: var(--s7);
+    align-items: end;
+  }
+  .rules {
+    color: var(--ink-3);
+    font-size: 0.92rem;
+  }
+  .compare table {
+    min-width: 900px;
+    table-layout: fixed;
+  }
+  .compare thead th {
+    font-stretch: 72%;
+    font-weight: 700;
+    font-size: 1.6rem;
+    letter-spacing: -0.01em;
+    text-transform: none;
+    color: var(--ink);
+    border-bottom: 1.5px solid var(--ink);
+    padding-bottom: var(--s3);
+  }
+  .compare thead th:first-child {
+    width: 14%;
+  }
+  .compare tbody th {
+    font-stretch: 88%;
+    font-size: 0.72rem;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    padding-top: var(--s4);
+  }
+  .compare td {
+    padding-block: var(--s4);
+    color: var(--ink-2);
+    line-height: 1.45;
+  }
+  .compare td.nova {
+    background: var(--paper-raised);
+    color: var(--ink);
+    padding-inline: var(--s4);
+    box-shadow: inset 2px 0 0 var(--ink);
+  }
+  .compare thead th.nova {
+    padding-inline: var(--s4);
+  }
+  .compare td.unchecked span {
+    color: var(--ink-3);
+    font-style: italic;
+  }
+  .st {
+    display: block;
+    margin-top: var(--s2);
+  }
+  .ref {
+    margin-left: 0.3em;
+    font-size: 0.8em;
+    font-variant-numeric: tabular-nums;
+    text-decoration: none;
+    color: var(--ink-3);
+    vertical-align: 0.15em;
+  }
+  .ref:hover {
+    color: var(--ink);
+  }
+  .sources {
+    margin-top: var(--s5);
+    padding-left: 1.6em;
+    display: grid;
+    gap: var(--s1);
+    font-size: 0.88rem;
+    color: var(--ink-3);
+  }
+  .sources li:target {
+    color: var(--ink);
+    font-weight: 600;
+  }
+  .choose {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0 var(--s8);
+    border-top: 1px solid var(--seam);
+  }
+  .choose > div {
+    display: grid;
+    gap: var(--s2);
+    padding-block: var(--s5);
+    border-bottom: 1px solid var(--seam);
+  }
+  .choose h3 {
+    font-size: 1.8rem;
+  }
+  .choose p {
+    color: var(--ink-2);
+    max-width: 52ch;
+  }
+  .why {
+    margin-top: var(--s7);
+    max-width: 70ch;
+    font-size: 1.1rem;
+  }
+  @media (max-width: 860px) {
+    .intro,
+    .choose {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

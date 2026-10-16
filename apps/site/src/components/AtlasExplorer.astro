@@ -1,0 +1,594 @@
+---
+/**
+ * The Media Atlas index. Server-rendered in full (it works without script as a
+ * complete, expandable list); the script adds search, filters and URL state.
+ */
+import { AREAS, ATLAS, CAPABILITIES, CONTAINERS, TIERS, type AtlasEntry, type PassResult } from "../data/compat";
+import Stamp from "./Stamp.astro";
+
+const tierLabel = Object.fromEntries(TIERS.map((t) => [t.id, t.label]));
+const count = (t: string) => ATLAS.filter((e) => e.tier === t).length;
+const usedAreas = AREAS.filter((a) => ATLAS.some((e) => e.area === a));
+
+const EXPECT: Record<string, string> = {
+  play: "play",
+  "video-decoder-missing": "play sound and explain the missing picture",
+  "no-hang": "fail without hanging",
+  "load-failed": "fail with a clear error",
+  "editing-project": "be recognised as an editing project",
+  "requires-external": "be recognised as needing a vendor decoder",
+};
+
+function passLine(p: PassResult, e: AtlasEntry, hw: boolean): string {
+  if (!p.ok) return "Did not meet its expectation.";
+  const parts = [`Met: expected to ${EXPECT[e.sample!.expect] ?? e.sample!.expect}, result “${p.result}”`];
+  if (p.openToPlayMs != null && p.result === "playing") parts.push(`opened in ${p.openToPlayMs} ms`);
+  if (p.seekErrorMs != null && p.result === "playing") parts.push(`seek error ${p.seekErrorMs} ms`);
+  if (p.drops != null && p.result === "playing") parts.push(`${p.drops} decoder drops`);
+  if (hw && !e.sample!.audioOnly && p.result === "playing")
+    parts.push(p.hwdec ? `decoded on the GPU (${p.hwdec})` : "decoded in software: no hardware decoder for this profile");
+  return parts.join(" · ");
+}
+
+const haystack = (e: AtlasEntry) =>
+  [e.name, e.spec, e.area, tierLabel[e.tier], e.extensions.join(" "), e.evidence, e.limitation ?? "", e.sample?.file ?? ""]
+    .join(" ")
+    .toLowerCase();
+---
+
+<div class="atlas" data-atlas>
+  <form class="controls" role="search" aria-label="Filter the Media Atlas" data-controls>
+    <div class="field search">
+      <label for="atlas-q">Search formats, codecs or extensions</label>
+      <div class="input">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.6" fill="none" stroke="currentColor" stroke-width="1.5"></circle><path d="m10.5 10.5 3.2 3.2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path></svg>
+        <input id="atlas-q" name="q" type="search" autocomplete="off" spellcheck="false" placeholder="ProRes, .mxf, HDR10, 4:2:2…" />
+      </div>
+    </div>
+
+    <fieldset class="field tiers">
+      <legend>Tier</legend>
+      <div class="chips">
+        <label class="chip"><input type="radio" name="tier" value="" checked /><span>All <span class="n">{ATLAS.length}</span></span></label>
+        {
+          TIERS.map((t) => (
+            <label class="chip">
+              <input type="radio" name="tier" value={t.id} />
+              <span>
+                {t.label} <span class="n">{count(t.id)}</span>
+              </span>
+            </label>
+          ))
+        }
+      </div>
+    </fieldset>
+
+    <div class="row">
+      <div class="field area-field">
+        <label for="atlas-area">Area</label>
+        <select id="atlas-area" name="area">
+          <option value="">All areas</option>
+          {usedAreas.map((a) => <option value={a}>{a}</option>)}
+        </select>
+      </div>
+      <fieldset class="field caps">
+        <legend>Shows</legend>
+        <div class="chips">
+          {
+            CAPABILITIES.map((c) => (
+              <label class="chip square">
+                <input type="checkbox" name="cap" value={c.id} />
+                <span>{c.label}</span>
+              </label>
+            ))
+          }
+        </div>
+      </fieldset>
+    </div>
+  </form>
+
+  <div class="status-row">
+    <p class="result-count" aria-live="polite" data-count>Showing all {ATLAS.length} entries</p>
+    <button type="button" class="reset" data-reset hidden>Clear filters</button>
+  </div>
+
+  <aside class="container-note" data-container-note hidden aria-live="polite">
+    <p><strong>A container, not a promise.</strong> <span data-container-text></span></p>
+  </aside>
+
+  <ol class="entries" data-entries>
+    {
+      ATLAS.map((e) => (
+        <li
+          class="entry"
+          data-entry
+          data-tier={e.tier}
+          data-area={e.area}
+          data-caps={e.caps.join(" ")}
+          data-text={haystack(e)}
+          data-ext={e.extensions.join(" ")}
+        >
+          <details>
+            <summary>
+              <span class="no catalog" aria-hidden="true">
+                {e.no}
+              </span>
+              <span class="what">
+                <span class="name spine">{e.name}</span>
+                <span class="spec">{e.spec}</span>
+              </span>
+              <span class="area catalog">{e.area}</span>
+              <span class="tier">
+                <Stamp tier={e.tier} label={tierLabel[e.tier]} />
+              </span>
+            </summary>
+            <dl class="evidence">
+              <div>
+                <dt>Evidence</dt>
+                <dd set:html={e.evidence.replace(/`([^`]+)`/g, "<code>$1</code>")} />
+              </div>
+              {e.limitation && (
+                <div>
+                  <dt>Limitation</dt>
+                  <dd>{e.limitation}</dd>
+                </div>
+              )}
+              {e.sample && (
+                <>
+                  <div>
+                    <dt>Software pass</dt>
+                    <dd>{passLine(e.sample.software, e, false)}</dd>
+                  </div>
+                  <div>
+                    <dt>Hardware pass</dt>
+                    <dd>{passLine(e.sample.hardware, e, true)}</dd>
+                  </div>
+                </>
+              )}
+              {e.decoders && (
+                <div>
+                  <dt>Engine audit</dt>
+                  <dd>
+                    {e.decoders.map((d) => (
+                      <>
+                        <code>{d.name}</code> {d.present ? "decoder present" : "not found"}{" "}
+                      </>
+                    ))}
+                  </dd>
+                </div>
+              )}
+              <div>
+                <dt>Extensions</dt>
+                <dd>{e.extensions.join("  ")}</dd>
+              </div>
+              <div>
+                <dt>Source</dt>
+                <dd>
+                  <a href={`/docs/compatibility#${e.source}`}>Media compatibility, {tierLabel[e.tier]}</a>
+                  {e.sample && (
+                    <>
+                      {" · "}
+                      <a href="/docs/compat-results-software">software results</a>
+                      {" · "}
+                      <a href="/docs/compat-results-hardware">hardware results</a>
+                    </>
+                  )}
+                </dd>
+              </div>
+            </dl>
+          </details>
+        </li>
+      ))
+    }
+  </ol>
+
+  <div class="empty" data-empty hidden>
+    <p class="spine">Nothing in the Atlas matches.</p>
+    <p>
+      Not listed is not the same as unsupported. The engine contains hundreds of decoders and only tested or documented
+      formats are catalogued here. Try a codec name instead of a brand, or <button type="button" class="inline" data-reset-inline>clear the filters</button>.
+    </p>
+  </div>
+</div>
+
+<script define:vars={{ containers: CONTAINERS }} is:inline>
+  window.__NOVA_CONTAINERS__ = containers;
+</script>
+
+<script>
+  const root = document.querySelector<HTMLElement>("[data-atlas]")!;
+  const form = root.querySelector<HTMLFormElement>("[data-controls]")!;
+  const q = form.querySelector<HTMLInputElement>("input[name=q]")!;
+  const area = form.querySelector<HTMLSelectElement>("select[name=area]")!;
+  const entries = [...root.querySelectorAll<HTMLElement>("[data-entry]")];
+  const countEl = root.querySelector<HTMLElement>("[data-count]")!;
+  const empty = root.querySelector<HTMLElement>("[data-empty]")!;
+  const reset = root.querySelector<HTMLButtonElement>("[data-reset]")!;
+  const note = root.querySelector<HTMLElement>("[data-container-note]")!;
+  const noteText = root.querySelector<HTMLElement>("[data-container-text]")!;
+  const containers = (window as unknown as { __NOVA_CONTAINERS__: Record<string, string> }).__NOVA_CONTAINERS__;
+  const total = entries.length;
+
+  const state = () => {
+    const fd = new FormData(form);
+    return {
+      q: String(fd.get("q") ?? "").trim().toLowerCase(),
+      tier: String(fd.get("tier") ?? ""),
+      area: String(fd.get("area") ?? ""),
+      caps: fd.getAll("cap").map(String),
+    };
+  };
+
+  const apply = (push = true) => {
+    const s = state();
+    const tokens = s.q.split(/\s+/).filter(Boolean);
+    let shown = 0;
+    for (const el of entries) {
+      const text = el.dataset.text!;
+      const caps = el.dataset.caps!.split(" ");
+      const ok =
+        (!s.tier || el.dataset.tier === s.tier) &&
+        (!s.area || el.dataset.area === s.area) &&
+        s.caps.every((c) => caps.includes(c)) &&
+        tokens.every((t) => text.includes(t) || text.includes(t.replace(/^\./, "")));
+      el.hidden = !ok;
+      if (ok) shown++;
+    }
+    const filtered = !!(s.q || s.tier || s.area || s.caps.length);
+    countEl.textContent = filtered ? `Showing ${shown} of ${total} entries` : `Showing all ${total} entries`;
+    empty.hidden = shown > 0;
+    reset.hidden = !filtered;
+
+    const ext = tokens.map((t) => (t.startsWith(".") ? t : `.${t}`)).find((t) => containers[t]);
+    note.hidden = !ext;
+    if (ext) noteText.textContent = containers[ext];
+
+    if (push) {
+      const params = new URLSearchParams();
+      if (s.q) params.set("q", s.q);
+      if (s.tier) params.set("tier", s.tier);
+      if (s.area) params.set("area", s.area);
+      for (const c of s.caps) params.append("cap", c);
+      const qs = params.toString();
+      history.replaceState(null, "", qs ? `?${qs}` : location.pathname);
+    }
+  };
+
+  const clear = () => {
+    form.reset();
+    apply();
+    q.focus();
+  };
+
+  // Restore from the URL so filtered views can be shared.
+  const params = new URLSearchParams(location.search);
+  q.value = params.get("q") ?? "";
+  const tier = params.get("tier");
+  const tierInput = tier ? form.querySelector<HTMLInputElement>(`input[name=tier][value="${CSS.escape(tier)}"]`) : null;
+  if (tierInput) tierInput.checked = true;
+  area.value = params.get("area") ?? "";
+  for (const c of params.getAll("cap")) {
+    const box = form.querySelector<HTMLInputElement>(`input[name=cap][value="${CSS.escape(c)}"]`);
+    if (box) box.checked = true;
+  }
+  apply(false);
+
+  form.addEventListener("input", () => apply());
+  form.addEventListener("change", () => apply());
+  form.addEventListener("submit", (e) => e.preventDefault());
+  reset.addEventListener("click", clear);
+  root.querySelector("[data-reset-inline]")!.addEventListener("click", clear);
+</script>
+
+<style>
+  .controls {
+    display: grid;
+    gap: var(--s5);
+    padding: var(--s5);
+    background: var(--paper-raised);
+    border: 1px solid var(--seam);
+    border-radius: 10px;
+  }
+  .field {
+    display: grid;
+    gap: var(--s2);
+    margin: 0;
+    padding: 0;
+    border: 0;
+    min-width: 0;
+  }
+  label,
+  legend {
+    font-stretch: 88%;
+    font-weight: 650;
+    font-size: 0.72rem;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    padding: 0;
+  }
+  legend {
+    margin-bottom: var(--s2);
+  }
+  .input {
+    position: relative;
+  }
+  .input svg {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    width: 18px;
+    height: 18px;
+    transform: translateY(-50%);
+    color: var(--ink-3);
+    pointer-events: none;
+  }
+  input[type="search"] {
+    width: 100%;
+    min-height: 52px;
+    padding: 0 var(--s4) 0 44px;
+    font-size: 1.1rem;
+    background: var(--paper);
+    border: 1.5px solid var(--seam-strong);
+    border-radius: 8px;
+    transition: border-color 160ms ease;
+  }
+  input[type="search"]::placeholder {
+    color: var(--ink-3);
+  }
+  input[type="search"]:hover {
+    border-color: var(--ink-3);
+  }
+  input[type="search"]:focus-visible {
+    outline: none;
+    border-color: var(--focus);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--ember) 30%, transparent);
+  }
+  .row {
+    display: grid;
+    grid-template-columns: minmax(180px, 260px) 1fr;
+    gap: var(--s5);
+  }
+  select {
+    min-height: 44px;
+    padding: 0 var(--s6) 0 var(--s3);
+    border: 1.5px solid var(--seam-strong);
+    border-radius: 8px;
+    background: var(--paper)
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='m4 6 4 4 4-4' fill='none' stroke='%2364635c' stroke-width='1.6'/%3E%3C/svg%3E")
+      right 10px center / 14px no-repeat;
+    appearance: none;
+    font: inherit;
+    color: var(--ink);
+  }
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s2);
+  }
+  .chip {
+    position: relative;
+    text-transform: none;
+    letter-spacing: 0;
+    font-stretch: 100%;
+    font-size: 0.92rem;
+    font-weight: 560;
+    color: var(--ink-2);
+  }
+  .chip input {
+    position: absolute;
+    opacity: 0;
+    inset: 0;
+    margin: 0;
+    cursor: pointer;
+  }
+  .chip > span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45em;
+    min-height: 40px;
+    padding: 0 var(--s4);
+    border: 1.5px solid var(--seam-strong);
+    border-radius: 4px;
+    transition:
+      background-color 140ms ease,
+      border-color 140ms ease,
+      color 140ms ease;
+  }
+  .chip.square > span {
+    border-radius: 6px;
+  }
+  .chip:hover > span {
+    border-color: var(--ink-3);
+    color: var(--ink);
+  }
+  .chip input:checked + span {
+    background: var(--ink);
+    border-color: var(--ink);
+    color: var(--paper);
+  }
+  .chip input:focus-visible + span {
+    outline: 3px solid var(--focus);
+    outline-offset: 2px;
+  }
+  .n {
+    font-variant-numeric: tabular-nums;
+    font-size: 0.8em;
+    opacity: 0.75;
+  }
+
+  .status-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--s4);
+    margin-block: var(--s6) var(--s3);
+    min-height: 40px;
+  }
+  .result-count {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .reset,
+  .inline {
+    background: none;
+    border: 0;
+    padding: var(--s2) 0;
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+    text-decoration-color: var(--seam-strong);
+    cursor: pointer;
+  }
+  .inline {
+    padding: 0;
+  }
+
+  .container-note {
+    display: grid;
+    gap: var(--s1);
+    padding: var(--s4) var(--s5);
+    margin-bottom: var(--s4);
+    background: var(--paper-sunk);
+    border-radius: 8px;
+    max-width: 80ch;
+  }
+  .container-note[hidden] {
+    display: none;
+  }
+
+  .entries {
+    list-style: none;
+    border-top: 1.5px solid var(--ink);
+  }
+  .entry {
+    border-bottom: 1px solid var(--seam);
+  }
+  .entry[hidden] {
+    display: none;
+  }
+  summary {
+    display: grid;
+    grid-template-columns: 3.2rem minmax(0, 1fr) 9rem 10.5rem;
+    gap: var(--s4);
+    align-items: baseline;
+    padding: var(--s4) var(--s2);
+    cursor: pointer;
+    list-style: none;
+    border-radius: 4px;
+    transition: background-color 140ms ease;
+  }
+  summary::-webkit-details-marker {
+    display: none;
+  }
+  summary:hover {
+    background: var(--hover);
+  }
+  summary:focus-visible {
+    outline-offset: -3px;
+  }
+  .no {
+    color: var(--ink-3);
+    position: relative;
+  }
+  /* The open entry carries the beam: it is the one being read now. */
+  details[open] .no::before {
+    content: "";
+    position: absolute;
+    left: -14px;
+    top: -0.1em;
+    width: 6px;
+    height: 1.25em;
+    background: var(--ember);
+    transform: skewX(var(--beam-skew));
+  }
+  .what {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+  }
+  .name {
+    font-size: 1.35rem;
+  }
+  .spec {
+    font-size: 0.86rem;
+    color: var(--ink-3);
+    font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere;
+  }
+  .area {
+    color: var(--ink-3);
+  }
+  .tier {
+    justify-self: end;
+  }
+  .evidence {
+    display: grid;
+    gap: var(--s3);
+    margin: 0 0 var(--s5) calc(3.2rem + var(--s4) + var(--s2));
+    padding: var(--s4) var(--s5);
+    background: var(--paper-raised);
+    border: 1px solid var(--seam);
+    border-radius: 8px;
+    font-size: 0.95rem;
+    max-width: 92ch;
+  }
+  .evidence > div {
+    display: grid;
+    grid-template-columns: 9rem minmax(0, 1fr);
+    gap: var(--s4);
+  }
+  dt {
+    font-stretch: 88%;
+    font-weight: 650;
+    font-size: 0.72rem;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    padding-top: 0.25em;
+  }
+  dd {
+    margin: 0;
+    color: var(--ink-2);
+  }
+
+  .empty {
+    padding: var(--s8) 0;
+    display: grid;
+    gap: var(--s3);
+    max-width: 60ch;
+  }
+  .empty .spine {
+    font-size: 2rem;
+  }
+
+  @media (max-width: 760px) {
+    .row {
+      grid-template-columns: 1fr;
+    }
+    summary {
+      grid-template-columns: 2.6rem minmax(0, 1fr);
+      grid-template-areas: "no what" ". meta";
+    }
+    .area,
+    .tier {
+      grid-row: 2;
+      justify-self: start;
+    }
+    .area {
+      grid-column: 2;
+      display: none;
+    }
+    .tier {
+      grid-column: 2;
+    }
+    .evidence {
+      margin-left: 0;
+      padding: var(--s4);
+    }
+    .evidence > div {
+      grid-template-columns: 1fr;
+      gap: var(--s1);
+    }
+  }
+</style>

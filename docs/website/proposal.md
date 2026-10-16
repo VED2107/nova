@@ -68,7 +68,7 @@ The preview builds to static files. **Destination not decided** — options: loc
 2. "No network activity" — not verified by capture (not claimed).
 3. Real camera files — none tested (all camera items say "profile sample").
 4. HDR display / tone mapping — not verified by eye (Partial).
-5. macOS/Linux — not built (shown as planned, not as targets).
+5. Platforms — Windows only, by design (owner decision 2026-10-16).
 6. Competitor facts — sourced on 2026-10-16 from vendor pages; recheck before launch.
 7. Trademark clearance of "NOVA" and the mark — not done.
 8. Performance numbers — only one machine; shown, if at all, as harness measurements with the machine named.

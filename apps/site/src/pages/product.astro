@@ -1,0 +1,305 @@
+---
+import Base from "../layouts/Base.astro";
+import SectionHead from "../components/SectionHead.astro";
+import Plate from "../components/Plate.astro";
+import Stamp from "../components/Stamp.astro";
+import { FEATURES, KNOWN_ISSUES, STATUS_LABEL, VERSION } from "../data/facts";
+import type { ShotKey } from "../data/shots";
+
+interface ChapterDef {
+  id: keyof typeof FEATURES;
+  title: string;
+  lede: string;
+  body: string;
+  lead: ShotKey;
+  support: ShotKey[];
+}
+
+const chapters: ChapterDef[] = [
+  {
+    id: "playback",
+    title: "Playback",
+    lede: "The film is the subject. The interface steps back while you watch and returns when you reach for it.",
+    body: "One deck under the picture: the timeline on top, the controls you use most on the left, quieter tools on the right that light up only when they are not at their default. Everything else lives in More, with its key beside it.",
+    lead: "playing",
+    support: ["more", "release"],
+  },
+  {
+    id: "continuity",
+    title: "Continuity",
+    lede: "Stop halfway through. Come back next week. NOVA is already there.",
+    body: "Your position is saved as you watch and survives restarts and crashes. Home leads with what you were watching. A queue lines up the evening and can be kept as a playlist, and the end of a file asks what's next instead of freezing.",
+    lead: "homeDay",
+    support: ["queue", "finished"],
+  },
+  {
+    id: "library",
+    title: "Library",
+    lede: "Your folders, catalogued.",
+    body: "Point NOVA at folders and it scans them in the background: thumbnails, durations and a spec line for every title, a catalogue number, an In progress stamp. Grid for browsing, list for scanning columns.",
+    lead: "grid",
+    support: ["list"],
+  },
+  {
+    id: "insight",
+    title: "Insight",
+    lede: "When footage looks wrong, the first question is what was actually decoded.",
+    body: "Playback details answer it from the engine: codec and profile, size, frame rate, bit depth, chroma, alpha, dynamic range and whether the GPU or the processor is decoding. When something can't play, NOVA says which file, why, and what to try.",
+    lead: "details",
+    support: ["error"],
+  },
+  {
+    id: "control",
+    title: "Control",
+    lede: "Every action has a key, and every key can be yours.",
+    body: "Find any action by name or by the key it uses, rebind it, see conflicts, and reset. Daylight or Night for the library and settings; the player stays in the dark.",
+    lead: "keys",
+    support: ["settingsNight", "homeNight"],
+  },
+];
+---
+
+<Base
+  title="Product"
+  description="NOVA 0.1.0 feature by feature, each with its real test status: playback, resume, library, playback details, error handling and keyboard control."
+>
+  <section class="section intro">
+    <div class="wrap">
+      <SectionHead title="The app, chapter by chapter" as="h1" />
+      <div class="intro-grid">
+        <p class="lede">
+          Everything on this page is a capture of NOVA {VERSION.version.replace("-rc.1", "")} running on Windows 11, playing open
+          films from the Blender Foundation. Each feature carries the status it earned in the release-candidate test record.
+        </p>
+        <dl class="legend">
+          <div><dt><Stamp tier="verified" label="Verified" /></dt><dd>Exercised in the real app.</dd></div>
+          <div><dt><Stamp tier="verified" label="Verified in harness" /></dt><dd>Checked by the automated engine harness.</dd></div>
+          <div><dt><Stamp tier="partial" label="Partial" /></dt><dd>Present, with a limitation or not re-run for this build.</dd></div>
+          <div><dt><Stamp tier="deferred" label="Not built" /></dt><dd>Known gap.</dd></div>
+        </dl>
+      </div>
+      <nav class="chapters" aria-label="Chapters">
+        <ol>
+          {
+            chapters.map((c, i) => (
+              <li>
+                <a href={`#${c.id}`}>
+                  <span class="catalog">{String(i + 1).padStart(2, "0")}</span>
+                  <span class="spine">{c.title}</span>
+                </a>
+              </li>
+            ))
+          }
+        </ol>
+      </nav>
+    </div>
+  </section>
+
+  {
+    chapters.map((c, i) => (
+      <section class:list={["section chapter", { room: c.id === "playback" || c.id === "insight" }]} aria-labelledby={c.id}>
+        <div class="wrap">
+          <SectionHead id={c.id} title={c.title} />
+          <div class:list={["ch-grid", { flip: i % 2 === 1 }]}>
+            <div class="ch-copy">
+              <p class="ch-lede spine">{c.lede}</p>
+              <p class="ch-body">{c.body}</p>
+              <ul class="specs">
+                {FEATURES[c.id].map((f) => (
+                  <li>
+                    <span>{f.name}</span>
+                    <Stamp tier={f.status === "harness" ? "verified" : f.status} label={STATUS_LABEL[f.status]} />
+                    {f.note && <span class="note">{f.note}</span>}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div class="ch-plates">
+              <Plate shot={c.lead} no={`${i + 1}.1`} sizes="(min-width: 1100px) 60vw, 100vw" />
+              <div class:list={["support", { single: c.support.length === 1 }]}>
+                {c.support.map((s, j) => (
+                  <Plate shot={s} no={`${i + 1}.${j + 2}`} sizes="(min-width: 1100px) 30vw, 100vw" />
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    ))
+  }
+
+  <section class="section issues sunk" aria-labelledby="issues-h">
+    <div class="wrap">
+      <SectionHead id="issues-h" title="Known issues" />
+      <div class="issues-grid">
+        <p class="lede">What we know is not right yet in {VERSION.version}. Nothing here is hidden elsewhere.</p>
+        <ol class="issue-list">
+          {KNOWN_ISSUES.map((k) => <li>{k}</li>)}
+        </ol>
+      </div>
+      <p class="src">
+        Sources: <a href="/docs/rc1-test-record">RC1 test record</a>, <a href="/docs/compatibility">media compatibility</a>.
+      </p>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .intro {
+    padding-bottom: var(--s7);
+  }
+  .intro-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 6fr) minmax(0, 5fr);
+    gap: var(--s7);
+    align-items: start;
+  }
+  .legend {
+    margin: 0;
+    display: grid;
+    gap: var(--s2);
+    font-size: 0.92rem;
+    color: var(--ink-2);
+  }
+  .legend div {
+    display: grid;
+    grid-template-columns: 11rem 1fr;
+    gap: var(--s3);
+    align-items: baseline;
+  }
+  .legend dd {
+    margin: 0;
+  }
+  .chapters {
+    margin-top: var(--s8);
+  }
+  .chapters ol {
+    list-style: none;
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    border-top: 1.5px solid var(--ink);
+  }
+  .chapters a {
+    display: grid;
+    gap: var(--s1);
+    padding: var(--s3) var(--s3) var(--s3) 0;
+    text-decoration: none;
+    border-right: 1px solid var(--seam);
+    transition: background-color 140ms ease;
+  }
+  .chapters li:last-child a {
+    border-right: 0;
+  }
+  .chapters a:hover {
+    background: var(--hover);
+  }
+  .chapters .catalog {
+    color: var(--ink-3);
+    padding-left: var(--s3);
+  }
+  .chapters .spine {
+    font-size: 1.5rem;
+    padding-left: var(--s3);
+  }
+
+  .ch-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 4.2fr) minmax(0, 7.8fr);
+    gap: var(--s8);
+    align-items: start;
+  }
+  .ch-grid.flip {
+    grid-template-columns: minmax(0, 7.8fr) minmax(0, 4.2fr);
+  }
+  .ch-grid.flip .ch-copy {
+    order: 2;
+  }
+  .ch-copy {
+    display: grid;
+    gap: var(--s5);
+    position: sticky;
+    top: 100px;
+  }
+  .ch-lede {
+    font-size: clamp(1.6rem, 1.2rem + 1.3vw, 2.3rem);
+  }
+  .ch-body {
+    color: var(--ink-2);
+  }
+  .ch-copy .specs {
+    font-size: 0.95rem;
+  }
+  .ch-plates {
+    display: grid;
+    gap: var(--s5);
+  }
+  .support {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--s5);
+    align-items: start;
+  }
+  /* A single supporting plate sits offset, like a second print on the table. */
+  .support.single {
+    grid-template-columns: 1fr;
+    width: 72%;
+    margin-left: auto;
+  }
+
+  .issues-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 4fr) minmax(0, 7fr);
+    gap: var(--s7);
+  }
+  .issue-list {
+    display: grid;
+    gap: var(--s3);
+    padding-left: 1.4em;
+    color: var(--ink-2);
+  }
+  .issue-list li::marker {
+    font-variant-numeric: tabular-nums;
+    color: var(--ink-3);
+  }
+  .src {
+    margin-top: var(--s6);
+    font-size: 0.9rem;
+    color: var(--ink-3);
+  }
+
+  @media (max-width: 1000px) {
+    .intro-grid,
+    .ch-grid,
+    .ch-grid.flip,
+    .issues-grid {
+      grid-template-columns: 1fr;
+      gap: var(--s6);
+    }
+    .ch-grid.flip .ch-copy {
+      order: 0;
+    }
+    .ch-copy {
+      position: static;
+    }
+    .chapters ol {
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    }
+    .chapters a {
+      border-right: 0;
+      border-bottom: 1px solid var(--seam);
+    }
+  }
+  @media (max-width: 640px) {
+    .support {
+      grid-template-columns: 1fr;
+    }
+    .support.single {
+      width: 100%;
+      margin-top: 0;
+    }
+    .legend div {
+      grid-template-columns: 1fr;
+      gap: var(--s1);
+    }
+  }
+</style>

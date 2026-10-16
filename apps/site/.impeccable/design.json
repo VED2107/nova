@@ -1,0 +1,506 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-16T09:08:12.477Z",
+  "title": "Design System: NOVA preview site",
+  "extensions": {
+    "colorMeta": {
+      "ember": {
+        "role": "primary",
+        "displayName": "Beam Ember",
+        "canonical": "oklch(70.5% 0.187 47.6)",
+        "tonalRamp": [
+          "oklch(15% 0.112 47.6)",
+          "oklch(26% 0.112 47.6)",
+          "oklch(37% 0.187 47.6)",
+          "oklch(48% 0.187 47.6)",
+          "oklch(59% 0.187 47.6)",
+          "oklch(70% 0.187 47.6)",
+          "oklch(82% 0.187 47.6)",
+          "oklch(95% 0.112 47.6)"
+        ]
+      },
+      "ember-text": {
+        "role": "primary",
+        "displayName": "Ember Text",
+        "canonical": "oklch(52.3% 0.141 47.3)",
+        "tonalRamp": [
+          "oklch(15% 0.084 47.3)",
+          "oklch(26% 0.084 47.3)",
+          "oklch(37% 0.141 47.3)",
+          "oklch(48% 0.141 47.3)",
+          "oklch(59% 0.141 47.3)",
+          "oklch(70% 0.141 47.3)",
+          "oklch(82% 0.141 47.3)",
+          "oklch(95% 0.084 47.3)"
+        ],
+        "nightValue": "#fb9a52"
+      },
+      "paper": {
+        "role": "neutral",
+        "displayName": "Cream Paper",
+        "canonical": "oklch(96.8% 0.009 84.6)",
+        "tonalRamp": [
+          "oklch(15% 0.005 84.6)",
+          "oklch(26% 0.005 84.6)",
+          "oklch(37% 0.009 84.6)",
+          "oklch(48% 0.009 84.6)",
+          "oklch(59% 0.009 84.6)",
+          "oklch(70% 0.009 84.6)",
+          "oklch(82% 0.009 84.6)",
+          "oklch(95% 0.005 84.6)"
+        ],
+        "nightValue": "#141412"
+      },
+      "paper-raised": {
+        "role": "neutral",
+        "displayName": "Raised Paper",
+        "canonical": "oklch(98.3% 0.006 84.6)",
+        "tonalRamp": [
+          "oklch(15% 0.003 84.6)",
+          "oklch(26% 0.003 84.6)",
+          "oklch(37% 0.006 84.6)",
+          "oklch(48% 0.006 84.6)",
+          "oklch(59% 0.006 84.6)",
+          "oklch(70% 0.006 84.6)",
+          "oklch(82% 0.006 84.6)",
+          "oklch(95% 0.003 84.6)"
+        ],
+        "nightValue": "#1c1c19"
+      },
+      "paper-sunk": {
+        "role": "neutral",
+        "displayName": "Sunk Paper",
+        "canonical": "oklch(94.1% 0.012 84.6)",
+        "tonalRamp": [
+          "oklch(15% 0.007 84.6)",
+          "oklch(26% 0.007 84.6)",
+          "oklch(37% 0.012 84.6)",
+          "oklch(48% 0.012 84.6)",
+          "oklch(59% 0.012 84.6)",
+          "oklch(70% 0.012 84.6)",
+          "oklch(82% 0.012 84.6)",
+          "oklch(95% 0.007 84.6)"
+        ],
+        "nightValue": "#0e0e0d"
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Print Ink",
+        "canonical": "oklch(20.4% 0.004 106.7)",
+        "tonalRamp": [
+          "oklch(15% 0.002 106.7)",
+          "oklch(26% 0.002 106.7)",
+          "oklch(37% 0.004 106.7)",
+          "oklch(48% 0.004 106.7)",
+          "oklch(59% 0.004 106.7)",
+          "oklch(70% 0.004 106.7)",
+          "oklch(82% 0.004 106.7)",
+          "oklch(95% 0.002 106.7)"
+        ],
+        "nightValue": "#f2efe8"
+      },
+      "ink-2": {
+        "role": "neutral",
+        "displayName": "Ink 2",
+        "canonical": "oklch(38.6% 0.008 97.5)",
+        "tonalRamp": [
+          "oklch(15% 0.005 97.5)",
+          "oklch(26% 0.005 97.5)",
+          "oklch(37% 0.008 97.5)",
+          "oklch(48% 0.008 97.5)",
+          "oklch(59% 0.008 97.5)",
+          "oklch(70% 0.008 97.5)",
+          "oklch(82% 0.008 97.5)",
+          "oklch(95% 0.005 97.5)"
+        ],
+        "nightValue": "#c9c6be"
+      },
+      "ink-3": {
+        "role": "neutral",
+        "displayName": "Ink 3",
+        "canonical": "oklch(49.8% 0.011 100.2)",
+        "tonalRamp": [
+          "oklch(15% 0.007 100.2)",
+          "oklch(26% 0.007 100.2)",
+          "oklch(37% 0.011 100.2)",
+          "oklch(48% 0.011 100.2)",
+          "oklch(59% 0.011 100.2)",
+          "oklch(70% 0.011 100.2)",
+          "oklch(82% 0.011 100.2)",
+          "oklch(95% 0.007 100.2)"
+        ],
+        "nightValue": "#a19f98"
+      },
+      "room": {
+        "role": "neutral",
+        "displayName": "Darkroom",
+        "canonical": "oklch(14.9% 0.002 106.7)",
+        "tonalRamp": [
+          "oklch(15% 0.001 106.7)",
+          "oklch(26% 0.001 106.7)",
+          "oklch(37% 0.002 106.7)",
+          "oklch(48% 0.002 106.7)",
+          "oklch(59% 0.002 106.7)",
+          "oklch(70% 0.002 106.7)",
+          "oklch(82% 0.002 106.7)",
+          "oklch(95% 0.001 106.7)"
+        ]
+      },
+      "room-raised": {
+        "role": "neutral",
+        "displayName": "Darkroom Raised",
+        "canonical": "oklch(19.0% 0.004 106.8)",
+        "tonalRamp": [
+          "oklch(15% 0.002 106.8)",
+          "oklch(26% 0.002 106.8)",
+          "oklch(37% 0.004 106.8)",
+          "oklch(48% 0.004 106.8)",
+          "oklch(59% 0.004 106.8)",
+          "oklch(70% 0.004 106.8)",
+          "oklch(82% 0.004 106.8)",
+          "oklch(95% 0.002 106.8)"
+        ]
+      },
+      "room-ink": {
+        "role": "neutral",
+        "displayName": "Room Ink",
+        "canonical": "oklch(95.3% 0.010 87.5)",
+        "tonalRamp": [
+          "oklch(15% 0.006 87.5)",
+          "oklch(26% 0.006 87.5)",
+          "oklch(37% 0.010 87.5)",
+          "oklch(48% 0.010 87.5)",
+          "oklch(59% 0.010 87.5)",
+          "oklch(70% 0.010 87.5)",
+          "oklch(82% 0.010 87.5)",
+          "oklch(95% 0.006 87.5)"
+        ]
+      },
+      "room-ink-2": {
+        "role": "neutral",
+        "displayName": "Room Ink 2",
+        "canonical": "oklch(82.7% 0.012 89.7)",
+        "tonalRamp": [
+          "oklch(15% 0.007 89.7)",
+          "oklch(26% 0.007 89.7)",
+          "oklch(37% 0.012 89.7)",
+          "oklch(48% 0.012 89.7)",
+          "oklch(59% 0.012 89.7)",
+          "oklch(70% 0.012 89.7)",
+          "oklch(82% 0.012 89.7)",
+          "oklch(95% 0.007 89.7)"
+        ]
+      },
+      "room-ink-3": {
+        "role": "neutral",
+        "displayName": "Room Ink 3",
+        "canonical": "oklch(70.9% 0.010 93.6)",
+        "tonalRamp": [
+          "oklch(15% 0.006 93.6)",
+          "oklch(26% 0.006 93.6)",
+          "oklch(37% 0.010 93.6)",
+          "oklch(48% 0.010 93.6)",
+          "oklch(59% 0.010 93.6)",
+          "oklch(70% 0.010 93.6)",
+          "oklch(82% 0.010 93.6)",
+          "oklch(95% 0.006 93.6)"
+        ]
+      },
+      "seam": {
+        "role": "neutral",
+        "displayName": "Seam",
+        "canonical": "rgb(23 23 21 / 0.12)",
+        "nightValue": "rgb(242 239 232 / 0.12)"
+      },
+      "seam-strong": {
+        "role": "neutral",
+        "displayName": "Seam Strong",
+        "canonical": "rgb(23 23 21 / 0.28)",
+        "nightValue": "rgb(242 239 232 / 0.26)"
+      },
+      "hover": {
+        "role": "neutral",
+        "displayName": "Hover Wash",
+        "canonical": "rgb(23 23 21 / 0.05)",
+        "nightValue": "rgb(242 239 232 / 0.06)"
+      },
+      "room-seam": {
+        "role": "neutral",
+        "displayName": "Room Seam",
+        "canonical": "rgb(242 239 232 / 0.14)"
+      }
+    },
+    "themes": {
+      "night": {
+        "trigger": "prefers-color-scheme: dark",
+        "note": "Paper and ink stock swap; darkroom stays dark; focus becomes Beam Ember.",
+        "values": {
+          "paper": "#141412",
+          "paper-raised": "#1c1c19",
+          "paper-sunk": "#0e0e0d",
+          "ink": "#f2efe8",
+          "ink-2": "#c9c6be",
+          "ink-3": "#a19f98",
+          "seam": "rgb(242 239 232 / 0.12)",
+          "seam-strong": "rgb(242 239 232 / 0.26)",
+          "hover": "rgb(242 239 232 / 0.06)",
+          "ember-text": "#fb9a52",
+          "focus": "#f97316"
+        }
+      },
+      "darkroom": {
+        "trigger": ".room section (footer, Projector band, 404)",
+        "note": "Re-points paper and ink tokens to room tokens so components work unchanged.",
+        "values": {
+          "paper": "#0b0b0a",
+          "paper-raised": "#141412",
+          "paper-sunk": "#050505",
+          "ink": "#f2efe8",
+          "ink-2": "#c9c6be",
+          "ink-3": "#a3a19a",
+          "seam": "rgb(242 239 232 / 0.14)",
+          "seam-strong": "rgb(242 239 232 / 0.28)",
+          "hover": "rgb(242 239 232 / 0.07)",
+          "ember-text": "#fb9a52",
+          "focus": "#f97316"
+        }
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Spine XL",
+        "purpose": "Section heads, page titles, release version, closing statements. 66% width."
+      },
+      "headline": {
+        "displayName": "Spine",
+        "purpose": "Hero h1, claim and chapter titles, Projector titles. 72% width."
+      },
+      "lede": {
+        "displayName": "Lede",
+        "purpose": "The one framing paragraph under a title, Ink 2, 38ch."
+      },
+      "body": {
+        "displayName": "Text",
+        "purpose": "Reading text at normal width, 60-70ch."
+      },
+      "label": {
+        "displayName": "Catalog",
+        "purpose": "Labels data: plate numbers, timecodes, fields, table heads. Never a kicker."
+      }
+    },
+    "shadows": [
+      {
+        "name": "plate-lift",
+        "value": "0 1px 0 rgb(255 255 255 / 0.04) inset, 0 24px 60px -24px rgb(23 23 21 / 0.45), 0 6px 16px -8px rgb(23 23 21 / 0.3)",
+        "purpose": "Darkroom plates on paper only."
+      },
+      {
+        "name": "projection",
+        "value": "0 0 0 1px rgb(242 239 232 / 0.14), 0 40px 80px -40px rgb(0 0 0 / 0.9)",
+        "purpose": "Projector frame on darkroom stock."
+      },
+      {
+        "name": "field-focus-halo",
+        "value": "0 0 0 3px color-mix(in oklab, #f97316 30%, transparent)",
+        "purpose": "Text fields on focus, with the border in the focus colour."
+      },
+      {
+        "name": "focus-ring",
+        "value": "outline: 3px solid var(--focus); outline-offset: 3px",
+        "purpose": "Global focus-visible ring (Ember Text on cream, Beam Ember on dark stock)."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-out",
+        "value": "cubic-bezier(0.23, 1, 0.32, 1)",
+        "purpose": "All entrances, playhead travel, button press and arrow nudge."
+      },
+      {
+        "name": "ease-in-out",
+        "value": "cubic-bezier(0.77, 0, 0.175, 1)",
+        "purpose": "Defined token; no component uses it yet."
+      },
+      {
+        "name": "beam-skew",
+        "value": "-15.3deg",
+        "purpose": "The beam slope (48 across per 176 down): playheads, current markers, 105deg hatching, the exposure wipe."
+      },
+      {
+        "name": "beam-in",
+        "value": "1100ms ease-out, 180ms delay",
+        "purpose": "The wordmark beam sweeps once along its slope."
+      },
+      {
+        "name": "expose",
+        "value": "560ms ease-out clip-path wipe along the beam slope with brightness 1.6 to 1",
+        "purpose": "Projector frame change."
+      },
+      {
+        "name": "rise",
+        "value": "480ms ease-out from translateY(8px), 40ms stagger",
+        "purpose": "Projector notes; hero copy uses the same shape at 900ms from 14px."
+      },
+      {
+        "name": "state",
+        "value": "140-160ms ease",
+        "purpose": "Colour, border and background state changes."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "projector-scroll",
+        "value": "700px"
+      },
+      {
+        "name": "atlas-row",
+        "value": "760px"
+      },
+      {
+        "name": "nav",
+        "value": "900px"
+      },
+      {
+        "name": "projector-stack",
+        "value": "960px"
+      },
+      {
+        "name": "split-stack",
+        "value": "1000px"
+      },
+      {
+        "name": "wrap-max",
+        "value": "1320px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Solid ink action; never ember.",
+      "html": "<a class=\"ds-btn\" href=\"#\">See it play</a>",
+      "css": ".ds-btn{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 24px;border-radius:6px;border:1px solid #171715;background:#171715;color:#f7f4ee;font-family:Archivo,'Segoe UI',system-ui,sans-serif;font-weight:600;font-size:.98rem;text-decoration:none;cursor:pointer;transition:transform 140ms cubic-bezier(.23,1,.32,1),background-color 160ms ease,border-color 160ms ease}.ds-btn:hover{background:color-mix(in oklab,#171715 86%,#f7f4ee);border-color:color-mix(in oklab,#171715 86%,#f7f4ee)}.ds-btn:active{transform:scale(.97)}.ds-btn:focus-visible{outline:3px solid #a84a08;outline-offset:3px}"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Secondary action on a Seam Strong border.",
+      "html": "<a class=\"ds-btn-ghost\" href=\"#\">Check a format</a>",
+      "css": ".ds-btn-ghost{display:inline-flex;align-items:center;min-height:44px;padding:0 24px;border-radius:6px;border:1px solid rgb(23 23 21 / .28);background:transparent;color:#171715;font-family:Archivo,'Segoe UI',system-ui,sans-serif;font-weight:600;font-size:.98rem;text-decoration:none;transition:transform 140ms cubic-bezier(.23,1,.32,1),background-color 160ms ease,border-color 160ms ease}.ds-btn-ghost:hover{background:rgb(23 23 21 / .05);border-color:#64635c}.ds-btn-ghost:active{transform:scale(.97)}.ds-btn-ghost:focus-visible{outline:3px solid #a84a08;outline-offset:3px}"
+    },
+    {
+      "name": "Status Stamps",
+      "kind": "chip",
+      "refersTo": "stamp",
+      "description": "Ink-stamp tiers distinguished by border style, plus the filled Preview stamp.",
+      "html": "<span class=\"ds-stamp\">Verified</span> <span class=\"ds-stamp ds-partial\">Partial</span> <span class=\"ds-stamp ds-expected\">Expected</span> <span class=\"ds-stamp ds-external\">External</span> <span class=\"ds-stamp ds-none\">Unsupported</span> <span class=\"ds-stamp ds-preview\">Preview</span>",
+      "css": ".ds-stamp{display:inline-flex;align-items:center;padding:.18em .5em .14em;border:1.5px solid currentColor;border-radius:3px;font-family:Archivo,'Segoe UI',system-ui,sans-serif;font-stretch:88%;font-weight:650;font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;line-height:1.3;white-space:nowrap;color:#171715}.ds-partial{background:repeating-linear-gradient(105deg,color-mix(in oklab,currentColor 16%,transparent) 0 2px,transparent 2px 5px)}.ds-expected{color:#45443f;border-style:dashed}.ds-external{color:#45443f;border-style:double;border-width:3px;padding:.08em .45em .04em}.ds-none{color:#64635c;border-style:dotted}.ds-preview{color:#f7f4ee;background:#171715;border-color:#171715}"
+    },
+    {
+      "name": "Filter Chip",
+      "kind": "chip",
+      "refersTo": "chip",
+      "description": "Atlas filter; checked fills ink.",
+      "html": "<label class=\"ds-chip\"><input type=\"checkbox\" checked><span>Video</span></label> <label class=\"ds-chip\"><input type=\"checkbox\"><span>Audio</span></label>",
+      "css": ".ds-chip{position:relative;display:inline-block;font-family:Archivo,'Segoe UI',system-ui,sans-serif;font-size:.92rem;font-weight:560;color:#45443f}.ds-chip input{position:absolute;opacity:0;inset:0;margin:0;cursor:pointer}.ds-chip span{display:inline-flex;align-items:center;min-height:40px;padding:0 16px;border:1.5px solid rgb(23 23 21 / .28);border-radius:4px;transition:background-color 140ms ease,border-color 140ms ease,color 140ms ease}.ds-chip:hover span{border-color:#64635c;color:#171715}.ds-chip input:checked+span{background:#171715;border-color:#171715;color:#f7f4ee}.ds-chip input:focus-visible+span{outline:3px solid #a84a08;outline-offset:2px}"
+    },
+    {
+      "name": "Search Field",
+      "kind": "input",
+      "refersTo": "input-search",
+      "description": "Atlas search with inline icon and ember focus halo.",
+      "html": "<div class=\"ds-search\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\"><circle cx=\"11\" cy=\"11\" r=\"6.5\"/><path d=\"m16 16 4.5 4.5\"/></svg><input type=\"search\" placeholder=\"MKV, HEVC, Dolby Vision\"></div>",
+      "css": ".ds-search{position:relative}.ds-search svg{position:absolute;left:14px;top:50%;width:18px;height:18px;transform:translateY(-50%);color:#64635c;pointer-events:none}.ds-search input{width:100%;min-height:52px;padding:0 16px 0 44px;font-family:Archivo,'Segoe UI',system-ui,sans-serif;font-size:1.1rem;background:#f7f4ee;color:#171715;border:1.5px solid rgb(23 23 21 / .28);border-radius:8px;caret-color:#f97316;transition:border-color 160ms ease}.ds-search input::placeholder{color:#64635c}.ds-search input:hover{border-color:#64635c}.ds-search input:focus-visible{outline:none;border-color:#a84a08;box-shadow:0 0 0 3px color-mix(in oklab,#f97316 30%,transparent)}"
+    },
+    {
+      "name": "Header and Page Seek Bar",
+      "kind": "nav",
+      "refersTo": "nav-link",
+      "description": "Opaque paper header; current link underlined in ink; ember seek fill and beam playhead below.",
+      "html": "<header class=\"ds-head\"><nav><a href=\"#\" aria-current=\"page\">Product</a><a href=\"#\">Atlas</a><a href=\"#\">Compare</a><a href=\"#\">Trust</a></nav><div class=\"ds-seek\"><i class=\"ds-fill\"></i><i class=\"ds-headp\"></i></div></header>",
+      "css": ".ds-head{background:#f7f4ee;padding-bottom:8px;border-bottom:1px solid rgb(23 23 21 / .12);font-family:Archivo,'Segoe UI',system-ui,sans-serif}.ds-head nav{display:flex;gap:4px;min-height:64px;align-items:center}.ds-head a{position:relative;display:block;padding:12px;font-size:.95rem;font-weight:560;color:#45443f;text-decoration:none;border-radius:6px;transition:color 140ms ease,background-color 140ms ease}.ds-head a:hover{color:#171715;background:rgb(23 23 21 / .05)}.ds-head a:focus-visible{outline:3px solid #a84a08;outline-offset:3px}.ds-head a[aria-current=page]{color:#171715;font-weight:650}.ds-head a[aria-current=page]::after{content:'';position:absolute;left:12px;right:12px;bottom:4px;height:2px;background:currentColor}.ds-seek{--p:.38;position:relative;height:2px;background:rgb(23 23 21 / .12)}.ds-fill{position:absolute;inset:0;background:#f97316;transform-origin:left;transform:scaleX(var(--p))}.ds-headp{position:absolute;left:calc(var(--p) * (100% - 8px));top:-6px;width:8px;height:14px;background:#f97316;clip-path:polygon(30% 0,100% 0,70% 100%,0 100%)}"
+    },
+    {
+      "name": "Section Head",
+      "kind": "custom",
+      "description": "Spine-xl title on a 1.5px rule, unnumbered.",
+      "html": "<div class=\"ds-shead\"><h2>Real film, real player</h2></div>",
+      "css": ".ds-shead{padding-bottom:12px;border-bottom:1.5px solid currentColor;color:#171715;font-family:Archivo,'Segoe UI',system-ui,sans-serif}.ds-shead h2{margin:0;font-size:clamp(2.25rem,1.4rem + 3.6vw,4.5rem);font-stretch:66%;font-weight:740;letter-spacing:-.02em;word-spacing:.12em;line-height:.94}"
+    },
+    {
+      "name": "Darkroom Plate",
+      "kind": "card",
+      "refersTo": "plate",
+      "description": "Real capture in a darkroom frame, captioned with plate number and provenance.",
+      "html": "<figure class=\"ds-plate\"><div class=\"ds-img\"></div><figcaption><span><span class=\"ds-cat\">Plate 01&ensp;</span>Library, Continue watching</span><span class=\"ds-credit\">Sintel &copy; Blender Foundation, CC BY 3.0</span></figcaption></figure>",
+      "css": ".ds-plate{margin:0;background:#0b0b0a;color:#f2efe8;border-radius:10px;padding:clamp(8px,1.2vw,14px);box-shadow:0 1px 0 rgb(255 255 255 / .04) inset,0 24px 60px -24px rgb(23 23 21 / .45),0 6px 16px -8px rgb(23 23 21 / .3);font-family:Archivo,'Segoe UI',system-ui,sans-serif}.ds-img{aspect-ratio:16/10;border-radius:5px;background:#000}.ds-plate figcaption{display:flex;flex-wrap:wrap;gap:4px 16px;justify-content:space-between;padding:12px 4px 4px;font-size:.82rem;line-height:1.4;color:#c9c6be}.ds-cat{font-stretch:88%;font-weight:600;font-size:.72rem;letter-spacing:.07em;text-transform:uppercase;font-variant-numeric:tabular-nums;color:#a3a19a}.ds-credit{color:#a3a19a;font-size:.75rem}"
+    },
+    {
+      "name": "Projector Timeline",
+      "kind": "custom",
+      "description": "Seek-bar tablist: ember fill and skewed beam playhead over chapter ticks with timecodes.",
+      "html": "<div class=\"ds-proj\" style=\"--n:3;--i:1\"><div class=\"ds-track\"><i class=\"ds-pf\"></i><i class=\"ds-ph\"></i></div><div class=\"ds-tabs\" role=\"tablist\"><button role=\"tab\" aria-selected=\"false\"><i class=\"ds-tick\"></i><span>Library</span><small>00:00:00</small></button><button role=\"tab\" aria-selected=\"true\"><i class=\"ds-tick\"></i><span>Player</span><small>00:00:23</small></button><button role=\"tab\" aria-selected=\"false\"><i class=\"ds-tick\"></i><span>Insight</span><small>00:00:46</small></button></div></div>",
+      "css": ".ds-proj{--pos:calc((var(--i) + .5) / var(--n));position:relative;background:#0b0b0a;padding:16px;font-family:Archivo,'Segoe UI',system-ui,sans-serif}.ds-track{position:absolute;left:16px;right:16px;top:31px;height:3px;background:rgb(242 239 232 / .2);border-radius:2px}.ds-pf{position:absolute;inset:0;background:#f97316;border-radius:2px;transform-origin:left;transform:scaleX(var(--pos));transition:transform 520ms cubic-bezier(.23,1,.32,1)}.ds-ph{position:absolute;top:-8px;left:calc(var(--pos) * 100% - 5px);width:10px;height:19px;background:#f97316;transform:skewX(-15.3deg);box-shadow:0 0 0 2px #0b0b0a;transition:left 520ms cubic-bezier(.23,1,.32,1)}.ds-tabs{position:relative;display:grid;grid-template-columns:repeat(var(--n),1fr)}.ds-tabs button{display:grid;justify-items:center;gap:6px;padding:8px 4px 10px;background:none;border:0;border-radius:6px;color:#a3a19a;cursor:pointer;font:inherit;transition:color 160ms ease}.ds-tabs button:hover,.ds-tabs [aria-selected=true]{color:#f2efe8}.ds-tabs button:focus-visible{outline:3px solid #f97316;outline-offset:-2px}.ds-tick{display:block;width:1.5px;height:16px;background:currentColor;opacity:.7}.ds-tabs [aria-selected=true] .ds-tick{opacity:0}.ds-tabs span{font-weight:600;font-size:.95rem}.ds-tabs small{font-stretch:88%;font-weight:600;font-size:.66rem;letter-spacing:.07em;font-variant-numeric:tabular-nums;opacity:.8}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Projected Catalogue",
+    "overview": "The site is NOVA's own catalogue, set on paper stock and projected. Pages are cream paper with ink type, divided by hairline seams and heavier 1.5px rules, the way a printed film catalogue or an archive ledger is ruled. The app itself never appears as an illustration: it is shown as real captures inside darkroom plates, near-black frames captioned like catalogue prints with their plate number and provenance. Whole sections can drop into the darkroom (the footer, the Projector, the 404) by switching stock rather than adding decoration.\n\nOne colour carries meaning: ember, the diagonal beam from the Lumen N. It is the wordmark's beam, the header's page seek bar, the Projector's playhead, the marker on the Atlas entry being read, the current-page marker in narrow navigation and the docs sidebar, and the focus ring. Everywhere it says \"this is where you are now\". Everything else, including every status mark, is ink. Density is editorial: generous section padding (112px), condensed display titles at large scale, normal-width text at a calm 1.0625rem.\n\nThe system honours a dark scheme by swapping paper and ink stock (Night) while the darkroom stays dark whatever the theme. Motion is a single grammar: things enter along the beam's slope (15.3 degrees from vertical) or rise a few pixels, eased out, and all of it falls away under reduced motion.",
+    "keyCharacteristics": [
+      "Cream and ink paper stock; a near-black darkroom stock for the app and for whole sections.",
+      "One ember accent, used only as the beam or playhead meaning \"now\", plus focus.",
+      "Archivo variable in two voices: condensed spine titles, normal-width reading text.",
+      "Status shown as ink stamps distinguished by border style, never by colour.",
+      "Hairline seams and 1.5px rules instead of cards and shadows; the plate is the one lifted object.",
+      "The beam's 15.3 degree slope recurs as hatching, playhead skew and the Projector's exposure wipe."
+    ],
+    "rules": [
+      {
+        "name": "The One Beam Rule",
+        "body": "Ember appears only as the beam: a playhead, a seek fill, or a skewed parallelogram marking the current item, plus focus. It never fills a button, a badge, a heading or a status. If an orange element doesn't mean \"now\", it is wrong.",
+        "section": "colors"
+      },
+      {
+        "name": "The Fill Not Text Rule",
+        "body": "Beam Ember is a fill. Any ember-coloured text uses Ember Text.",
+        "section": "colors"
+      },
+      {
+        "name": "The Label Labels Data Rule",
+        "body": "The catalog voice labels a datum (a plate number, a timecode, a field, a column). It never sits above a heading as a kicker.",
+        "section": "typography"
+      },
+      {
+        "name": "The Two Widths Rule",
+        "body": "Titles are condensed (66-80% width); reading text is never condensed. Code is the only exception (92% width, 560 weight).",
+        "section": "typography"
+      },
+      {
+        "name": "The Stock Not Shadow Rule",
+        "body": "To set something apart, change its stock (sunk, raised, darkroom) or rule it. Only plates and the Projector frame carry a shadow.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do keep ember to the beam: seek fills, playheads, skewed current-item markers and focus. One meaning, \"now\".",
+      "Do distinguish every status by border style and tone in ink (solid, hatched, dashed, double, dotted, filled).",
+      "Do set section heads as a spine-xl title on a 1.5px rule, with no number.",
+      "Do put catalogue numbers on plate captions and Atlas entries; ordered lists may carry two-digit ordinals as list markers.",
+      "Do show the app only as real captures in darkroom plates, each captioned with its provenance.",
+      "Do carry the 15.3 degree beam slope into any new skew, hatch or wipe.",
+      "Do separate content with seams, rules and stock changes."
+    ],
+    "donts": [
+      "Don't use ember as a button fill, badge, heading colour, status colour or decorative bullet.",
+      "Don't set Beam Ember as text on cream; use Ember Text.",
+      "Don't place a catalog-voice label above a heading as a kicker.",
+      "Don't number section heads.",
+      "Don't wrap content in shadowed cards; only plates and the Projector frame cast shadows.",
+      "Don't condense reading text, or set the NOVA wordmark in a font: it is the Lumen artwork.",
+      "Don't make the header translucent; it is opaque paper."
+    ]
+  }
+}

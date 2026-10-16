@@ -1,0 +1,97 @@
+---
+import Base from "../layouts/Base.astro";
+import { NAV } from "../data/nav";
+---
+
+<Base title="Not found" description="This page isn't in NOVA's catalogue.">
+  <section class="section nf room">
+    <div class="wrap grid">
+      <div>
+        <h1 class="spine-xl">NOVA couldn't find this page</h1>
+        <p class="lede">The address may be mistyped, or the page may have moved while the site is in preview.</p>
+        <ul class="tries">
+          <li>Check the address for typos</li>
+          <li>Looking for a format? Search the Media Atlas</li>
+          <li>Start again from the home page</li>
+        </ul>
+        <div class="actions">
+          <a class="btn" href="/">Go to home</a>
+          <a class="btn ghost" href="/atlas">Search the Atlas</a>
+        </div>
+      </div>
+      <nav aria-label="All pages" class="all">
+        <p class="catalog">All pages</p>
+        <ul>
+          <li><a href="/">Home</a></li>
+          {NAV.map((n) => <li><a href={n.href}>{n.label}</a></li>)}
+        </ul>
+      </nav>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .nf {
+    min-height: 70vh;
+    display: grid;
+    align-items: center;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: minmax(0, 7fr) minmax(0, 3fr);
+    gap: var(--s8);
+    align-items: end;
+  }
+  .grid > div {
+    display: grid;
+    gap: var(--s4);
+  }
+  .code {
+    color: var(--room-ink-3);
+  }
+  h1 {
+    font-size: clamp(2.8rem, 1.6rem + 5vw, 5.5rem);
+    max-width: 14ch;
+  }
+  .lede {
+    color: var(--room-ink-2);
+  }
+  .tries {
+    list-style: none;
+    display: grid;
+    gap: var(--s2);
+  }
+  .tries li {
+    display: flex;
+    gap: var(--s3);
+    align-items: baseline;
+  }
+  .tries li::before {
+    content: "";
+    flex: none;
+    width: 10px;
+    height: 1.5px;
+    background: var(--room-ink-3);
+    transform: translateY(-4px);
+  }
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s3);
+    margin-top: var(--s3);
+  }
+  .all ul {
+    list-style: none;
+    display: grid;
+    gap: var(--s2);
+    margin-top: var(--s3);
+  }
+  .all .catalog {
+    color: var(--room-ink-3);
+  }
+  @media (max-width: 800px) {
+    .grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

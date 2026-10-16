@@ -1,0 +1,55 @@
+---
+/**
+ * The NOVA wordmark, from brand/final/nova-wordmark.svg. Its N is the Lumen
+ * symbol, so it is never set in a font and never paired with the symbol.
+ * Stems take the current text colour (ink on cream, cream on ink); the beam is
+ * always ember. `sweep` lets the beam pass once through the stencil gap.
+ */
+interface Props {
+  class?: string;
+  sweep?: boolean;
+  label?: string;
+}
+const { class: cls = "", sweep = false, label } = Astro.props;
+---
+
+<svg
+  class:list={["wordmark", cls, { sweep }]}
+  viewBox="0 40 758 176"
+  role={label ? "img" : undefined}
+  aria-label={label}
+  aria-hidden={label ? undefined : "true"}
+  focusable="false"
+>
+  <path
+    d="M0 40h32v176h-32zM144 40h32v176h-32zM216 128a88 88 0 1 0 176 0a88 88 0 1 0 -176 0zM248 128a56 56 0 1 1 112 0a56 56 0 1 1 -112 0zM422 40L456 40L504 216L552 40L586 40L538 216L470 216zM594 216L628 216L676 40L724 216L758 216L710 40L642 40z"
+    fill="currentColor"
+    fill-rule="evenodd"></path>
+  <path class="beam" d="M42 40h44L134 216h-44z" fill="#F97316"></path>
+</svg>
+
+<style>
+  .wordmark {
+    display: block;
+    height: auto;
+    overflow: hidden;
+  }
+  .beam {
+    transform-box: view-box;
+  }
+  /* The beam enters along its own slope (48 across per 176 down) from above
+     the cap line, once. Without motion it simply rests in place. */
+  @media (prefers-reduced-motion: no-preference) {
+    .sweep .beam {
+      animation: beam-in 1100ms var(--ease-out) 180ms both;
+    }
+  }
+  @keyframes beam-in {
+    from {
+      transform: translate(-52px, -190px);
+    }
+    to {
+      transform: translate(0, 0);
+    }
+  }
+</style>

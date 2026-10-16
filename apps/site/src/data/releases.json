@@ -1,0 +1,23 @@
+{
+  "$comment": "Public release records. A `download` is only allowed for a build whose bundled engine is the LGPL self-build (ADR 0003, option B): scripts/check-dist.mjs fails the build if an installer link lacks sha256, engine \"lgpl\" or a notices URL. Never add the local 0.1.0-rc.1 installer: it bundles the GPL development engine.",
+  "releases": [
+    {
+      "version": "0.1.0-rc.1",
+      "date": "2026-10-16",
+      "channel": "Local release candidate",
+      "engine": "gpl-dev",
+      "platforms": [
+        { "name": "Windows 11 x64", "state": "Tested on one machine" },
+        { "name": "Windows 10 x64", "state": "Not tested" }
+      ],
+      "download": null,
+      "notes": [
+        "Player deck with the beam playhead and a More menu for every tool.",
+        "Home, Library grid and list, Settings key search, Formats page.",
+        "Content-first file detection; editing projects and camera RAW explained.",
+        "Playback details panel; compatibility harness with 55 samples.",
+        "Local library with resume across restarts."
+      ]
+    }
+  ]
+}

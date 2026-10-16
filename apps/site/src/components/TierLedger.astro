@@ -1,0 +1,108 @@
+---
+/** The Atlas at a glance: entries per tier as one ruled bar, in ink only. */
+import { ATLAS, SUMMARY, TIERS } from "../data/compat";
+
+interface Props {
+  linked?: boolean;
+}
+const { linked = false } = Astro.props;
+const total = ATLAS.length;
+const rows = TIERS.map((t) => ({ ...t, n: SUMMARY.byTier[t.id] })).filter((t) => t.n > 0);
+---
+
+<figure class="ledger">
+  <div class="bar" aria-hidden="true">
+    {rows.map((t) => <span class="seg" data-tier={t.id} style={`flex-grow: ${t.n}`} />)}
+  </div>
+  <figcaption>
+    <ul>
+      {
+        rows.map((t) => (
+          <li>
+            <span class="key" data-tier={t.id} aria-hidden="true" />
+            {linked ? (
+              <a href={`/atlas?tier=${t.id}`}>
+                <span class="n">{t.n}</span> {t.label}
+              </a>
+            ) : (
+              <span>
+                <span class="n">{t.n}</span> {t.label}
+              </span>
+            )}
+          </li>
+        ))
+      }
+    </ul>
+    <p class="sum">
+      {total} entries: {SUMMARY.samples} tested harness samples and {total - SUMMARY.samples} formats documented without a
+      sample.
+    </p>
+  </figcaption>
+</figure>
+
+<style>
+  .ledger {
+    display: grid;
+    gap: var(--s4);
+  }
+  .bar {
+    display: flex;
+    gap: 3px;
+    height: 44px;
+  }
+  .seg,
+  .key {
+    --c: var(--ink);
+    border-radius: 2px;
+  }
+  .seg {
+    flex-basis: 0;
+    min-width: 10px;
+  }
+  .key {
+    display: inline-block;
+    width: 22px;
+    height: 14px;
+    vertical-align: -2px;
+    margin-right: var(--s2);
+  }
+  [data-tier="verified"] {
+    background: var(--c);
+  }
+  /* Hatching runs at the beam's angle. */
+  [data-tier="partial"] {
+    background: repeating-linear-gradient(105deg, var(--c) 0 3px, transparent 3px 6px);
+    box-shadow: inset 0 0 0 1.5px var(--c);
+  }
+  [data-tier="expected"] {
+    background: repeating-linear-gradient(105deg, var(--c) 0 1.5px, transparent 1.5px 8px);
+    box-shadow: inset 0 0 0 1.5px var(--c);
+    opacity: 0.8;
+  }
+  [data-tier="external"] {
+    border: 4px double var(--c);
+  }
+  [data-tier="unsupported"] {
+    border: 2px dotted var(--c);
+  }
+  ul {
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s2) var(--s5);
+    font-size: 0.95rem;
+  }
+  li {
+    display: flex;
+    align-items: center;
+  }
+  .n {
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  .sum {
+    margin-top: var(--s2);
+    font-size: 0.88rem;
+    color: var(--ink-3);
+  }
+</style>

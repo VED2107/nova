@@ -1,0 +1,78 @@
+---
+import Doc from "../../layouts/Doc.astro";
+import { SHORTCUTS, keyParts } from "../../data/shortcuts";
+
+const groups = [...new Set(SHORTCUTS.map((s) => s.group))];
+const headings = groups.map((g) => ({ depth: 2, slug: g.toLowerCase(), text: g }));
+---
+
+<Doc
+  title="Keyboard shortcuts"
+  description="Every default binding in NOVA. All of them can be changed in Settings → Keys & mouse."
+  slug="shortcuts"
+  kind="reference"
+  status={{ tier: "verified", label: "Generated", note: "Built from the app's own action registry, so this list always matches the defaults in the code." }}
+  headings={headings}
+  meta={`${SHORTCUTS.length} actions`}
+>
+  <p>Press <kbd>?</kbd> or <kbd>F1</kbd> in NOVA to see this list with your own bindings. Ctrl and Alt chords also work while a text field has focus.</p>
+  {
+    groups.map((g) => (
+      <>
+        <h2 id={g.toLowerCase()}>{g}</h2>
+        <div class="table-scroll" tabindex="0" role="region" aria-label={`${g} shortcuts`}>
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Action</th>
+                <th scope="col">Keys</th>
+              </tr>
+            </thead>
+            <tbody>
+              {SHORTCUTS.filter((s) => s.group === g).map((s) => (
+                <tr>
+                  <td>{s.label}</td>
+                  <td class="keys">
+                    {s.keys.map((k, i) => (
+                      <>
+                        {i > 0 && <span class="or">or</span>}
+                        <span class="chord">
+                          {keyParts(k).map((p) => (
+                            <kbd>{p}</kbd>
+                          ))}
+                        </span>
+                      </>
+                    ))}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </>
+    ))
+  }
+</Doc>
+
+<style>
+  table {
+    min-width: 0 !important;
+  }
+  td:first-child {
+    width: 55%;
+  }
+  .keys {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 8px;
+  }
+  .chord {
+    display: inline-flex;
+    gap: 3px;
+  }
+  .or {
+    font-size: 0.8rem;
+    color: var(--ink-3);
+  }
+</style>

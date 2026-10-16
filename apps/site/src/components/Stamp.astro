@@ -1,0 +1,10 @@
+---
+interface Props {
+  tier: string;
+  label: string;
+  class?: string;
+}
+const { tier, label, class: cls } = Astro.props;
+---
+
+<span class:list={["stamp", cls]} data-tier={tier}>{label}</span>

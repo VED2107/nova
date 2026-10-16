@@ -1,0 +1,288 @@
+---
+import Wordmark from "./Wordmark.astro";
+import { NAV } from "../data/nav";
+
+
+const path = Astro.url.pathname.replace(/\/$/, "") || "/";
+const current = (href: string) => path === href || path.startsWith(`${href}/`);
+---
+
+<div class="notice">
+  <p class="wrap">
+    <span class="stamp" data-tier="preview">Preview</span>
+    <span>NOVA 0.1.0 is not available to download yet. Licensing is decided; the download follows the LGPL engine build.</span>
+    <a href="/release">Release status</a>
+  </p>
+</div>
+
+<header class="site-header" data-header>
+  <div class="wrap bar">
+    <a class="home" href="/" aria-label="NOVA, home" aria-current={path === "/" ? "page" : undefined}>
+      <Wordmark />
+    </a>
+    <button class="menu" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>
+      <span class="menu-icon" aria-hidden="true"><i></i><i></i></span>
+      <span>Menu</span>
+    </button>
+    <nav id="site-nav" aria-label="Main" data-nav>
+      <ul>
+        {
+          NAV.map((n) => (
+            <li>
+              <a href={n.href} aria-current={current(n.href) ? "page" : undefined}>
+                {n.label}
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </nav>
+  </div>
+  <div class="seek-row">
+    <div class="wrap seek" aria-hidden="true" data-seek>
+      <div class="seek-fill"></div>
+      <div class="seek-head"></div>
+    </div>
+  </div>
+</header>
+
+<script>
+  const header = document.querySelector<HTMLElement>("[data-header]")!;
+  const button = header.querySelector<HTMLButtonElement>("[data-menu]")!;
+  const nav = header.querySelector<HTMLElement>("[data-nav]")!;
+  const seek = header.querySelector<HTMLElement>("[data-seek]")!;
+
+  const setOpen = (open: boolean) => {
+    button.setAttribute("aria-expanded", String(open));
+    header.toggleAttribute("data-open", open);
+  };
+  button.addEventListener("click", () => setOpen(button.getAttribute("aria-expanded") !== "true"));
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && header.hasAttribute("data-open")) {
+      setOpen(false);
+      button.focus();
+    }
+  });
+  nav.addEventListener("click", (e) => {
+    if ((e.target as HTMLElement).closest("a")) setOpen(false);
+  });
+  matchMedia("(min-width: 900px)").addEventListener("change", () => setOpen(false));
+
+  // The page seek bar: reading position, drawn like the player's timeline.
+  let ticking = false;
+  const update = () => {
+    ticking = false;
+    const max = document.documentElement.scrollHeight - innerHeight;
+    const p = max > 0 ? Math.min(1, Math.max(0, scrollY / max)) : 0;
+    seek.style.setProperty("--p", String(p));
+    header.toggleAttribute("data-scrolled", scrollY > 8);
+  };
+  addEventListener("scroll", () => {
+    if (!ticking) {
+      ticking = true;
+      requestAnimationFrame(update);
+    }
+  }, { passive: true });
+  addEventListener("resize", update);
+  update();
+</script>
+
+<style>
+  .notice {
+    background: var(--ink);
+    color: var(--paper);
+    font-size: 0.85rem;
+    line-height: 1.4;
+  }
+  .notice p {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--s1) var(--s3);
+    padding-block: var(--s2);
+  }
+  .notice .stamp {
+    color: var(--ink);
+    background: var(--paper);
+    border-color: var(--paper);
+  }
+  @media (prefers-color-scheme: dark) {
+    .notice {
+      background: var(--paper-sunk);
+      color: var(--ink);
+      border-bottom: 1px solid var(--seam);
+    }
+    .notice .stamp {
+      color: var(--paper);
+      background: var(--ink);
+      border-color: var(--ink);
+    }
+  }
+  .notice a {
+    font-weight: 600;
+    text-decoration-color: currentColor;
+  }
+
+  .site-header {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: var(--paper);
+  }
+  .bar {
+    display: flex;
+    align-items: center;
+    gap: var(--s5);
+    min-height: 64px;
+  }
+  .home {
+    display: block;
+    padding: var(--s2) 0;
+    margin-right: auto;
+    color: var(--ink);
+  }
+  .home :global(.wordmark) {
+    width: 92px;
+  }
+  nav ul {
+    list-style: none;
+    display: flex;
+    gap: var(--s1);
+  }
+  nav a {
+    position: relative;
+    display: block;
+    padding: var(--s3) var(--s3);
+    font-size: 0.95rem;
+    font-weight: 560;
+    color: var(--ink-2);
+    text-decoration: none;
+    border-radius: 6px;
+    transition:
+      color 140ms ease,
+      background-color 140ms ease;
+  }
+  nav a:hover {
+    color: var(--ink);
+    background: var(--hover);
+  }
+  nav a[aria-current="page"] {
+    color: var(--ink);
+    font-weight: 650;
+  }
+  nav a[aria-current="page"]::after {
+    content: "";
+    position: absolute;
+    left: var(--s3);
+    right: var(--s3);
+    bottom: 4px;
+    height: 2px;
+    background: currentColor;
+  }
+
+  .menu {
+    display: none;
+    align-items: center;
+    gap: var(--s2);
+    min-height: 44px;
+    padding: 0 var(--s4);
+    border: 1px solid var(--seam-strong);
+    border-radius: 6px;
+    background: transparent;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .menu-icon {
+    display: grid;
+    gap: 4px;
+    width: 16px;
+  }
+  .menu-icon i {
+    display: block;
+    height: 1.5px;
+    background: currentColor;
+    transition: transform 200ms var(--ease-out);
+  }
+  [data-open] .menu-icon i:first-child {
+    transform: translateY(2.75px) rotate(45deg);
+  }
+  [data-open] .menu-icon i:last-child {
+    transform: translateY(-2.75px) rotate(-45deg);
+  }
+
+  /* Narrow screens. Without script the links stay in a scrollable row. */
+  @media (max-width: 899px) {
+    .bar {
+      flex-wrap: wrap;
+      gap: 0 var(--s3);
+    }
+    nav {
+      width: 100%;
+      overflow-x: auto;
+    }
+    nav ul {
+      padding-bottom: var(--s2);
+    }
+    :global(.js) .menu {
+      display: inline-flex;
+    }
+    :global(.js) nav {
+      display: none;
+    }
+    :global(.js) [data-open] nav {
+      display: block;
+    }
+    :global(.js) nav ul {
+      flex-direction: column;
+      padding: var(--s2) 0 var(--s5);
+    }
+    :global(.js) nav a {
+      font-size: 1.35rem;
+      font-stretch: 80%;
+      padding: var(--s3) 0;
+      border-radius: 0;
+      border-bottom: 1px solid var(--seam);
+    }
+    :global(.js) nav a:hover {
+      background: none;
+    }
+    :global(.js) nav a[aria-current="page"]::after {
+      left: auto;
+      right: 0;
+      top: 50%;
+      bottom: auto;
+      width: 8px;
+      height: 16px;
+      transform: translateY(-50%) skewX(var(--beam-skew));
+      background: var(--ember);
+    }
+  }
+
+  .seek-row {
+    border-bottom: 1px solid var(--seam);
+    padding-bottom: 8px;
+  }
+  .seek {
+    --p: 0;
+    position: relative;
+    height: 2px;
+    background: var(--seam);
+  }
+  .seek-fill {
+    position: absolute;
+    inset: 0;
+    background: var(--ember);
+    transform-origin: left;
+    transform: scaleX(var(--p));
+  }
+  /* The playhead is the N's beam: a skewed ember parallelogram. */
+  .seek-head {
+    position: absolute;
+    left: calc(var(--p) * (100% - 8px));
+    top: -6px;
+    width: 8px;
+    height: 14px;
+    background: var(--ember);
+    clip-path: polygon(30% 0, 100% 0, 70% 100%, 0 100%);
+  }
+</style>

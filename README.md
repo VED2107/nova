@@ -82,7 +82,7 @@ Tests: see [docs/testing/README.md](docs/testing/README.md).
 
 - **Licensing unresolved:** the development libmpv build is GPL (contains x264/x265).
   Do not distribute installers until [ADR 0003](docs/adr/0003-libmpv-distribution-and-licensing.md) is decided.
-- Windows only; macOS/Linux rendering not started.
+- Windows only, by design.
 - Not yet tested: clean-machine install, multi-monitor/mixed DPI, display disconnect in fullscreen, Windows 10, AMD GPUs, HDR, long soak (2 h), Bluetooth audio latency.
 - The dev libmpv build imports `vulkan-1.dll` (from GPU drivers); clean-machine behavior unverified.
 - Depends on libmpv's child window class name `mpv` for z-ordering (ADR 0002).

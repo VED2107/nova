@@ -1,0 +1,184 @@
+---
+import Base from "../layouts/Base.astro";
+import SectionHead from "../components/SectionHead.astro";
+import TierLedger from "../components/TierLedger.astro";
+import AtlasExplorer from "../components/AtlasExplorer.astro";
+import Stamp from "../components/Stamp.astro";
+import Plate from "../components/Plate.astro";
+import { SUMMARY, TIERS } from "../data/compat";
+---
+
+<Base
+  title="Media Atlas"
+  description={`Every format NOVA has been tested with and every one it hasn't: ${SUMMARY.samples} harness samples in software and hardware passes, plus documented Expected, vendor-SDK and unsupported formats.`}
+>
+  <section class="section head">
+    <div class="wrap">
+      <SectionHead title="Media Atlas" as="h1" />
+      <div class="head-grid">
+        <div class="head-copy">
+          <p class="lede">
+            Look up a codec, a container or a file extension and see exactly what NOVA's engine was tested with, what it
+            wasn't, and the evidence behind each answer.
+          </p>
+          <p class="facts num">
+            {SUMMARY.samples} synthetic samples · {SUMMARY.softwareMet}/{SUMMARY.samples} met expectation in software ·
+            {" "}{SUMMARY.hardwareMet}/{SUMMARY.samples} with hardware decoding allowed · {SUMMARY.decoders} decoders in the
+            engine build
+          </p>
+        </div>
+        <TierLedger />
+      </div>
+      <aside class="standing" aria-label="How to read the Atlas">
+        <p class="spine">A recognised file is not a promise.</p>
+        <p>
+          MXF, MOV, MP4 and MKV are containers: the codec inside decides what plays. “Verified” means a synthetic sample of
+          that profile played on the real engine, not a file from a camera. Real camera files, RAW formats and anything not
+          listed are untested until they say otherwise.
+        </p>
+      </aside>
+    </div>
+  </section>
+
+  <section class="section tight index" aria-label="Formats">
+    <div class="wrap">
+      <AtlasExplorer />
+    </div>
+  </section>
+
+  <section class="section method sunk" aria-labelledby="method-h">
+    <div class="wrap">
+      <SectionHead id="method-h" title="How the evidence was made" />
+      <div class="method-grid">
+        <div class="method-copy">
+          <p>
+            Each sample is a short synthetic encode of one profile, made with FFmpeg by the repository's corpus script. The
+            test harness opens it on the real playback engine ({SUMMARY.engine.mpv}, FFmpeg {SUMMARY.engine.ffmpeg}) with
+            no window and no sound device, and checks that:
+          </p>
+          <ul>
+            <li>playback starts, or fails the way the sample expects;</li>
+            <li>codec, size, bit depth, chroma, alpha and HDR are detected correctly;</li>
+            <li>an exact seek lands within 100 ms;</li>
+            <li>the position advances in real time, with no decoder drops.</li>
+          </ul>
+          <p>
+            It ran twice on one machine: Windows 11, Intel i5-10300H, Intel UHD 630 and NVIDIA GTX 1650. Once with hardware
+            decoding off, once with it allowed. {SUMMARY.hardwareDecoded} samples were decoded on the GPU; the rest fell
+            back to software automatically.
+          </p>
+          <p>
+            What this does not cover: real camera files, long files, audio/video sync for professional formats (measured
+            only for H.264, HEVC and VP9 in the live app), and how HDR looks on a real display.
+          </p>
+          <p><a class="link-arrow" href="/docs/compatibility">Read the full compatibility record</a></p>
+        </div>
+        <dl class="tiers">
+          {
+            TIERS.map((t) => (
+              <div>
+                <dt>
+                  <Stamp tier={t.id} label={t.label} />
+                </dt>
+                <dd>{t.meaning}</dd>
+              </div>
+            ))
+          }
+        </dl>
+      </div>
+      <div class="in-app">
+        <Plate shot="formats" no="09" sizes="(min-width: 1100px) 50vw, 100vw" />
+        <p class="muted">
+          The same tiers appear inside NOVA, in Settings → Formats, so the app and this page give the same answer.
+        </p>
+      </div>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .head {
+    padding-bottom: var(--s7);
+  }
+  .head-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+    gap: var(--s7);
+    align-items: end;
+  }
+  .head-copy {
+    display: grid;
+    gap: var(--s4);
+  }
+  .facts {
+    font-size: 0.92rem;
+    color: var(--ink-3);
+    max-width: 52ch;
+  }
+  .standing {
+    display: grid;
+    grid-template-columns: minmax(0, 4fr) minmax(0, 7fr);
+    gap: var(--s3) var(--s7);
+    margin-top: var(--s8);
+    padding-top: var(--s5);
+    border-top: 1px solid var(--seam);
+  }
+  .standing .spine {
+    font-size: clamp(1.6rem, 1.2rem + 1.2vw, 2.2rem);
+  }
+  .standing p:last-child {
+    color: var(--ink-2);
+    max-width: 68ch;
+  }
+  .index {
+    padding-top: 0;
+  }
+  .method-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 6fr) minmax(0, 5fr);
+    gap: var(--s8);
+  }
+  .method-copy {
+    display: grid;
+    gap: var(--s4);
+    color: var(--ink-2);
+    max-width: 64ch;
+  }
+  .method-copy ul {
+    padding-left: 1.2em;
+    display: grid;
+    gap: var(--s1);
+  }
+  .tiers {
+    margin: 0;
+    display: grid;
+    gap: 0;
+    border-top: 1.5px solid var(--ink);
+  }
+  .tiers div {
+    display: grid;
+    gap: var(--s2);
+    padding: var(--s4) 0;
+    border-bottom: 1px solid var(--seam);
+  }
+  .tiers dd {
+    margin: 0;
+    color: var(--ink-2);
+    font-size: 0.95rem;
+  }
+  .in-app {
+    display: grid;
+    grid-template-columns: minmax(0, 7fr) minmax(0, 4fr);
+    gap: var(--s6);
+    align-items: end;
+    margin-top: var(--s8);
+  }
+  @media (max-width: 1000px) {
+    .head-grid,
+    .standing,
+    .method-grid,
+    .in-app {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

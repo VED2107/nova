@@ -1,0 +1,353 @@
+---
+/**
+ * The Projector: real captures of NOVA on a seek-bar tablist. Chapters are
+ * ticks on a timeline and the ember beam is the playhead. Arrow keys, Home and
+ * End scrub between chapters (WAI-ARIA tabs, automatic activation).
+ */
+import { FILMS, SHOTS, type ShotKey } from "../data/shots";
+import Stamp from "./Stamp.astro";
+
+export interface Chapter {
+  id: string;
+  label: string;
+  shot: ShotKey;
+  title: string;
+  text: string;
+  status: "verified" | "partial";
+  statusNote: string;
+}
+
+interface Props {
+  chapters: Chapter[];
+  label: string;
+}
+const { chapters, label } = Astro.props;
+const n = chapters.length;
+const tc = (i: number) => `00:${String(Math.floor((i * 23) / 60)).padStart(2, "0")}:${String((i * 23) % 60).padStart(2, "0")}`;
+---
+
+<div class="projector" data-projector style={`--n: ${n}; --i: 0`}>
+  <div class="screen">
+    {
+      chapters.map((c, i) => {
+        const shot = SHOTS[c.shot];
+        const films = shot.films.map((f) => FILMS[f].title.replace(" (trailer)", ""));
+        return (
+          <div
+            class="panel"
+            role="tabpanel"
+            id={`pp-${c.id}`}
+            aria-labelledby={`pt-${c.id}`}
+            hidden={i !== 0}
+            data-panel
+          >
+            <div class="frame">
+              <img
+                src={shot.small ?? shot.src}
+                srcset={shot.small ? `${shot.small} 960w, ${shot.src} ${shot.width}w` : undefined}
+                sizes="(min-width: 1100px) 66vw, 100vw"
+                width={shot.width}
+                height={shot.height}
+                alt={shot.alt}
+                loading={i === 0 ? "eager" : "lazy"}
+                decoding="async"
+              />
+            </div>
+            <div class="notes">
+              <h3 class="spine">{c.title}</h3>
+              <p class="text">{c.text}</p>
+              <p class="status">
+                <Stamp tier={c.status} label={c.status === "verified" ? "Verified" : "Partial"} />
+                <span>{c.statusNote}</span>
+              </p>
+              <p class="prov">
+                Captured from NOVA 0.1.0 on Windows 11.
+                {films.length > 0 && (
+                  <>
+                    {" "}
+                    {films.join(", ")} © Blender Foundation, <a href="/trust#credits">CC BY 3.0</a>.
+                  </>
+                )}
+              </p>
+            </div>
+          </div>
+        );
+      })
+    }
+  </div>
+
+  <div class="timeline">
+    <div class="track" aria-hidden="true">
+      <div class="fill"></div>
+      <div class="head"></div>
+    </div>
+    <div class="tabs" role="tablist" aria-label={label}>
+      {
+        chapters.map((c, i) => (
+          <button
+            type="button"
+            role="tab"
+            id={`pt-${c.id}`}
+            aria-controls={`pp-${c.id}`}
+            aria-selected={i === 0 ? "true" : "false"}
+            tabindex={i === 0 ? 0 : -1}
+            data-tab
+          >
+            <span class="tick" aria-hidden="true" />
+            <span class="lbl">{c.label}</span>
+            <span class="tc catalog" aria-hidden="true">
+              {tc(i)}
+            </span>
+          </button>
+        ))
+      }
+    </div>
+  </div>
+</div>
+
+<script>
+  for (const root of document.querySelectorAll<HTMLElement>("[data-projector]")) {
+    const tabs = [...root.querySelectorAll<HTMLButtonElement>("[data-tab]")];
+    const panels = [...root.querySelectorAll<HTMLElement>("[data-panel]")];
+    let current = 0;
+
+    const select = (i: number, focus = false) => {
+      if (i === current) return;
+      tabs[current].setAttribute("aria-selected", "false");
+      tabs[current].tabIndex = -1;
+      panels[current].hidden = true;
+      current = i;
+      tabs[i].setAttribute("aria-selected", "true");
+      tabs[i].tabIndex = 0;
+      panels[i].hidden = false;
+      root.style.setProperty("--i", String(i));
+      if (focus) tabs[i].focus();
+      tabs[i].scrollIntoView({ block: "nearest", inline: "nearest" });
+    };
+
+    tabs.forEach((t, i) => t.addEventListener("click", () => select(i)));
+    root.querySelector("[role=tablist]")!.addEventListener("keydown", (e) => {
+      const k = (e as KeyboardEvent).key;
+      const last = tabs.length - 1;
+      const next =
+        k === "ArrowRight" ? (current === last ? 0 : current + 1)
+        : k === "ArrowLeft" ? (current === 0 ? last : current - 1)
+        : k === "Home" ? 0
+        : k === "End" ? last
+        : -1;
+      if (next < 0) return;
+      e.preventDefault();
+      select(next, true);
+    });
+
+    // Fetch the other chapters once the projector is near the viewport, so
+    // switching never waits on the network.
+    new IntersectionObserver((entries, io) => {
+      if (!entries.some((en) => en.isIntersecting)) return;
+      io.disconnect();
+      for (const img of root.querySelectorAll<HTMLImageElement>("img[loading=lazy]")) img.loading = "eager";
+    }, { rootMargin: "400px" }).observe(root);
+  }
+</script>
+
+<style>
+  .projector {
+    --pos: calc((var(--i) + 0.5) / var(--n));
+  }
+  .screen {
+    display: grid;
+  }
+  .panel {
+    display: grid;
+    grid-template-columns: minmax(0, 8fr) minmax(0, 3.4fr);
+    gap: var(--s5) var(--s7);
+    align-items: center;
+  }
+  .panel[hidden] {
+    display: none;
+  }
+  .frame {
+    border-radius: 8px;
+    overflow: hidden;
+    background: #000;
+    box-shadow:
+      0 0 0 1px var(--room-seam),
+      0 40px 80px -40px rgb(0 0 0 / 0.9);
+    aspect-ratio: 16 / 10;
+  }
+  .frame img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+  /* A projector change: the new frame is exposed along the beam's slope. */
+  @media (prefers-reduced-motion: no-preference) {
+    .panel:not([hidden]) .frame img {
+      animation: expose 560ms var(--ease-out) both;
+    }
+    .panel:not([hidden]) .notes > * {
+      animation: rise 480ms var(--ease-out) both;
+    }
+    .panel:not([hidden]) .notes > :nth-child(2) {
+      animation-delay: 40ms;
+    }
+    .panel:not([hidden]) .notes > :nth-child(3) {
+      animation-delay: 80ms;
+    }
+    .panel:not([hidden]) .notes > :nth-child(n + 4) {
+      animation-delay: 120ms;
+    }
+  }
+  @keyframes expose {
+    from {
+      clip-path: polygon(0 0, 0 0, -27% 100%, -27% 100%);
+      filter: brightness(1.6);
+    }
+    to {
+      clip-path: polygon(0 0, 127% 0, 100% 100%, -27% 100%);
+      filter: brightness(1);
+    }
+  }
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+  }
+  .notes {
+    display: grid;
+    gap: var(--s3);
+    padding-bottom: var(--s2);
+  }
+  .chap {
+    color: var(--room-ink-3);
+  }
+  .notes h3 {
+    font-size: clamp(1.9rem, 1.2rem + 2vw, 2.8rem);
+  }
+  .text {
+    color: var(--room-ink-2);
+    font-size: 1.05rem;
+  }
+  .status {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--s2) var(--s3);
+    font-size: 0.85rem;
+    color: var(--room-ink-3);
+  }
+  .prov {
+    font-size: 0.78rem;
+    color: var(--room-ink-3);
+    padding-top: var(--s3);
+    border-top: 1px solid var(--room-seam);
+  }
+  .prov a {
+    text-decoration-color: rgb(242 239 232 / 0.35);
+  }
+
+  .timeline {
+    position: relative;
+    margin-top: var(--s7);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .tabs,
+  .track {
+    min-width: calc(var(--n) * 92px);
+  }
+  .track {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 15px;
+    height: 3px;
+    background: rgb(242 239 232 / 0.2);
+    border-radius: 2px;
+  }
+  .fill {
+    position: absolute;
+    inset: 0;
+    background: var(--ember);
+    border-radius: 2px;
+    transform-origin: left;
+    transform: scaleX(var(--pos));
+    transition: transform 520ms var(--ease-out);
+  }
+  /* The playhead: the N's beam, 15.3° off vertical, with a dark keyline. */
+  .head {
+    position: absolute;
+    top: -8px;
+    left: calc(var(--pos) * 100% - 5px);
+    width: 10px;
+    height: 19px;
+    background: var(--ember);
+    transform: skewX(var(--beam-skew));
+    box-shadow: 0 0 0 2px var(--room);
+    transition: left 520ms var(--ease-out);
+  }
+  .tabs {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(var(--n), minmax(0, 1fr));
+  }
+  [role="tab"] {
+    display: grid;
+    justify-items: center;
+    gap: 6px;
+    padding: 8px 4px 10px;
+    background: none;
+    border: 0;
+    border-radius: 6px;
+    color: var(--room-ink-3);
+    cursor: pointer;
+    transition: color 160ms ease;
+  }
+  [role="tab"]:hover {
+    color: var(--room-ink);
+  }
+  .tick {
+    width: 1.5px;
+    height: 16px;
+    background: currentColor;
+    opacity: 0.7;
+  }
+  .lbl {
+    font-weight: 600;
+    font-size: 0.95rem;
+    white-space: nowrap;
+  }
+  .tc {
+    font-size: 0.66rem;
+    opacity: 0.8;
+  }
+  [aria-selected="true"] {
+    color: var(--room-ink);
+  }
+  [aria-selected="true"] .tick {
+    opacity: 0;
+  }
+  [role="tab"]:focus-visible {
+    outline-offset: -2px;
+  }
+
+  /* On narrow screens the chapter row scrolls; the fade says there is more. */
+  @media (max-width: 700px) {
+    .timeline {
+      mask-image: linear-gradient(90deg, #000 82%, transparent);
+      scroll-snap-type: x proximity;
+    }
+    [role="tab"] {
+      scroll-snap-align: center;
+    }
+  }
+  @media (max-width: 960px) {
+    .panel {
+      grid-template-columns: 1fr;
+    }
+    .notes {
+      max-width: 60ch;
+    }
+  }
+</style>

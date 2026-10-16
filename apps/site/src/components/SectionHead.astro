@@ -1,0 +1,12 @@
+---
+interface Props {
+  title: string;
+  id?: string;
+  as?: "h1" | "h2";
+}
+const { title, id, as: Tag = "h2" } = Astro.props;
+---
+
+<div class="shead">
+  <Tag id={id} class="spine-xl">{title}</Tag>
+</div>

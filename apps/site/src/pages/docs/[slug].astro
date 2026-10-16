@@ -1,0 +1,69 @@
+---
+import { execFileSync } from "node:child_process";
+import path from "node:path";
+import { getCollection, render } from "astro:content";
+import Doc from "../../layouts/Doc.astro";
+import { DOC_BY_SLUG } from "../../lib/docs-map.mjs";
+
+export async function getStaticPaths() {
+  const guides = await getCollection("guides");
+  const records = await getCollection("records");
+  return [
+    ...guides.map((entry) => ({ params: { slug: entry.id }, props: { kind: "guide" as const, entry } })),
+    ...records.map((entry) => ({ params: { slug: entry.id }, props: { kind: "record" as const, entry } })),
+  ];
+}
+
+const { kind, entry } = Astro.props;
+const { Content, headings } = await render(entry);
+
+/** Last commit date of a repository file, when git history is available. */
+function lastChanged(repoPath: string): string | undefined {
+  try {
+    // A shallow clone (as on most CI hosts) would report the clone boundary, not the real date.
+    const shallow = execFileSync("git", ["rev-parse", "--is-shallow-repository"], {
+      cwd: path.resolve(process.cwd(), "../.."),
+      encoding: "utf8",
+    }).trim();
+    if (shallow === "true") return undefined;
+    const out = execFileSync("git", ["log", "-1", "--format=%cs", "--", repoPath], {
+      // Builds run from apps/site; the repository root is two levels up.
+      cwd: path.resolve(process.cwd(), "../.."),
+      encoding: "utf8",
+    }).trim();
+    return out || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+let title: string;
+let description: string;
+let status: { tier: string; label: string; note: string };
+let meta: string | undefined;
+
+if (kind === "guide") {
+  const d = entry.data as { title: string; summary: string; status: "current" | "incomplete"; statusNote: string };
+  title = d.title;
+  description = d.summary;
+  status =
+    d.status === "current"
+      ? { tier: "verified", label: "Current", note: d.statusNote }
+      : { tier: "expected", label: "Incomplete", note: d.statusNote };
+  meta = "Written for 0.1.0-rc.1";
+} else {
+  const doc = DOC_BY_SLUG.get(entry.id)!;
+  title = doc.title;
+  description = doc.summary;
+  const date = lastChanged(doc.path);
+  meta = `${doc.path}${date ? ` · last changed ${date}` : ""}`;
+  status =
+    doc.slug === "adr-0003"
+      ? { tier: "verified", label: "Accepted", note: "Published as written in the repository. Decided 2026-10-16; the LGPL engine build it calls for has not been made yet." }
+      : { tier: "verified", label: "As written", note: "Published unedited from the NOVA repository. Links to files that are not published are shown as plain references." };
+}
+---
+
+<Doc title={title} description={description} slug={entry.id} kind={kind} status={status} headings={headings} meta={meta}>
+  <Content />
+</Doc>

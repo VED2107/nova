@@ -1,0 +1,242 @@
+---
+import { getCollection } from "astro:content";
+import Base from "../../layouts/Base.astro";
+import SectionHead from "../../components/SectionHead.astro";
+import Stamp from "../../components/Stamp.astro";
+import { REPO_DOCS } from "../../lib/docs-map.mjs";
+import { SHORTCUTS } from "../../data/shortcuts";
+
+const guides = (await getCollection("guides")).sort((a, b) => a.data.order - b.data.order);
+const records = await getCollection("records");
+const recordText = new Map(records.map((r) => [r.id, (r.body ?? "").slice(0, 4000)]));
+
+interface Item {
+  href: string;
+  title: string;
+  summary: string;
+  stamp: { tier: string; label: string };
+  text: string;
+}
+
+const guideItems: Item[] = [
+  ...guides.map((g) => ({
+    href: `/docs/${g.id}`,
+    title: g.data.title,
+    summary: g.data.summary,
+    stamp: g.data.status === "current" ? { tier: "verified", label: "Current" } : { tier: "expected", label: "Incomplete" },
+    text: `${g.data.title} ${g.data.summary} ${g.body ?? ""}`,
+  })),
+  {
+    href: "/docs/shortcuts",
+    title: "Keyboard shortcuts",
+    summary: `All ${SHORTCUTS.length} default bindings, generated from the app.`,
+    stamp: { tier: "verified", label: "Generated" },
+    text: `keyboard shortcuts keys ${SHORTCUTS.map((s) => `${s.label} ${s.keys.join(" ")}`).join(" ")}`,
+  },
+  {
+    href: "/atlas",
+    title: "Media Atlas",
+    summary: "Every tested and documented format, with its evidence.",
+    stamp: { tier: "verified", label: "From results" },
+    text: "media atlas formats codecs compatibility prores mxf hdr raw",
+  },
+];
+
+const groups = ["Evidence", "Testing", "Decisions", "Architecture"] as const;
+const recordItems = (g: string): Item[] =>
+  REPO_DOCS.filter((d) => d.group === g).map((d) => ({
+    href: `/docs/${d.slug}`,
+    title: d.title,
+    summary: d.summary,
+    stamp: d.slug === "adr-0003" ? { tier: "verified", label: "Accepted" } : { tier: "verified", label: "As written" },
+    text: `${d.title} ${d.summary} ${recordText.get(d.slug) ?? ""}`,
+  }));
+const total = guideItems.length + REPO_DOCS.length;
+---
+
+<Base title="Docs" description="Guides for NOVA 0.1.0 and the engineering records behind it: compatibility evidence, test records and design decisions.">
+  <section class="section">
+    <div class="wrap">
+      <SectionHead title="Documentation" as="h1" />
+      <div class="intro">
+        <p class="lede">Guides written from the 0.1.0 release candidate, and the engineering records they rest on, published as written.</p>
+        <form class="find" role="search" aria-label="Search the documentation" data-find>
+          <label for="docs-q">Search the documentation</label>
+          <input id="docs-q" type="search" autocomplete="off" placeholder="resume, subtitles, ADR, HDR…" />
+          <p class="count" aria-live="polite" data-count></p>
+        </form>
+      </div>
+
+      <div class="cols">
+        <section aria-labelledby="g-guides">
+          <h2 id="g-guides" class="spine group">Guides</h2>
+          <ul class="items">
+            {
+              guideItems.map((it) => (
+                <li data-item data-text={it.text.toLowerCase()}>
+                  <a href={it.href}>
+                    <span class="t spine">{it.title}</span>
+                    <span class="s">{it.summary}</span>
+                  </a>
+                  <Stamp tier={it.stamp.tier} label={it.stamp.label} />
+                </li>
+              ))
+            }
+          </ul>
+        </section>
+        <div>
+          {
+            groups.map((g) => (
+              <section aria-labelledby={`g-${g}`}>
+                <h2 id={`g-${g}`} class="spine group">
+                  {g === "Evidence" ? "Evidence" : g === "Testing" ? "Testing records" : g === "Decisions" ? "Decision records" : "Architecture"}
+                </h2>
+                <ul class="items">
+                  {recordItems(g).map((it) => (
+                    <li data-item data-text={it.text.toLowerCase()}>
+                      <a href={it.href}>
+                        <span class="t spine">{it.title}</span>
+                        <span class="s">{it.summary}</span>
+                      </a>
+                      <Stamp tier={it.stamp.tier} label={it.stamp.label} />
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ))
+          }
+        </div>
+      </div>
+      <p class="none" data-none hidden>
+        Nothing matches. Try a simpler word, or browse the lists above once the search is cleared.
+      </p>
+      <p class="missing">
+        Not written yet: installation (there is no public build), accessibility notes for the app, and a reference for the
+        library database. They will follow the first release.
+      </p>
+    </div>
+  </section>
+</Base>
+
+<script define:vars={{ total }}>
+  const form = document.querySelector("[data-find]");
+  const input = form.querySelector("input");
+  const count = form.querySelector("[data-count]");
+  const items = [...document.querySelectorAll("[data-item]")];
+  const none = document.querySelector("[data-none]");
+  const run = () => {
+    const tokens = input.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    let n = 0;
+    for (const el of items) {
+      const ok = tokens.every((t) => el.dataset.text.includes(t));
+      el.hidden = !ok;
+      if (ok) n++;
+    }
+    for (const sec of document.querySelectorAll(".cols section")) {
+      sec.hidden = ![...sec.querySelectorAll("[data-item]")].some((el) => !el.hidden);
+    }
+    count.textContent = tokens.length ? `${n} of ${total} pages match` : "";
+    none.hidden = n > 0;
+  };
+  input.addEventListener("input", run);
+  form.addEventListener("submit", (e) => e.preventDefault());
+</script>
+
+<style>
+  .intro {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: var(--s7);
+    align-items: end;
+    margin-bottom: var(--s8);
+  }
+  .find {
+    display: grid;
+    gap: var(--s2);
+  }
+  .find label {
+    font-stretch: 88%;
+    font-weight: 650;
+    font-size: 0.72rem;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+  .find input {
+    min-height: 52px;
+    padding: 0 var(--s4);
+    font-size: 1.1rem;
+    background: var(--paper-raised);
+    border: 1.5px solid var(--seam-strong);
+    border-radius: 8px;
+  }
+  .find input:focus-visible {
+    outline: none;
+    border-color: var(--focus);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--ember) 30%, transparent);
+  }
+  .count {
+    min-height: 1.5em;
+    font-size: 0.9rem;
+    color: var(--ink-3);
+  }
+  .cols {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: var(--s8);
+    align-items: start;
+  }
+  .cols section[hidden] {
+    display: none;
+  }
+  .cols section + section {
+    margin-top: var(--s7);
+  }
+  .group {
+    font-size: 1.9rem;
+    padding-bottom: var(--s2);
+    border-bottom: 1.5px solid var(--ink);
+  }
+  .items {
+    list-style: none;
+  }
+  .items li {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: var(--s4);
+    align-items: baseline;
+    padding: var(--s4) 0;
+    border-bottom: 1px solid var(--seam);
+  }
+  .items li[hidden] {
+    display: none;
+  }
+  .items a {
+    display: grid;
+    gap: 2px;
+    text-decoration: none;
+  }
+  .items a:hover .t {
+    text-decoration: underline;
+    text-underline-offset: 0.15em;
+  }
+  .t {
+    font-size: 1.35rem;
+  }
+  .s {
+    color: var(--ink-3);
+    font-size: 0.93rem;
+  }
+  .none,
+  .missing {
+    margin-top: var(--s7);
+    color: var(--ink-3);
+    max-width: 70ch;
+  }
+  @media (max-width: 860px) {
+    .intro,
+    .cols {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

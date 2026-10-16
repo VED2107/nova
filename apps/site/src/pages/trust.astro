@@ -1,0 +1,432 @@
+---
+import Base from "../layouts/Base.astro";
+import SectionHead from "../components/SectionHead.astro";
+import Stamp from "../components/Stamp.astro";
+import { CC_BY_3, CHANGES, FILMS, SHOTS } from "../data/shots";
+import { SUMMARY } from "../data/compat";
+import { KNOWN_ISSUES } from "../data/facts";
+
+const sections = [
+  ["status", "Status"],
+  ["privacy", "Privacy"],
+  ["testing", "Testing"],
+  ["licensing", "Licensing"],
+  ["components", "Components"],
+  ["limits", "Limitations"],
+  ["credits", "Credits"],
+] as const;
+
+const filmUse = (id: keyof typeof FILMS) =>
+  Object.values(SHOTS).filter((s) => (s.films as string[]).includes(id)).length;
+
+const components = [
+  ["libmpv (mpv)", "GPLv2+ by default; LGPLv2.1+ when built with -Dgpl=false", "Playback engine. Releases: our own LGPL build (not built yet). Development: a third-party nightly, treated as GPL."],
+  ["FFmpeg", "LGPLv2.1+, or GPL when built with GPL parts", "Decoders and demuxers inside libmpv. Releases: built without GPL or non-free parts. The development build includes x264/x265 wrappers, which makes it GPL."],
+  ["NOVA", "MIT OR Apache-2.0", "This application's own code"],
+  ["Tauri 2, tauri-plugin-dialog, tauri-plugin-log", "MIT OR Apache-2.0", "Application shell"],
+  ["React 19, Vite 8, Tailwind CSS 4", "MIT", "Interface"],
+  ["rusqlite / SQLite", "MIT / public domain", "Local library and progress"],
+  ["serde, thiserror, log, libloading", "MIT OR Apache-2.0, ISC", "Rust libraries"],
+  ["Microsoft Edge WebView2", "Microsoft; system component, not bundled", "Draws the interface"],
+  ["Archivo", "SIL Open Font License 1.1", "Typeface, in the app and on this site"],
+  ["Astro", "MIT", "Builds this website (not part of the app)"],
+];
+---
+
+<Base
+  title="Trust"
+  description="How NOVA is built and tested: development status, what stays on your computer, testing method, the licensing decision and the pending LGPL engine build, third-party components, known limitations and credits."
+>
+  <section class="section intro">
+    <div class="wrap">
+      <SectionHead title="Trust" as="h1" />
+      <div class="intro-grid">
+        <p class="lede">
+          What NOVA is made of, what it keeps, how it is tested and what is still undecided, written so you can check it.
+        </p>
+        <nav aria-label="On this page" class="toc">
+          <ol>
+            {sections.map(([id, label]) => <li><a href={`#${id}`}>{label}</a></li>)}
+          </ol>
+        </nav>
+      </div>
+    </div>
+  </section>
+
+  <section class="section tight" aria-labelledby="status">
+    <div class="wrap">
+      <SectionHead id="status" title="Status" />
+      <dl class="facts">
+        <div>
+          <dt>Development</dt>
+          <dd><Stamp tier="preview" label="Preview" /> Active. A local release candidate (0.1.0-rc.1) exists.</dd>
+        </div>
+        <div>
+          <dt>Source code</dt>
+          <dd>
+            Licensed <strong>MIT OR Apache-2.0</strong> (decided 2026-10-16). The repository is still private, so the source
+            can't be read or reused until it is published.
+          </dd>
+        </div>
+        <div>
+          <dt>Distribution</dt>
+          <dd>None. The installer exists for local testing only. See <a href="/release">Release</a>.</dd>
+        </div>
+        <div>
+          <dt>Made by</dt>
+          <dd>SNOWBROS.</dd>
+        </div>
+        <div>
+          <dt>Reporting issues</dt>
+          <dd>There is no public issue tracker yet. One will open with the repository.</dd>
+        </div>
+      </dl>
+    </div>
+  </section>
+
+  <section class="section sunk" aria-labelledby="privacy">
+    <div class="wrap">
+      <SectionHead id="privacy" title="Privacy" />
+      <div class="two">
+        <div class="col">
+          <h3 class="spine">What NOVA keeps, on your computer</h3>
+          <ul class="specs">
+            <li><span>Library folders, titles, file paths, durations and spec lines</span><span class="muted">SQLite database</span></li>
+            <li><span>Playback positions and watch history</span><span class="muted">same database</span></li>
+            <li><span>Saved playlists</span><span class="muted">same database</span></li>
+            <li><span>Preferences: theme, keys, mouse, decoding</span><span class="muted">same database</span></li>
+            <li><span>Thumbnails</span><span class="muted">app-data folder</span></li>
+            <li><span>Frames you choose to save</span><span class="muted">Pictures\NOVA</span></li>
+          </ul>
+          <p class="small muted">The database and thumbnails live in <code>%APPDATA%\com.snowbros.nova</code>. Clear history in Settings → Library &amp; privacy.</p>
+        </div>
+        <div class="col">
+          <h3 class="spine">What it doesn't have</h3>
+          <ul class="specs">
+            <li><span>An account or sign-in</span><Stamp tier="verified" label="None" /></li>
+            <li><span>Telemetry, analytics or crash-reporting code</span><Stamp tier="verified" label="None in code" /></li>
+            <li><span>An HTTP client in the app's runtime dependencies</span><Stamp tier="verified" label="None in code" /></li>
+            <li>
+              <span>Engine extras: web fetching (ytdl), user scripts, outside config files</span><Stamp tier="verified" label="Switched off" />
+            </li>
+            <li>
+              <span>Interface network access: content policy allows only the app itself and its IPC bridge</span><Stamp tier="verified" label="In config" />
+            </li>
+          </ul>
+          <p class="small">
+            <Stamp tier="partial" label="Not yet verified" /> Network traffic has not been captured, so we don't claim NOVA makes
+            no connections at all. Windows and the WebView2 runtime may make their own.
+          </p>
+        </div>
+      </div>
+      <p class="site-note">
+        This website has no analytics, cookies, trackers, external fonts or third-party scripts. It is static files only.
+      </p>
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="testing">
+    <div class="wrap">
+      <SectionHead id="testing" title="Testing" />
+      <div class="two">
+        <ol class="layers">
+          <li>
+            <h3 class="spine">Engine compatibility harness</h3>
+            <p>{SUMMARY.samples} synthetic samples on the real engine, twice: software decoding, then hardware allowed. {SUMMARY.softwareMet}/{SUMMARY.samples} and {SUMMARY.hardwareMet}/{SUMMARY.samples} met their expectation. <a href="/atlas">Media Atlas</a></p>
+          </li>
+          <li>
+            <h3 class="spine">Rust workspace tests</h3>
+            <p>Unit and integration tests across the domain, playback contract, engine, storage, library scanning and thumbnails, plus a restart-and-resume test. Clippy with warnings as errors, and rustfmt.</p>
+          </li>
+          <li>
+            <h3 class="spine">Interface tests</h3>
+            <p>Vitest component tests and TypeScript checks for the React interface (36 at RC1, 38 after the redesign).</p>
+          </li>
+          <li>
+            <h3 class="spine">Feature audit in the running app</h3>
+            <p>Every feature marked Verified, Partial or Deferred by exercising it in the installed or debug app, with an isolated profile. <a href="/docs/rc1-test-record">RC1 test record</a></p>
+          </li>
+        </ol>
+        <div class="col">
+          <h3 class="spine">Not verified yet</h3>
+          <ul class="plain">
+            <li>A clean Windows machine; Windows 10; per-machine install, uninstall and file associations</li>
+            <li>How SmartScreen treats the unsigned installer</li>
+            <li>Real camera files and real RAW files</li>
+            <li>HDR on an HDR display; tone mapping by eye</li>
+            <li>Audio/video sync beyond H.264, HEVC and VP9</li>
+            <li>Rendered-pixel contrast in the app (computed from tokens only)</li>
+            <li>Display scaling at 125% and 150%</li>
+            <li>Network traffic capture</li>
+          </ul>
+          <p class="small muted">All testing so far was on one machine: Windows 11, Intel i5-10300H, Intel UHD 630 and NVIDIA GTX 1650.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section room" aria-labelledby="licensing">
+    <div class="wrap">
+      <SectionHead id="licensing" title="Licensing: decided, engine build pending" />
+      <div class="two">
+        <div class="col">
+          <p class="big spine">Decided. The download waits for the engine it requires.</p>
+          <p>
+            On 2026-10-16 the owner chose option B: NOVA's own code is MIT OR Apache-2.0, and releases bundle an LGPL libmpv
+            and FFmpeg built from source.
+          </p>
+          <p>
+            The engine build used in development comes from a third-party nightly. Its DLL includes the x264 and x265 encoder
+            wrappers, which require FFmpeg's GPL configuration, so that build must be treated as GPL. A player doesn't need
+            those encoders: decoding uses FFmpeg's own LGPL decoders or the GPU.
+          </p>
+          <p>
+            That LGPL build has not been made yet, and until it exists and passes a licence check, nothing is distributed.
+            Codec patents are a separate question that depends on jurisdiction.
+          </p>
+          <p><a class="link-arrow" href="/docs/adr-0003">Read ADR 0003</a></p>
+        </div>
+        <div class="table-scroll" tabindex="0" role="region" aria-label="Licensing options">
+          <table>
+            <thead>
+              <tr><th scope="col">Option</th><th scope="col">What it means</th><th scope="col">State</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row">A. Ship a GPL build</th>
+                <td>Ship a GPL engine: the whole distribution must then comply with the GPL. Not chosen.</td>
+                <td><Stamp tier="unsupported" label="Not chosen" /></td>
+              </tr>
+              <tr>
+                <th scope="row">B. Build an LGPL engine</th>
+                <td>A reproducible build of mpv and FFmpeg without GPL or non-free parts, so NOVA keeps its MIT OR Apache-2.0 licence. Chosen 2026-10-16.</td>
+                <td><Stamp tier="verified" label="Chosen" /> <Stamp tier="planned" label="Not built" /></td>
+              </tr>
+            </tbody>
+          </table>
+          <p class="small">ADR 0003 is not legal advice; counsel should review the final distribution.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="components">
+    <div class="wrap">
+      <SectionHead id="components" title="Third-party components" />
+      <p class="lede">The initial inventory from ADR 0003, as each project publishes its licence. An automated check in CI is still to do.</p>
+      <div class="table-scroll" tabindex="0" role="region" aria-label="Third-party components">
+        <table>
+          <thead>
+            <tr><th scope="col">Component</th><th scope="col">Licence</th><th scope="col">Role</th></tr>
+          </thead>
+          <tbody>
+            {components.map(([c, l, r]) => (
+              <tr><th scope="row">{c}</th><td>{l}</td><td>{r}</td></tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="section sunk" aria-labelledby="limits">
+    <div class="wrap">
+      <SectionHead id="limits" title="Known limitations" />
+      <div class="two">
+        <ol class="plain numbered">
+          {KNOWN_ISSUES.map((k) => <li>{k}</li>)}
+        </ol>
+        <p>
+          Format-level limits, such as VP9 alpha, HDR display, image sequences and camera RAW, are listed entry by entry in
+          the <a href="/atlas">Media Atlas</a>. Feature gaps are marked on <a href="/product">Product</a>.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="credits">
+    <div class="wrap">
+      <SectionHead id="credits" title="Credits" />
+      <p class="lede">
+        The product images on this site show NOVA playing open films made by the Blender Foundation. The films are not NOVA's
+        and the Blender Foundation does not endorse NOVA.
+      </p>
+      <ul class="films">
+        {
+          (Object.keys(FILMS) as (keyof typeof FILMS)[]).map((id) => {
+            const f = FILMS[id];
+            return (
+              <li>
+                <h3 class="spine">{f.title}</h3>
+                <p>
+                  {f.year}, directed by {f.director}. {f.credit}.
+                </p>
+                <p>
+                  Licensed under <a href={CC_BY_3.url} rel="license noopener noreferrer">{CC_BY_3.name}</a>.{" "}
+                  <a href={f.url} rel="noopener noreferrer">Film website</a>
+                </p>
+                <p class="muted small">Appears in {filmUse(id)} of the {Object.keys(SHOTS).length} product images.</p>
+              </li>
+            );
+          })
+        }
+      </ul>
+      <p class="changes"><strong>Changes:</strong> {CHANGES}</p>
+      <dl class="facts other">
+        <div><dt>Typeface</dt><dd>Archivo, © 2020 The Archivo Project Authors (Omnibus-Type), SIL Open Font License 1.1, self-hosted as a Latin subset. <a href="/fonts/OFL.txt">Licence text</a></dd></div>
+        <div><dt>Name and mark</dt><dd>NOVA and the Lumen N are by SNOWBROS. No trademark search has been made yet.</dd></div>
+      </dl>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .intro {
+    padding-bottom: var(--s6);
+  }
+  .intro-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 6fr) minmax(0, 5fr);
+    gap: var(--s7);
+    align-items: end;
+  }
+  .toc ol {
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s2) var(--s4);
+    font-weight: 600;
+  }
+  .facts {
+    margin: 0;
+    border-top: 1px solid var(--seam);
+  }
+  .facts > div {
+    display: grid;
+    grid-template-columns: 12rem minmax(0, 1fr);
+    gap: var(--s5);
+    padding-block: var(--s4);
+    border-bottom: 1px solid var(--seam);
+  }
+  .facts dt {
+    font-stretch: 88%;
+    font-weight: 650;
+    font-size: 0.72rem;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    padding-top: 0.3em;
+  }
+  .facts dd {
+    margin: 0;
+    max-width: 72ch;
+    color: var(--ink-2);
+  }
+  .facts dd :global(.stamp) {
+    margin-right: var(--s2);
+  }
+  .two {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: var(--s8);
+    align-items: start;
+  }
+  .col {
+    display: grid;
+    gap: var(--s4);
+  }
+  .col h3,
+  .layers h3 {
+    font-size: 1.6rem;
+  }
+  .col .specs li {
+    font-size: 0.95rem;
+  }
+  .small {
+    font-size: 0.88rem;
+  }
+  .site-note {
+    margin-top: var(--s7);
+    padding-top: var(--s4);
+    border-top: 1px solid var(--seam);
+    color: var(--ink-2);
+  }
+  .layers {
+    list-style: none;
+    display: grid;
+    gap: var(--s5);
+  }
+  .layers li {
+    display: grid;
+    gap: var(--s2);
+    padding-bottom: var(--s5);
+    border-bottom: 1px solid var(--seam);
+  }
+  .layers p {
+    color: var(--ink-2);
+  }
+  .plain {
+    display: grid;
+    gap: var(--s2);
+    padding-left: 1.2em;
+    color: var(--ink-2);
+  }
+  .big {
+    font-size: clamp(1.8rem, 1.3rem + 1.6vw, 2.6rem);
+  }
+  .room .col p:not(.big) {
+    color: var(--room-ink-2);
+  }
+  .room th[scope="row"] {
+    color: var(--room-ink);
+    text-transform: none;
+    letter-spacing: 0;
+    font-size: 0.95rem;
+    font-stretch: 100%;
+  }
+  .room td {
+    color: var(--room-ink-2);
+  }
+  th[scope="row"] {
+    font-weight: 650;
+  }
+  .films {
+    list-style: none;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--s6);
+    margin-top: var(--s6);
+    border-top: 1.5px solid var(--ink);
+  }
+  .films li {
+    display: grid;
+    gap: var(--s2);
+    align-content: start;
+    padding-top: var(--s4);
+  }
+  .films h3 {
+    font-size: 1.8rem;
+  }
+  .films p {
+    color: var(--ink-2);
+  }
+  .changes {
+    margin-block: var(--s6);
+    color: var(--ink-2);
+  }
+  .other {
+    margin-top: var(--s5);
+  }
+  @media (max-width: 900px) {
+    .intro-grid,
+    .two,
+    .films {
+      grid-template-columns: 1fr;
+      gap: var(--s6);
+    }
+    .facts > div {
+      grid-template-columns: 1fr;
+      gap: var(--s1);
+    }
+  }
+</style>
