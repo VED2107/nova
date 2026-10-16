@@ -14,8 +14,8 @@ members = [
 edition = "2024"
 rust-version = "1.85"
 publish = false
-# Application-layer license is not yet decided; see docs/adr/0003-libmpv-distribution-and-licensing.md.
-license = "UNLICENSED"
+# NOVA's own code. The bundled engine (libmpv/FFmpeg) is LGPL and licensed separately; see docs/adr/0003-libmpv-distribution-and-licensing.md.
+license = "MIT OR Apache-2.0"
 
 [workspace.dependencies]
 nova-application = { path = "crates/nova-application" }

@@ -1,7 +1,19 @@
 # ADR 0003 — libmpv build, distribution and licensing
 
-- **Status:** Proposed — **owner decision required before any public binary release**
+- **Status:** Accepted, 2026-10-16. Option **B**: build our own LGPL libmpv + FFmpeg. NOVA's own code is licensed **MIT OR Apache-2.0**.
 - **Not legal advice.** Have counsel review the final distribution configuration.
+
+## Decision (2026-10-16)
+
+- The owner chose **option B**. NOVA will ship only an engine built from source with mpv `-Dgpl=false` and FFmpeg
+  without `--enable-gpl` / `--enable-nonfree`, with its exact configuration recorded.
+- NOVA's own source is dual-licensed **MIT OR Apache-2.0** (`LICENSE-MIT`, `LICENSE-APACHE`; `license` in
+  `Cargo.toml` and `package.json`).
+- The shinchiro GPL build stays **development-only**. No installer built with it is distributed.
+- A public download is enabled only when all of these exist for that build: the LGPL engine build with its
+  configuration and source reference, a check that it contains no GPL or non-free components, third-party notices
+  in the installer, the LGPL source/relinking information, and a clean-machine install test.
+- **Status of the LGPL build:** not built yet (2026-10-16).
 
 ## What we use today (development only)
 
@@ -50,8 +62,8 @@ Choose **B** before M4 (Windows beta). Until then:
 - **Do not publish installers built with it** unless the owner explicitly
   chooses option A and the GPL obligations (license text, corresponding
   source for the exact build, notices) are fulfilled.
-- `license = "UNLICENSED"` stays in `Cargo.toml` until the application
-  license is chosen. No `LICENSE` file is added yet on purpose.
+- ~~`license = "UNLICENSED"` stays until the application license is chosen.~~
+  Superseded 2026-10-16: MIT OR Apache-2.0.
 
 ## Other dependencies (initial inventory, to be automated with SBOM in CI)
 

@@ -452,8 +452,8 @@ function About() {
         <dd className="text-ink">{engine ? `${engine.videoOutput ?? "?"} / ${engine.gpuContext ?? "?"}` : "Not reported"}</dd>
       </dl>
       <p className="mt-5 max-w-lg text-[12.5px] leading-relaxed text-ink-3">
-        This is a local development build. Its licensing is not yet final (the bundled engine build is GPL-licensed), so it is not for redistribution. Interface
-        font: Archivo, SIL Open Font License 1.1.
+        NOVA is licensed MIT OR Apache-2.0. This is a local development build: its bundled engine build is GPL-licensed, so it is not for redistribution.
+        Release builds will bundle an LGPL engine. Interface font: Archivo, SIL Open Font License 1.1.
       </p>
     </section>
   );
