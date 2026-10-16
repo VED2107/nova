@@ -1,22 +1,58 @@
 {
-  "$comment": "Public release records. A `download` is only allowed for a build whose bundled engine is the LGPL self-build (ADR 0003, option B): scripts/check-dist.mjs fails the build if an installer link lacks sha256, engine \"lgpl\" or a notices URL. Never add the local 0.1.0-rc.1 installer: it bundles the GPL development engine.",
+  "$comment": "Public release records, newest first. scripts/check-dist.mjs enforces: an installer link needs an https URL, a SHA-256 and a notices page; a \"gpl\" engine build also needs a corresponding-source URL. Engine \"gpl\" = the third-party mpv/FFmpeg build with GPL parts (0.1.0); \"lgpl\" = our own LGPL build (ADR 0003, option B).",
   "releases": [
     {
-      "version": "0.1.0-rc.1",
+      "version": "0.1.0",
       "date": "2026-10-16",
-      "channel": "Local release candidate",
-      "engine": "gpl-dev",
+      "channel": "Release",
+      "engine": "gpl",
       "platforms": [
-        { "name": "Windows 11 x64", "state": "Tested on one machine" },
-        { "name": "Windows 10 x64", "state": "Not tested" }
+        {
+          "name": "Windows 11 x64",
+          "state": "Tested on one machine"
+        },
+        {
+          "name": "Windows 10 x64",
+          "state": "Not tested"
+        }
       ],
-      "download": null,
+      "download": {
+        "url": "https://github.com/VED2107/nova/releases/download/v0.1.0/NOVA_0.1.0_x64-setup.exe",
+        "sha256": "4657362ea741575166bd8fad01c4625508717c4c8a735c812407b7def171bbfe",
+        "size": "36 MB",
+        "signed": false,
+        "notices": "https://github.com/VED2107/nova/blob/v0.1.0/THIRD-PARTY-NOTICES.md",
+        "source": "https://github.com/VED2107/nova/releases/tag/v0.1.0",
+        "release": "https://github.com/VED2107/nova/releases/tag/v0.1.0"
+      },
       "notes": [
         "Player deck with the beam playhead and a More menu for every tool.",
         "Home, Library grid and list, Settings key search, Formats page.",
         "Content-first file detection; editing projects and camera RAW explained.",
         "Playback details panel; compatibility harness with 55 samples.",
-        "Local library with resume across restarts."
+        "Local library with resume across restarts.",
+        "Licence texts, third-party notices and engine source information bundled with the installer."
+      ]
+    },
+    {
+      "version": "0.1.0-rc.1",
+      "date": "2026-10-16",
+      "channel": "Local release candidate (not distributed)",
+      "engine": "gpl-dev",
+      "platforms": [
+        {
+          "name": "Windows 11 x64",
+          "state": "Tested on one machine"
+        },
+        {
+          "name": "Windows 10 x64",
+          "state": "Not tested"
+        }
+      ],
+      "download": null,
+      "notes": [
+        "Player deck with the beam playhead and a More menu for every tool.",
+        "Home, Library grid and list, Settings key search, Formats page."
       ]
     }
   ]

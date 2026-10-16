@@ -8,7 +8,7 @@ related_targets: []
 Scope: NOVA preview website (apps/site), all routes. Mode: Persuade (home, product, compare, release), Read (atlas, trust, docs).
 Audience: Windows viewers first, media professionals one step deeper. Job: understand what NOVA is, see the real app, judge compatibility honestly, know it is a preview.
 Proof: real captures of NOVA 0.1.0 playing CC-BY Blender films; compatibility harness results (55 synthetic samples, software + hardware passes); RC1 test record.
-Constraints: no download until an LGPL-engine release record exists (licence decided 2026-10-16: MIT OR Apache-2.0, ADR 0003 option B), never the local GPL installer, source not public yet, no network claims beyond code evidence, no analytics, preview banner + noindex.
+Constraints: public site at nova.snowbros.me; 0.1.0 download only via a release record with checksum, notices and engine source (installer GPL, code MIT OR Apache-2.0, ADR 0003), no network claims beyond code evidence, no analytics,
 
 ## Direction contract
 THESIS: The site is NOVA's catalogue, projected. It refuses the dark-gradient hero with three feature cards and a Download button; evidence and the real app carry the page.

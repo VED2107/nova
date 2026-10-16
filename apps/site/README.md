@@ -1,6 +1,6 @@
-# NOVA website (preview)
+# NOVA website
 
-The NOVA preview site: Home, Product, Media Atlas, Compare, Release, Trust and Docs. It is a static Astro site with no analytics, no trackers and no third-party requests. Every page carries `noindex` until launch.
+The NOVA website, live at <https://nova.snowbros.me>: Home, Product, Media Atlas, Compare, Release, Trust and Docs. It is a static Astro site with no analytics, no trackers and no third-party requests.
 
 ## Run it
 
@@ -30,15 +30,15 @@ pnpm --filter @nova/site test      # vitest: Atlas data and shortcuts
 
 ## Downloads
 
-There is no download. A release record may only carry one when its installer bundles the **LGPL engine build** (ADR 0003, option B). `scripts/check-dist.mjs` fails the build for any installer link that is not in `releases.json` with `"engine": "lgpl"`, a SHA-256, an https URL and a notices page. It also fails on executables in the output, private paths, secrets, external requests and broken links. Never add the local 0.1.0-rc.1 installer: it bundles the GPL development engine.
+Release records live in `src/data/releases.json`. `scripts/check-dist.mjs` fails the build for an installer link that is not in a release record with an https URL, a SHA-256 and a notices page; a `"gpl"` engine build (0.1.0) must also point at its corresponding source. It also fails on executables in the output, private paths, secrets, external requests, broken links, `noindex` on public pages, and a canonical URL that isn't `nova.snowbros.me`.
+
+To publish a new version: create the GitHub release with the installer and source archives first, then add its record at the top of `releases.json` and redeploy.
 
 ## Deploying on Vercel
 
-1. In Vercel: **Add New → Project**, import `VED2107/nova`.
-2. **Root Directory:** `apps/site`. Keep **Include files outside the root directory** on: the build reads `docs/` and the desktop action registry.
-3. The framework preset (Astro), build command (`pnpm run build`) and output (`dist`) come from `apps/site/vercel.json`.
-4. Deploy a **Preview** (any branch other than the production branch, e.g. `site/preview`). Leave Deployment Protection on while the site is a preview.
-5. Add the environment variable `ENABLE_EXPERIMENTAL_COREPACK=1`, so Vercel uses the pnpm version pinned in the root `package.json` (`pnpm@11.1.1`).
-6. `vercel.json` adds `X-Robots-Tag: noindex`, a strict CSP and cache headers. Set `SITE_URL` if the canonical host should differ from the Vercel URL.
+The site is deployed from this repository at <https://nova.snowbros.me>.
 
-From a terminal instead: `cd apps/site && npx vercel` (preview), never `--prod` before launch.
+- **Root Directory:** `apps/site`, with **Include files outside the root directory** on (the build reads `docs/` and the desktop action registry).
+- **Environment:** `ENABLE_EXPERIMENTAL_COREPACK=1`, so Vercel uses the pinned `pnpm@11.1.1`.
+- Framework, build command and output come from `apps/site/vercel.json`, which also sets a strict CSP and cache headers.
+- `SITE_URL` overrides the canonical host, for example for a staging domain.

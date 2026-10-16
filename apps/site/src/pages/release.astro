@@ -11,13 +11,13 @@ interface ReleaseRecord {
   version: string;
   date: string;
   channel: string;
-  engine: "lgpl" | "gpl-dev";
+  engine: "lgpl" | "gpl" | "gpl-dev";
   platforms: { name: string; state: string }[];
-  download: { url: string; sha256: string; size: string; signed: boolean; notices: string } | null;
+  download: { url: string; sha256: string; size: string; signed: boolean; notices: string; source?: string; release?: string } | null;
   notes: string[];
 }
 const releases = data.releases as ReleaseRecord[];
-const latest = releases.find((r) => r.download && r.engine === "lgpl");
+const latest = releases.find((r) => r.download);
 
 const stateLabel = { open: "Open", "not-started": "Not started", done: "Done" } as const;
 const stateTier = { open: "partial", "not-started": "none", done: "verified" } as const;
@@ -26,7 +26,7 @@ const openGates = RELEASE_GATES.filter((g) => g.state !== "done").length;
 
 <Base
   title="Release"
-  description="NOVA's release status: 0.1.0-rc.1 is a local release candidate, tested on one Windows 11 machine and not distributed. What has to happen before a public download."
+  description="Download NOVA 0.1.0 for Windows: checksum, licences, engine source, platforms and what is still open."
 >
   <section class="section">
     <div class="wrap">
@@ -34,12 +34,12 @@ const openGates = RELEASE_GATES.filter((g) => g.state !== "done").length;
       <div class="board">
         <div class="now">
           <p class="ver spine-xl num">{VERSION.version}</p>
-          <p class="state"><Stamp tier="preview" label="Not distributed" /> {VERSION.channel}, {VERSION.date}</p>
+          <p class="state"><Stamp tier="preview" label="Released" /> Windows x64, {VERSION.date}</p>
           <p class="body">
-            Built from <code>main</code> as a Windows x64 installer and tested on the development machine only. It will not be
-            published: it bundles the GPL development build of the engine. Licensing is now decided: NOVA is MIT OR
-            Apache-2.0, and releases will bundle an LGPL engine built from source. When that build exists and the open
-            conditions below are met, this page gets a download.
+            The first public release. Built from the <code>v0.1.0</code> tag and tested on one Windows 11 machine. NOVA's code
+            is MIT OR Apache-2.0; the installer bundles a third-party mpv/FFmpeg build with GPL components, so the installer as
+            a whole is distributed under the GPL, with licence texts, notices and the engine's source. The next releases move to
+            an LGPL engine built from source.
           </p>
         </div>
         <div class="dl" aria-labelledby="dl-h">
@@ -51,8 +51,16 @@ const openGates = RELEASE_GATES.filter((g) => g.state !== "done").length;
                 <a class="btn" href={latest.download.url}>Download for Windows ({latest.download.size})</a>
                 <p class="small">SHA-256 <code>{latest.download.sha256}</code></p>
                 <p class="small">
-                  {latest.download.signed ? "Signed installer." : "Unsigned installer: Windows may warn before running it."}{" "}
-                  <a href={latest.download.notices}>Licences and engine source</a>
+                  {latest.download.signed ? "Signed installer." : "Unsigned installer: Windows SmartScreen may warn before it runs. Check the SHA-256 first."}
+                </p>
+                <p class="small">
+                  <a href={latest.download.notices}>Licences and notices</a>
+                  {latest.download.source && (
+                    <>
+                      {" · "}
+                      <a href={latest.download.source}>Release, source and engine source</a>
+                    </>
+                  )}
                 </p>
               </>
             ) : (
@@ -74,7 +82,7 @@ const openGates = RELEASE_GATES.filter((g) => g.state !== "done").length;
 
   <section class="section sunk" aria-labelledby="gates-h">
     <div class="wrap">
-      <SectionHead id="gates-h" title="Before a public release" />
+      <SectionHead id="gates-h" title="Still open after 0.1.0" />
       <ol class="gates">
         {
           RELEASE_GATES.map((g, i) => (
@@ -130,7 +138,13 @@ const openGates = RELEASE_GATES.filter((g) => g.state !== "done").length;
               </div>
               <div>
                 <dt>Engine</dt>
-                <dd>{r.engine === "lgpl" ? "LGPL libmpv/FFmpeg, built from source" : <span class="muted">GPL development build (not redistributable)</span>}</dd>
+                <dd>
+                  {r.engine === "lgpl"
+                    ? "LGPL libmpv/FFmpeg, built from source"
+                    : r.engine === "gpl"
+                      ? "Third-party mpv/FFmpeg build with GPL parts; installer distributed under the GPL"
+                      : <span class="muted">Development engine build; this candidate was not distributed</span>}
+                </dd>
               </div>
               <div>
                 <dt>Platforms</dt>
@@ -159,7 +173,7 @@ const openGates = RELEASE_GATES.filter((g) => g.state !== "done").length;
           </article>
         ))
       }
-      <p class="muted small">Full notes are in the repository's changelog, which will be published with the source.</p>
+      <p class="muted small">Full notes: <a href="https://github.com/VED2107/nova/blob/v0.1.0/CHANGELOG.md">CHANGELOG.md</a>.</p>
     </div>
   </section>
 </Base>

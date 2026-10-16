@@ -69,7 +69,7 @@ const chapters: Chapter[] = [
 
 <Base
   title="NOVA"
-  description="NOVA is a preview Windows media player that plays local files, remembers where you stopped and tells you exactly what it decoded. Not yet available to download."
+  description="NOVA is a free Windows media player that plays local files, remembers where you stopped and tells you exactly what it decoded. Version 0.1.0 is available to download."
 >
   <section class="hero">
     <div class="wrap">
@@ -82,15 +82,16 @@ const chapters: Chapter[] = [
             it decoded, and what it can't.
           </p>
           <div class="actions">
-            <a class="btn" href="#projector">
-              See it play
-              <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5 3.5v9l7-4.5z" fill="currentColor"></path></svg>
+            <a class="btn" href="/release">
+              Download for Windows
+              <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.5v8M4.5 7 8 10.5 11.5 7M3 13.5h10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path></svg>
             </a>
+            <a class="btn ghost" href="#projector">See it play</a>
             <a class="btn ghost" href="/atlas">Check a format</a>
           </div>
           <p class="status-line">
-            <Stamp tier="preview" label="Preview" />
-            <span>{VERSION.version} · Windows · not yet downloadable</span>
+            <Stamp tier="preview" label={VERSION.version} />
+            <span>Free · Windows x64 · tested on Windows 11 · <a href="https://github.com/VED2107/nova">source on GitHub</a></span>
           </p>
         </div>
         <Plate shot="playing" no="01" eager sizes="(min-width: 1100px) 58vw, 100vw" class="hero-plate" />
@@ -174,16 +175,18 @@ const chapters: Chapter[] = [
 
   <section class="section close sunk" aria-labelledby="close-h">
     <div class="wrap close-grid">
-      <h2 id="close-h" class="spine-xl">Preview. Not yet downloadable.</h2>
+      <h2 id="close-h" class="spine-xl">NOVA 0.1.0 is out.</h2>
       <div class="close-copy">
         <p>
-          NOVA {VERSION.version} has been built and tested on one Windows 11 machine. Licensing is decided: NOVA is MIT
-          OR Apache-2.0, and releases will bundle an LGPL playback engine built from source. That engine build doesn't
-          exist yet, and the current installer bundles a GPL development build, so it isn't published.
+          Free for Windows x64. It has been tested on one Windows 11 machine, so expect rough edges; the known ones are
+          listed on <a href="/product#issues-h">Product</a>.
         </p>
-        <p>Until then this site shows the real app, the real test results and what is still open.</p>
+        <p>
+          NOVA's code is MIT OR Apache-2.0. This installer bundles a third-party engine build with GPL components, so the
+          installer as a whole is GPL; the engine's source and licences ship with it. Later releases move to an LGPL engine.
+        </p>
         <div class="actions">
-          <a class="btn" href="/release">Release status</a>
+          <a class="btn" href="/release">Download 0.1.0</a>
           <a class="btn ghost" href="/trust">How NOVA is built and tested</a>
         </div>
       </div>

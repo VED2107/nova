@@ -20,8 +20,8 @@ const filmUse = (id: keyof typeof FILMS) =>
   Object.values(SHOTS).filter((s) => (s.films as string[]).includes(id)).length;
 
 const components = [
-  ["libmpv (mpv)", "GPLv2+ by default; LGPLv2.1+ when built with -Dgpl=false", "Playback engine. Releases: our own LGPL build (not built yet). Development: a third-party nightly, treated as GPL."],
-  ["FFmpeg", "LGPLv2.1+, or GPL when built with GPL parts", "Decoders and demuxers inside libmpv. Releases: built without GPL or non-free parts. The development build includes x264/x265 wrappers, which makes it GPL."],
+  ["libmpv (mpv)", "GPLv2+ by default; LGPLv2.1+ when built with -Dgpl=false", "Playback engine. 0.1.0 bundles the shinchiro build 20261015 (GPL). Next: our own LGPL build."],
+  ["FFmpeg", "LGPLv2.1+, or GPL when built with GPL parts", "Decoders and demuxers inside libmpv. The 0.1.0 build includes x264/x265, which makes it GPL."],
   ["NOVA", "MIT OR Apache-2.0", "This application's own code"],
   ["Tauri 2, tauri-plugin-dialog, tauri-plugin-log", "MIT OR Apache-2.0", "Application shell"],
   ["React 19, Vite 8, Tailwind CSS 4", "MIT", "Interface"],
@@ -59,18 +59,21 @@ const components = [
       <dl class="facts">
         <div>
           <dt>Development</dt>
-          <dd><Stamp tier="preview" label="Preview" /> Active. A local release candidate (0.1.0-rc.1) exists.</dd>
+          <dd><Stamp tier="preview" label="0.1.0" /> Released 2026-10-16. Active development.</dd>
         </div>
         <div>
           <dt>Source code</dt>
           <dd>
-            Licensed <strong>MIT OR Apache-2.0</strong> (decided 2026-10-16). The repository is still private, so the source
-            can't be read or reused until it is published.
+            Public at <a href="https://github.com/VED2107/nova">github.com/VED2107/nova</a>, licensed <strong>MIT OR
+            Apache-2.0</strong>.
           </dd>
         </div>
         <div>
           <dt>Distribution</dt>
-          <dd>None. The installer exists for local testing only. See <a href="/release">Release</a>.</dd>
+          <dd>
+            Windows installer on GitHub Releases. Because it bundles an engine build with GPL components, the installer as a
+            whole is distributed under the GPL. See <a href="/release">Release</a>.
+          </dd>
         </div>
         <div>
           <dt>Made by</dt>
@@ -78,7 +81,7 @@ const components = [
         </div>
         <div>
           <dt>Reporting issues</dt>
-          <dd>There is no public issue tracker yet. One will open with the repository.</dd>
+          <dd><a href="https://github.com/VED2107/nova/issues">GitHub issues</a>.</dd>
         </div>
       </dl>
     </div>
@@ -167,13 +170,14 @@ const components = [
 
   <section class="section room" aria-labelledby="licensing">
     <div class="wrap">
-      <SectionHead id="licensing" title="Licensing: decided, engine build pending" />
+      <SectionHead id="licensing" title="Licensing" />
       <div class="two">
         <div class="col">
-          <p class="big spine">Decided. The download waits for the engine it requires.</p>
+          <p class="big spine">NOVA's code is MIT OR Apache-2.0. The 0.1.0 installer is GPL.</p>
           <p>
-            On 2026-10-16 the owner chose option B: NOVA's own code is MIT OR Apache-2.0, and releases bundle an LGPL libmpv
-            and FFmpeg built from source.
+            0.1.0 bundles a third-party engine build. It ships under the GPL with licence texts, notices, source archives of
+            the exact mpv and FFmpeg commits and the build recipe, and a written offer for the rest. The plan for later
+            releases is an LGPL engine built from source (option B), so installers can follow NOVA's own licence.
           </p>
           <p>
             The engine build used in development comes from a third-party nightly. Its DLL includes the x264 and x265 encoder
@@ -181,8 +185,7 @@ const components = [
             those encoders: decoding uses FFmpeg's own LGPL decoders or the GPU.
           </p>
           <p>
-            That LGPL build has not been made yet, and until it exists and passes a licence check, nothing is distributed.
-            Codec patents are a separate question that depends on jurisdiction.
+            That LGPL build has not been made yet. Codec patents are a separate question that depends on jurisdiction.
           </p>
           <p><a class="link-arrow" href="/docs/adr-0003">Read ADR 0003</a></p>
         </div>
@@ -194,13 +197,13 @@ const components = [
             <tbody>
               <tr>
                 <th scope="row">A. Ship a GPL build</th>
-                <td>Ship a GPL engine: the whole distribution must then comply with the GPL. Not chosen.</td>
-                <td><Stamp tier="unsupported" label="Not chosen" /></td>
+                <td>Ship the third-party GPL engine build and meet the GPL: licence text, corresponding source, notices.</td>
+                <td><Stamp tier="verified" label="Used for 0.1.0" /></td>
               </tr>
               <tr>
                 <th scope="row">B. Build an LGPL engine</th>
-                <td>A reproducible build of mpv and FFmpeg without GPL or non-free parts, so NOVA keeps its MIT OR Apache-2.0 licence. Chosen 2026-10-16.</td>
-                <td><Stamp tier="verified" label="Chosen" /> <Stamp tier="planned" label="Not built" /></td>
+                <td>A reproducible build of mpv and FFmpeg without GPL or non-free parts, so installers can follow NOVA's MIT OR Apache-2.0 licence.</td>
+                <td><Stamp tier="planned" label="Next releases" /></td>
               </tr>
             </tbody>
           </table>

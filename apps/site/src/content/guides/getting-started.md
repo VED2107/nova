@@ -1,14 +1,18 @@
 ---
 title: Getting started
-summary: What NOVA needs, how to open your first file, and why there is no download yet.
+summary: Download and install NOVA 0.1.0, what it needs, and opening your first file.
 order: 1
 status: incomplete
-statusNote: There is no public build yet. Installation steps will be written for the first release and tested on a clean machine.
+statusNote: Written for 0.1.0. Installing has been tested on one machine only.
 ---
 
-## There is no download yet
+## Download and install
 
-NOVA 0.1.0 exists as a local release candidate. It has been installed and tested on one Windows 11 computer and is **not distributed**. NOVA's licence is decided (MIT OR Apache-2.0), but releases must bundle an LGPL playback engine built from source, and that build doesn't exist yet. See [Release](/release) and [ADR 0003](/docs/adr-0003).
+1. Download `NOVA_0.1.0_x64-setup.exe` from [Release](/release) and compare its SHA-256 with the one shown there. In PowerShell: `Get-FileHash .\NOVA_0.1.0_x64-setup.exe`.
+2. Run it. The installer is not signed, so Windows SmartScreen may warn. Choose **More info → Run anyway** only if the checksum matches.
+3. NOVA installs for your user account, without administrator rights, and adds an uninstall entry named “NOVA 0.1.0”.
+
+The installer bundles a third-party mpv/FFmpeg build with GPL components, so it is distributed under the GPL. Licence texts and the engine's source details are in the `licenses` folder of the install directory and on the [GitHub release](https://github.com/VED2107/nova/releases/tag/v0.1.0).
 
 ## What it runs on
 

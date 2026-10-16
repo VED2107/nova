@@ -5,15 +5,16 @@ import { readFileSync, readdirSync, statSync, existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-// The only installer links allowed are release records that bundle the LGPL engine (ADR 0003, option B)
-// and carry a checksum and a notices page.
+// The only installer links allowed are release records with a checksum, an https URL and a notices
+// page; a GPL engine build (0.1.0) must also point at its corresponding source.
 const releaseData = JSON.parse(readFileSync(new URL("../src/data/releases.json", import.meta.url), "utf8"));
 const ALLOWED_DOWNLOADS = new Set();
 for (const r of releaseData.releases) {
   if (!r.download) continue;
   const d = r.download;
-  if (r.engine !== "lgpl" || !/^[0-9a-f]{64}$/i.test(d.sha256 ?? "") || !d.notices || !/^https:\/\//.test(d.url ?? "")) {
-    console.error(`check-dist: release ${r.version} has a download that is not an LGPL build with sha256, notices and an https URL`);
+  const engineOk = r.engine === "lgpl" || (r.engine === "gpl" && /^https:\/\//.test(d.source ?? ""));
+  if (!engineOk || !/^[0-9a-f]{64}$/i.test(d.sha256 ?? "") || !d.notices || !/^https:\/\//.test(d.url ?? "")) {
+    console.error(`check-dist: release ${r.version} download needs an https URL, sha256, notices, and (for a GPL engine) a source URL`);
     process.exit(1);
   }
   ALLOWED_DOWNLOADS.add(d.url);
@@ -62,7 +63,8 @@ for (const f of files) {
   }
   for (const m of text.matchAll(/href="([^"]*\.(?:exe|msi|msix|zip|7z))"/gi))
     if (!ALLOWED_DOWNLOADS.has(m[1])) problems.push(`${r}: link to an installer that is not an approved release: ${m[1]}`);
-  if (!/<meta name="robots" content="noindex/.test(text)) problems.push(`${r}: missing noindex (preview)`);
+  if (/<meta name="robots" content="noindex/.test(text) && r !== "404.html") problems.push(`${r}: noindex on a public page`);
+  if (!/<link rel="canonical" href="https:\/\/nova\.snowbros\.me/.test(text) && !process.env.SITE_URL) problems.push(`${r}: canonical is not nova.snowbros.me`);
 
   // Internal links and assets must resolve to a built file.
   for (const m of text.matchAll(/\s(?:href|src)="(\/[^"#?]*)(?:[#?][^"]*)?"/g)) {

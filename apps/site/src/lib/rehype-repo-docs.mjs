@@ -7,8 +7,7 @@ const REPO_ROOT = path.resolve(fileURLToPath(new URL("../../../../", import.meta
 /**
  * Prepares repository Markdown for the site:
  * - links between published records point at their /docs pages;
- * - links to unpublished repository files become plain references (the
- *   repository is not public yet, so there is nothing to link to);
+ * - links to other repository files open on GitHub at the release tag;
  * - the document's own H1 is removed (the page renders the title);
  * - tables get a labelled, keyboard-scrollable wrapper.
  * Markdown outside the repository's docs/ (the site's own guides) only gets
@@ -45,8 +44,7 @@ export function rehypeRepoDocs() {
       if (doc) {
         node.properties.href = `/docs/${doc.slug}${hash ? `#${hash}` : ""}`;
       } else {
-        node.tagName = "span";
-        node.properties = { className: ["repo-ref"], title: `${resolved} — in the NOVA repository (not public yet)` };
+        node.properties.href = `https://github.com/VED2107/nova/blob/v0.1.0/${resolved}${hash ? `#${hash}` : ""}`;
       }
     });
   };

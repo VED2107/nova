@@ -36,4 +36,4 @@ A known issue: subtitles drawn by the engine can sit under the deck while it is 
 
 ## Something else
 
-There is no public issue tracker yet; the repository stays private until release.
+Report it on [GitHub issues](https://github.com/VED2107/nova/issues), with the details from the playback details panel (<kbd>I</kbd>).

@@ -22,9 +22,9 @@ export interface Feature {
 }
 
 export const VERSION = {
-  version: "0.1.0-rc.1",
+  version: "0.1.0",
   date: "2026-10-16",
-  channel: "Local release candidate",
+  channel: "Release",
   platform: "Windows x64",
   tested: "Windows 11, one machine (i5-10300H, Intel UHD 630 + GTX 1650)",
 };
@@ -82,7 +82,7 @@ export const RELEASE_GATES: { name: string; state: "open" | "not-started" | "don
   {
     name: "Engine licensing decision (ADR 0003)",
     state: "done",
-    detail: "Decided 2026-10-16: option B. Releases will bundle an LGPL libmpv and FFmpeg built from source, not the GPL development build.",
+    detail: "Decided 2026-10-16. 0.1.0 ships the third-party engine build under the GPL, with its source and notices. Later releases move to an LGPL engine built from source (option B).",
     doc: "adr-0003",
   },
   {
@@ -92,15 +92,15 @@ export const RELEASE_GATES: { name: string; state: "open" | "not-started" | "don
     doc: "adr-0003",
   },
   {
-    name: "LGPL engine build",
+    name: "LGPL engine build (next release)",
     state: "not-started",
-    detail: "Build mpv with -Dgpl=false and FFmpeg without GPL or non-free parts, reproducibly, record the exact configuration, and check the result contains no GPL code. Then rebuild the installer with it.",
+    detail: "Build mpv with -Dgpl=false and FFmpeg without GPL or non-free parts, reproducibly, record the exact configuration, and check the result contains no GPL code. Until then installers are GPL.",
     doc: "adr-0003",
   },
   {
     name: "Third-party notices and licence review",
-    state: "not-started",
-    detail: "An initial inventory exists. Still to do: automated checks (cargo deny / cargo about, an npm licence checker), notices and LGPL source information shipped with the installer.",
+    state: "open",
+    detail: "0.1.0 ships licence texts, third-party notices, engine source archives and a written offer. Still to do: an automated licence report (cargo deny / cargo about, an npm licence checker) and a counsel review.",
     doc: "adr-0003",
   },
   {
@@ -151,7 +151,7 @@ export const COMPARE_ROWS: { label: string; cells: [CompareCell, CompareCell, Co
   {
     label: "Availability",
     cells: [
-      { text: "Preview. Not downloadable until the LGPL engine build ships.", status: "none" },
+      { text: "Released: 0.1.0 for Windows, 2026-10-16. Tested on one machine.", status: "partial" },
       { text: "Released; current version 3.0.24 for Windows.", src: 0 },
       { text: "Released; developed in public on GitHub.", src: 3 },
       { text: "Maintained fork since 2017; not accepting feature requests for now.", src: 5 },
@@ -169,7 +169,7 @@ export const COMPARE_ROWS: { label: string; cells: [CompareCell, CompareCell, Co
   {
     label: "Licence",
     cells: [
-      { text: "MIT OR Apache-2.0, decided 2026-10-16. Releases bundle an LGPL engine. Source not public yet.", status: "decided" },
+      { text: "Code: MIT OR Apache-2.0, source on GitHub. The 0.1.0 installer is GPL because of its bundled engine.", status: "decided" },
       { text: "Free and open source; most VideoLAN software is GPLv2.", src: 1 },
       { text: "GPLv2 or later; LGPLv2.1 or later with -Dgpl=false.", src: 3 },
       { text: "GPLv3.", src: 5 },
