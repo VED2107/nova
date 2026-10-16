@@ -74,7 +74,7 @@ preview frames with chapter name, A–B bracket, queue stations, playback detail
 (Audio & subtitles, Keys & mouse, Appearance, About → Updates "up to date"), shortcuts, Full and Compact bars at
 1440×900 and 860×600, On-air marks, Escape closing Settings.
 
-Before / after: `v3/*-before.jpg`, `v3/*-after.jpg` (synthetic test-pattern media from `tests/fixtures`).
+Before / after: `v3/*-before.jpg`, `v3/*-after.jpg` (synthetic test-pattern media from `tests/fixtures`). No Library "before" capture: the 0.1.0 tour did not reach it.
 
 ## 5. Not verified / known issues
 
