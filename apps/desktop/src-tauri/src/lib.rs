@@ -4,6 +4,7 @@
 //! and receives `PlaybackSnapshot`s on the `playback://snapshot` event.
 
 mod library;
+mod previews;
 mod video_surface;
 
 use nova_application::progress_service::{ProgressService, ResumeNotice};
@@ -463,6 +464,7 @@ pub fn run() {
                 )
             });
             app.manage(library::LibraryState(library));
+            app.manage(previews::Previews::new(data.join("thumbs"), libmpv_path()));
             let progress = store.map(|store| {
                 log::info!(
                     "library database ready (schema v{})",
@@ -530,6 +532,7 @@ pub fn run() {
             queue_shuffle,
             playback_screenshot,
             reveal_screenshot,
+            previews::preview_frame,
             library::library_roots,
             library::library_add_root,
             library::library_remove_root,

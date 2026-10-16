@@ -8,10 +8,11 @@ import { engineInfo, type EngineInfo } from "../../services/playback/client";
 import { setPref, usePrefs, type Prefs } from "../../services/prefs";
 import { bind, resetAction, unbind } from "./keymapEdit";
 
-type Section = "appearance" | "playback" | "controls" | "privacy" | "formats" | "about";
+type Section = "appearance" | "playback" | "subtitles" | "controls" | "privacy" | "formats" | "about";
 const SECTIONS: { id: Section; label: string }[] = [
   { id: "appearance", label: "Appearance" },
   { id: "playback", label: "Playback" },
+  { id: "subtitles", label: "Audio & subtitles" },
   { id: "controls", label: "Keys & mouse" },
   { id: "privacy", label: "Library & privacy" },
   { id: "formats", label: "Formats" },
@@ -74,6 +75,7 @@ export function SettingsDialog(props: { open: boolean; onClose: () => void; init
           )}
           {section === "appearance" && <Appearance onError={setError} />}
           {section === "playback" && <Playback onError={setError} />}
+          {section === "subtitles" && <AudioSubtitles onError={setError} />}
           {section === "controls" && <Controls onError={setError} />}
           {section === "privacy" && <Privacy onError={setError} />}
           {section === "formats" && <Formats />}
@@ -116,6 +118,17 @@ function Appearance({ onError }: { onError: (e: string) => void }) {
       <Field label="Player controls" description="Compact gives the picture more room.">
         <Segmented label="Player controls" value={p.controls} onChange={(v) => set("controls", v)} options={[{ value: "comfortable", label: "Comfortable" }, { value: "compact", label: "Compact" }]} />
       </Field>
+      <Field label="Timeline" description="Wide runs the full width above the controls. Compact is a short bar between them, as in VLC.">
+        <Segmented
+          label="Timeline"
+          value={p.timelineLayout}
+          onChange={(v) => set("timelineLayout", v)}
+          options={[
+            { value: "wide", label: "Wide" },
+            { value: "compact", label: "Compact" },
+          ]}
+        />
+      </Field>
       <div className="border-b border-seam">
         <Switch label="Hide controls while playing" description="Controls fade after 2.5 seconds without mouse movement." checked={p.autoHide === "on"} onChange={(v) => set("autoHide", v ? "on" : "off")} />
       </div>
@@ -143,6 +156,57 @@ function Playback({ onError }: { onError: (e: string) => void }) {
       <Field label="Time display" description="Also toggled by clicking the time in the player.">
         <Segmented label="Time display" value={p.timeDisplay} onChange={(v) => set("timeDisplay", v)} options={[{ value: "elapsed", label: "Elapsed" }, { value: "remaining", label: "Remaining" }]} />
       </Field>
+    </section>
+  );
+}
+
+function AudioSubtitles({ onError }: { onError: (e: string) => void }) {
+  const p = usePrefs();
+  const set = useSet(onError);
+  const map = useMemo(() => effectiveKeymap(parseKeymap(p.keymap)), [p.keymap]);
+  const key = (id: string) => map[id]?.[0];
+  const scale = Number(p.subScale) || 100;
+  const step = (d: number) => set("subScale", String(Math.min(300, Math.max(50, scale + d))) as Prefs["subScale"]);
+  return (
+    <section>
+      <Heading>Audio & subtitles</Heading>
+      <Field label="Subtitle size" description="Relative to the size the subtitle file asks for. Also Ctrl + mouse wheel over the picture, or the Subtitles menu.">
+        <div className="flex items-center gap-1" role="group" aria-label="Subtitle size">
+          <Button variant="quiet" className="w-8 px-0" aria-label="Smaller subtitles" disabled={scale <= 50} onClick={() => void step(-10)}>
+            −
+          </Button>
+          <output aria-live="polite" className="readout w-14 text-center text-[14px] text-ink">
+            {scale}%
+          </output>
+          <Button variant="quiet" className="w-8 px-0" aria-label="Larger subtitles" disabled={scale >= 300} onClick={() => void step(10)}>
+            +
+          </Button>
+          <Button variant="ghost" className="ml-1" disabled={scale === 100} onClick={() => void set("subScale", "100")}>
+            Reset
+          </Button>
+        </div>
+      </Field>
+      <div className="border-b border-seam px-3 py-3.5">
+        <p className="text-[14px] font-[560] text-ink">Timing</p>
+        <p className="mt-0.5 max-w-lg text-[12.5px] leading-snug text-ink-3">
+          Delays apply to what is playing and are adjusted in 50 ms steps from the player's Audio and Subtitles menus, or with the keys below. They return to zero for the next file.
+        </p>
+        <dl className="mt-3 grid max-w-md grid-cols-[1fr_auto] gap-x-6 gap-y-1.5 text-[13px]">
+          {[
+            ["Subtitles earlier / later", ["subs.earlier", "subs.later"]],
+            ["Reset subtitle delay", ["subs.reset"]],
+            ["Audio earlier / later", ["audio.earlier", "audio.later"]],
+            ["Reset audio delay", ["audio.reset"]],
+            ["Next subtitle track (or off)", ["subs.cycle"]],
+            ["Next audio track", ["audio.cycle"]],
+          ].map(([label, ids]) => (
+            <div key={label as string} className="contents">
+              <dt className="text-ink-2">{label}</dt>
+              <dd className="flex gap-1">{(ids as string[]).map((id) => (key(id) ? <Kbd key={id}>{chordLabel(key(id)!)}</Kbd> : <span key={id} className="text-[12px] italic text-ink-3">no key</span>))}</dd>
+            </div>
+          ))}
+        </dl>
+      </div>
     </section>
   );
 }
@@ -190,8 +254,20 @@ function Controls({ onError }: { onError: (e: string) => void }) {
   return (
     <section>
       <Heading>Mouse</Heading>
-      <Field label="Scroll wheel over the picture" description="Over the timeline the wheel always seeks; Shift+wheel seeks anywhere.">
+      <Field label="Wheel over the picture" description="Over the timeline the wheel always seeks; Shift + wheel seeks anywhere. Lists and panels scroll normally.">
         <Segmented label="Scroll wheel" value={p.wheel} onChange={(v) => set("wheel", v)} options={[{ value: "volume", label: "Volume" }, { value: "seek", label: "Seek" }, { value: "none", label: "Nothing" }]} />
+      </Field>
+      <Field label="Ctrl + wheel over the picture" description="Only over the picture; elsewhere Ctrl + wheel does nothing.">
+        <Segmented
+          label="Ctrl + wheel"
+          value={p.ctrlWheel}
+          onChange={(v) => set("ctrlWheel", v)}
+          options={[
+            { value: "subtitleSize", label: "Subtitle size" },
+            { value: "volume", label: "Volume" },
+            { value: "none", label: "Nothing" },
+          ]}
+        />
       </Field>
       <Field label="Click on the picture">
         <Segmented label="Click" value={p.click} onChange={(v) => set("click", v)} options={[{ value: "pause", label: "Play / pause" }, { value: "none", label: "Nothing" }]} />
@@ -200,7 +276,7 @@ function Controls({ onError }: { onError: (e: string) => void }) {
         <Segmented label="Double-click" value={p.dblclick} onChange={(v) => set("dblclick", v)} options={[{ value: "fullscreen", label: "Fullscreen" }, { value: "none", label: "Nothing" }]} />
       </Field>
       <p className="border-b border-seam px-3 py-3 text-[12.5px] leading-relaxed text-ink-3">
-        Right-click opens the full player menu. Mouse back/forward buttons go to the previous/next title in the queue.
+        Right-click the picture (or press the Menu key / Shift+F10) for every player tool, grouped as Playback, Audio, Subtitles, Video, View, Playlist and Tools. Mouse back/forward buttons go to the previous/next title in the queue.
       </p>
 
       <div className="mt-8 flex items-end justify-between px-3">

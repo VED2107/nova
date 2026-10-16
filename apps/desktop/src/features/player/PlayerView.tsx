@@ -2,21 +2,22 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
-import { ChevronLeftIcon, FileIcon, ImmersiveIcon, NextIcon, ReplayIcon } from "../../components/icons";
+import { ChevronLeftIcon, FileIcon, NextIcon, ReplayIcon } from "../../components/icons";
+import { OsdMenu } from "../../components/OsdMenu";
 import { Symbol } from "../../components/Wordmark";
-import { Button, IconButton } from "../../components/ui/controls";
+import { Button } from "../../components/ui/controls";
 import { Dialog } from "../../components/ui/Dialog";
-import { ACTIONS, actionForChord, chordLabel, chordOf, commandFor, effectiveKeymap, parseKeymap } from "../../services/playback/actions";
+import { ACTIONS, actionForChord, chordLabel, chordOf, commandFor, effectiveKeymap, nextSubScale, parseKeymap } from "../../services/playback/actions";
 import { engineInfo, execute, isPlaybackError, launchMediaPaths, queue, revealScreenshot, screenshot, useQueue, usePlayback, type EngineInfo } from "../../services/playback/client";
 import { describeError } from "../../services/playback/errors";
 import { formatTime } from "../../services/playback/format";
 import { nextAbLoop } from "../../services/playback/shortcuts";
 import { parseTimeInput } from "../../services/playback/time";
-import { ASPECT_RATIOS, MEDIA_EXTENSIONS, SUBTITLE_EXTENSIONS, type PlaybackError, type RepeatMode } from "../../services/playback/types";
+import { MAX_VOLUME, MEDIA_EXTENSIONS, SUBTITLE_EXTENSIONS, type PlaybackError, type PlaybackSnapshot, type RepeatMode } from "../../services/playback/types";
 import { setPref, usePrefs } from "../../services/prefs";
-import { ContextMenu, type CtxGroup } from "./ContextMenu";
-import { ControlBar } from "./ControlBar";
+import { ControlBar, type DeckMenu } from "./ControlBar";
 import { Inspector } from "./Inspector";
+import { buildPlayerMenus } from "./playerMenu";
 import { QueuePanel } from "./QueuePanel";
 import { ResumeToast } from "./ResumeToast";
 
@@ -25,12 +26,16 @@ const WHEEL_SEEK_MS = 5_000;
 const WHEEL_VOLUME = 5;
 const SUB_MARGIN_BASE = 22; // the engine's own default bottom margin
 const PANEL_WIDTH = 380;
+const OSD_MS = 1400;
 let launchHandled = false; // StrictMode runs effects twice in development
 
 type Panel = "queue" | "inspector" | null;
+type MenuState = { which: DeckMenu; x?: number; y?: number; anchor?: DOMRect; fromKeyboard?: boolean };
+/** On-screen readout: an engraved name, the engine's value, an optional level. */
+type Osd = { name: string; value: string; level?: number; action?: { label: string; run: () => void }; long?: boolean };
 
 /**
- * The Darkroom: video under a transparent WebView, chrome that recedes.
+ * The monitor: video under a transparent WebView, chrome that recedes.
  * Stays mounted while Home/Library are shown (audio keeps playing) and only
  * handles input while `active`.
  */
@@ -39,32 +44,34 @@ export function PlayerView(props: { active: boolean; onBrowse: () => void; onOpe
   const q = useQueue();
   const prefs = usePrefs();
   const keymap = useMemo(() => effectiveKeymap(parseKeymap(prefs.keymap)), [prefs.keymap]);
-  const hint = (id: string) => (keymap[id]?.[0] ? chordLabel(keymap[id]![0]!) : undefined);
+  const hint = useCallback((id: string) => (keymap[id]?.[0] ? chordLabel(keymap[id]![0]!) : undefined), [keymap]);
 
   const [panel, setPanel] = useState<Panel>(null);
   const [immersive, setImmersive] = useState(false);
-  const [ctx, setCtx] = useState<{ x: number; y: number; anchor?: DOMRect; tools?: boolean } | null>(null);
+  const [menu, setMenu] = useState<MenuState | null>(null);
   const [gotoOpen, setGotoOpen] = useState(false);
   const [engine, setEngine] = useState<EngineInfo | null>(null);
   const [engineError, setEngineError] = useState<PlaybackError | null>(null);
   const [commandError, setCommandError] = useState<PlaybackError | null>(null);
-  const [notice, setNotice] = useState<Notice | null>(null);
+  const [osd, setOsd] = useState<Osd | null>(null);
   const [isFullscreen, setFullscreen] = useState(false);
   const [controlsVisible, setControlsVisible] = useState(true);
   const [nearBottom, setNearBottom] = useState(false);
   const [dragOver, setDragOver] = useState(false);
-  const menuOpen = useRef(false);
   const overControls = useRef(false);
   const hideTimer = useRef<number | undefined>(undefined);
+  const osdTimer = useRef<number | undefined>(undefined);
   const panelRef = useRef<Panel>(null);
   panelRef.current = panel;
+  const menuRef = useRef(false);
+  menuRef.current = menu != null;
 
-  // Plain notices fade after 2.6 s; ones with an action stay long enough to use it.
-  const flash = useCallback((text: string, action?: Notice["action"]) => {
-    const n: Notice = { text, action };
-    setNotice(n);
-    window.setTimeout(() => setNotice((cur) => (cur === n ? null : cur)), action ? 8000 : 2600);
+  const showOsd = useCallback((o: Osd) => {
+    setOsd(o);
+    window.clearTimeout(osdTimer.current);
+    osdTimer.current = window.setTimeout(() => setOsd(null), o.action ? 8000 : o.long ? 3200 : OSD_MS);
   }, []);
+  const flash = useCallback((text: string, action?: Osd["action"]) => showOsd({ name: "", value: text, action, long: true }), [showOsd]);
   const reportError = useCallback(
     (e: unknown) => {
       if (isPlaybackError(e)) {
@@ -147,12 +154,72 @@ export function PlayerView(props: { active: boolean; onBrowse: () => void; onOpe
     if (s.phase === "playing") engineInfo().then(setEngine, () => {});
   }, [s.sessionId, s.phase === "playing", s.video?.hwdec]);
 
+  // Subtitle size: the saved size is applied once the engine is up; after that
+  // every engine-confirmed change is saved (Ctrl+wheel, keys, menu).
+  const scaleApplied = useRef(false);
+  useEffect(() => {
+    if (s.seq === 0) return;
+    const saved = Number(prefs.subScale) || 100;
+    if (!scaleApplied.current) {
+      scaleApplied.current = true;
+      if (s.adjust.subtitleScalePercent !== saved) void execute({ type: "setSubtitleScale", percent: saved }).catch(() => {});
+      return;
+    }
+    const now = s.adjust.subtitleScalePercent;
+    if (now !== saved && now % 10 === 0 && now >= 50 && now <= 300) {
+      persistedScale.current = String(now);
+      void setPref("subScale", String(now)).catch(() => {});
+    }
+  }, [s.seq === 0, s.adjust.subtitleScalePercent]);
+  // A change made in Settings (not one we just saved from the engine) is sent to the engine.
+  const persistedScale = useRef<string | null>(null);
+  useEffect(() => {
+    if (!scaleApplied.current || prefs.subScale === persistedScale.current) return;
+    const want = Number(prefs.subScale) || 100;
+    if (want !== s.adjust.subtitleScalePercent) void execute({ type: "setSubtitleScale", percent: want }).catch(() => {});
+  }, [prefs.subScale]);
+
+  // OSD readouts follow engine-confirmed changes, never the request.
+  const prev = useRef<PlaybackSnapshot | null>(null);
+  useEffect(() => {
+    const p = prev.current;
+    prev.current = s;
+    if (!p || p.sessionId !== s.sessionId || !props.active) return;
+    const a = s.adjust;
+    const pa = p.adjust;
+    const signed = (v: number) => `${v > 0 ? "+" : v < 0 ? "−" : "±"}${Math.abs(v)} ms`;
+    if (s.volumePercent !== p.volumePercent || s.isMuted !== p.isMuted)
+      showOsd({ name: "Volume", value: s.isMuted ? "Muted" : `${s.volumePercent}%`, level: s.isMuted ? 0 : s.volumePercent / MAX_VOLUME });
+    else if (a.subtitleScalePercent !== pa.subtitleScalePercent) showOsd({ name: "Subtitle size", value: `${a.subtitleScalePercent}%`, level: (a.subtitleScalePercent - 50) / 250 });
+    else if (a.subtitleDelayMs !== pa.subtitleDelayMs) showOsd({ name: "Subtitle delay", value: signed(a.subtitleDelayMs) });
+    else if (a.audioDelayMs !== pa.audioDelayMs) showOsd({ name: "Audio delay", value: signed(a.audioDelayMs) });
+    else if (Math.abs(s.speed - p.speed) > 1e-6) showOsd({ name: "Speed", value: `${+s.speed.toFixed(2)}×` });
+    else if (a.aspectRatio !== pa.aspectRatio) showOsd({ name: "Aspect ratio", value: a.aspectRatio ?? "As encoded" });
+    else if (a.rotation !== pa.rotation) showOsd({ name: "Rotation", value: `${a.rotation}°` });
+    else if (a.deinterlace !== pa.deinterlace) showOsd({ name: "Deinterlace", value: a.deinterlace ? "On" : "Off" });
+    else if (s.abLoop.aMs !== p.abLoop.aMs || s.abLoop.bMs !== p.abLoop.bMs)
+      showOsd({
+        name: "A–B loop",
+        value: s.abLoop.aMs == null ? "Off" : s.abLoop.bMs == null ? `Start ${formatTime(s.abLoop.aMs)}` : `${formatTime(s.abLoop.aMs)} – ${formatTime(s.abLoop.bMs)}`,
+      });
+    else {
+      const pick = (kind: "audio" | "subtitle", snap: PlaybackSnapshot) => snap.tracks.find((t) => t.kind === kind && t.isSelected)?.id ?? null;
+      for (const kind of ["subtitle", "audio"] as const) {
+        if (pick(kind, s) !== pick(kind, p) && p.tracks.length > 0) {
+          const t = s.tracks.find((x) => x.kind === kind && x.isSelected);
+          showOsd({ name: kind === "audio" ? "Audio" : "Subtitles", value: t ? (t.title ?? t.language?.toUpperCase() ?? "On") : "Off" });
+          break;
+        }
+      }
+    }
+  }, [s, props.active, showOsd]);
+
   const playing = s.phase === "playing";
   const showControls = useCallback(() => {
     setControlsVisible(true);
     window.clearTimeout(hideTimer.current);
     hideTimer.current = window.setTimeout(() => {
-      if (!menuOpen.current && !overControls.current && !panelRef.current) setControlsVisible(false);
+      if (!menuRef.current && !overControls.current && !panelRef.current) setControlsVisible(false);
     }, IDLE_HIDE_MS);
   }, []);
   useEffect(() => {
@@ -161,10 +228,14 @@ export function PlayerView(props: { active: boolean; onBrowse: () => void; onOpe
       setControlsVisible(true);
     } else showControls();
   }, [playing, showControls, prefs.autoHide]);
+  // Closing a menu restarts the idle timer instead of hiding at once.
+  useEffect(() => {
+    if (!menu && playing) showControls();
+  }, [menu == null]);
 
   const hasMedia = !["idle", "error", "stopped"].includes(s.phase);
 
-  /** Runs any registered action (keyboard, context menu, mouse). */
+  /** Runs any registered action (keyboard, menus, mouse). */
   const act = useCallback(
     (id: string) => {
       const def = ACTIONS.find((a) => a.id === id);
@@ -182,7 +253,7 @@ export function PlayerView(props: { active: boolean; onBrowse: () => void; onOpe
         case "repeat.cycle": {
           const next = repeatNext[q.repeat];
           run(queue.setRepeat(next));
-          flash(next === "off" ? "Repeat off" : next === "one" ? "Repeat this title" : "Repeat the queue");
+          showOsd({ name: "Repeat", value: next === "off" ? "Off" : next === "one" ? "This title" : "The whole queue" });
           break;
         }
         case "queue.next":
@@ -193,7 +264,11 @@ export function PlayerView(props: { active: boolean; onBrowse: () => void; onOpe
           break;
         case "queue.shuffle":
           run(queue.shuffle());
-          flash("Upcoming titles shuffled");
+          showOsd({ name: "Queue", value: "Upcoming titles shuffled" });
+          break;
+        case "chapter.next":
+        case "chapter.prev":
+          if (s.chapters.length === 0) showOsd({ name: "Chapters", value: "This file has none" });
           break;
         case "seek.goto":
           setGotoOpen(true);
@@ -244,17 +319,23 @@ export function PlayerView(props: { active: boolean; onBrowse: () => void; onOpe
           break;
       }
     },
-    [s, q.repeat, hasMedia, run, flash, addSubtitle, toggleFullscreen, pickFiles, prefs.timeDisplay, props, reportError],
+    [s, q.repeat, hasMedia, run, flash, showOsd, addSubtitle, toggleFullscreen, pickFiles, prefs.timeDisplay, props],
   );
 
-  // Keyboard: chord -> action through the user's keymap.
+  // Keyboard: chord -> action through the user's keymap. The menu key (or
+  // Shift+F10) opens the full menu in the middle of the picture.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (!props.active || document.querySelector("dialog[open]")) return;
       const t = e.target as HTMLElement | null;
       if (t && (t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable)) return;
       if (t?.tagName === "INPUT" && (t as HTMLInputElement).type !== "range") return;
-      if (t?.closest("[role=menu]") && ["ArrowUp", "ArrowDown", " ", "Enter", "Home", "End", "Escape"].includes(e.key)) return;
+      if (t?.closest("[role=menu]")) return;
+      if (e.key === "ContextMenu" || (e.shiftKey && e.key === "F10")) {
+        e.preventDefault();
+        setMenu({ which: "root", x: window.innerWidth / 2 - 120, y: window.innerHeight / 3, fromKeyboard: true });
+        return;
+      }
       const chord = chordOf(e);
       if (!chord) return;
       const id = actionForChord(keymap, chord);
@@ -279,24 +360,41 @@ export function PlayerView(props: { active: boolean; onBrowse: () => void; onOpe
     }
   };
   const onWheel = (e: React.WheelEvent) => {
+    // Panels, menus and dialogs scroll normally; only the picture and the deck take gestures.
     if (!hasMedia || (e.target as HTMLElement).closest("[role=menu],aside,dialog")) return;
-    const overTimeline = (e.target as HTMLElement).closest(".timeline") != null;
     const dir = e.deltaY < 0 || e.deltaX > 0 ? 1 : -1;
+    const overTimeline = (e.target as HTMLElement).closest(".timeline") != null;
+    if (e.ctrlKey && !overTimeline) {
+      e.preventDefault();
+      if (prefs.ctrlWheel === "subtitleSize") run(execute({ type: "setSubtitleScale", percent: nextSubScale(s.adjust.subtitleScalePercent, dir) }));
+      else if (prefs.ctrlWheel === "volume") run(execute({ type: "setVolume", percent: Math.max(0, Math.min(MAX_VOLUME, s.volumePercent + dir * WHEEL_VOLUME)) }));
+      return;
+    }
     const horizontal = Math.abs(e.deltaX) > Math.abs(e.deltaY) || e.shiftKey;
     if (overTimeline || horizontal || prefs.wheel === "seek") {
       run(execute({ type: "seekRelative", offsetMs: dir * WHEEL_SEEK_MS }));
+      showOsd({ name: "Seek", value: `${dir > 0 ? "+" : "−"}${WHEEL_SEEK_MS / 1000} s` });
     } else if (prefs.wheel === "volume") {
-      const percent = Math.max(0, Math.min(130, s.volumePercent + dir * WHEEL_VOLUME));
-      run(execute({ type: "setVolume", percent }));
-      flash(`Volume ${percent}%`);
+      run(execute({ type: "setVolume", percent: Math.max(0, Math.min(MAX_VOLUME, s.volumePercent + dir * WHEEL_VOLUME)) }));
     }
   };
+  // Ctrl+wheel must not zoom the WebView; React's wheel listener is passive, so block it natively.
+  const mainRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const el = mainRef.current;
+    if (!el) return;
+    const block = (e: WheelEvent) => {
+      if (e.ctrlKey) e.preventDefault();
+    };
+    el.addEventListener("wheel", block, { passive: false });
+    return () => el.removeEventListener("wheel", block);
+  }, []);
 
   const error = engineError ?? commandError ?? (s.phase === "error" ? s.error : null);
   const showEmpty = s.phase === "idle" || s.phase === "stopped" || (s.phase === "error" && !s.path);
   const autoHidden = !controlsVisible && playing && prefs.autoHide === "on";
-  const hidden = immersive ? !nearBottom && !panel && !menuOpen.current : autoHidden;
-  const topHidden = immersive || autoHidden;
+  const hidden = immersive ? !nearBottom && !panel && !menu : autoHidden && !menu;
+  const topHidden = immersive || (autoHidden && !menu);
 
   // Subtitles are drawn by the engine under the WebView, so lift them above the
   // deck while it is visible and let them fall back when it hides.
@@ -305,9 +403,9 @@ export function PlayerView(props: { active: boolean; onBrowse: () => void; onOpe
   useEffect(() => {
     if (!hasMedia) return;
     const apply = () => {
-      const timeline = deckRef.current?.querySelector(".timeline")?.getBoundingClientRect();
+      const deck = deckRef.current?.getBoundingClientRect();
       const h = window.innerHeight;
-      const px = subsLifted && timeline ? h - timeline.top + 14 : 0;
+      const px = subsLifted && deck ? h - deck.top + 12 : 0;
       const margin = Math.min(400, Math.round(SUB_MARGIN_BASE + (px / h) * 720));
       void execute({ type: "setSubtitleMargin", margin }).catch(() => {});
     };
@@ -331,121 +429,29 @@ export function PlayerView(props: { active: boolean; onBrowse: () => void; onOpe
     return () => window.removeEventListener("resize", apply);
   }, [panel, hasMedia, s.sessionId]);
 
-  const tracksOf = (kind: "audio" | "subtitle") => s.tracks.filter((t) => t.kind === kind);
-  const ctxGroups: CtxGroup[] = [
-    {
-      title: "Playback",
-      items: [
-        { label: s.phase === "playing" ? "Pause" : "Play", hint: hint("play.toggle"), disabled: !hasMedia, run: () => act("play.toggle") },
-        { label: "Stop", hint: hint("play.stop"), disabled: !hasMedia, run: () => act("play.stop") },
-        { label: "Previous in queue", hint: hint("queue.prev"), disabled: !q.hasPrevious && !hasMedia, run: () => act("queue.prev") },
-        { label: "Next in queue", hint: hint("queue.next"), disabled: !q.hasNext && q.repeat !== "all", run: () => act("queue.next") },
-        { label: "Go to time…", hint: hint("seek.goto"), disabled: !hasMedia, run: () => act("seek.goto") },
-        { label: "Next frame", hint: hint("frame.next"), disabled: !hasMedia, run: () => act("frame.next") },
-        { label: "Previous frame", hint: hint("frame.prev"), disabled: !hasMedia, run: () => act("frame.prev") },
-        {
-          label: `A–B loop${s.abLoop.aMs != null ? ` (${formatTime(s.abLoop.aMs)}${s.abLoop.bMs != null ? `–${formatTime(s.abLoop.bMs)}` : "…"})` : ""}`,
-          hint: hint("loop.ab"),
-          checked: s.abLoop.aMs != null,
-          disabled: !hasMedia,
-          run: () => act("loop.ab"),
-        },
-        { label: "Repeat this title", checked: q.repeat === "one", run: () => run(queue.setRepeat(q.repeat === "one" ? "off" : "one")) },
-        { label: "Repeat the queue", checked: q.repeat === "all", run: () => run(queue.setRepeat(q.repeat === "all" ? "off" : "all")) },
-        { label: "Shuffle upcoming", hint: hint("queue.shuffle"), run: () => act("queue.shuffle") },
-      ],
-    },
-    {
-      title: "Speed",
-      items: [0.5, 0.75, 1, 1.25, 1.5, 2].map((v) => ({
-        label: v === 1 ? "Normal" : `${v}×`,
-        checked: Math.abs(s.speed - v) < 1e-6,
-        disabled: !hasMedia,
-        run: () => run(execute({ type: "setSpeed", multiplier: v })),
-      })),
-    },
-    {
-      title: "Audio",
-      items: [
-        ...tracksOf("audio").map((t, i) => ({
-          label: t.title ?? t.language ?? `Track ${i + 1}`,
-          checked: t.isSelected,
-          run: () => run(execute({ type: "selectAudioTrack", trackId: t.id })),
-        })),
-        { label: s.isMuted ? "Unmute" : "Mute", hint: hint("volume.mute"), run: () => act("volume.mute") },
-        { label: `Audio later (now ${s.adjust.audioDelayMs} ms)`, hint: hint("audio.later"), disabled: !hasMedia, run: () => act("audio.later") },
-        { label: "Audio earlier", hint: hint("audio.earlier"), disabled: !hasMedia, run: () => act("audio.earlier") },
-        { label: "Reset audio delay", disabled: s.adjust.audioDelayMs === 0, run: () => act("audio.reset") },
-      ],
-    },
-    {
-      title: "Subtitles",
-      items: [
-        {
-          label: "Off",
-          checked: !tracksOf("subtitle").some((t) => t.isSelected),
-          disabled: !hasMedia,
-          run: () => run(execute({ type: "selectSubtitleTrack", trackId: null })),
-        },
-        ...tracksOf("subtitle").map((t, i) => ({
-          label: t.title ?? t.language ?? `Subtitle ${i + 1}`,
-          checked: t.isSelected,
-          run: () => run(execute({ type: "selectSubtitleTrack", trackId: t.id })),
-        })),
-        { label: "Add subtitle file…", hint: hint("subs.add"), disabled: !hasMedia, run: () => act("subs.add") },
-        { label: `Subtitles later (now ${s.adjust.subtitleDelayMs} ms)`, hint: hint("subs.later"), disabled: !hasMedia, run: () => act("subs.later") },
-        { label: "Subtitles earlier", hint: hint("subs.earlier"), disabled: !hasMedia, run: () => act("subs.earlier") },
-        { label: "Reset subtitle delay", disabled: s.adjust.subtitleDelayMs === 0, run: () => act("subs.reset") },
-      ],
-    },
-    {
-      title: "Video",
-      items: [
-        { label: isFullscreen ? "Exit fullscreen" : "Fullscreen", hint: hint("view.fullscreen"), run: () => act("view.fullscreen") },
-        { label: "Aspect: as encoded", checked: s.adjust.aspectRatio == null, disabled: !hasMedia, run: () => run(execute({ type: "setAspectRatio", ratio: null })) },
-        ...ASPECT_RATIOS.map((r) => ({
-          label: `Aspect: ${r}`,
-          checked: s.adjust.aspectRatio === r,
-          disabled: !hasMedia,
-          run: () => run(execute({ type: "setAspectRatio", ratio: r })),
-        })),
-        { label: `Rotate 90° (now ${s.adjust.rotation}°)`, hint: hint("video.rotate"), disabled: !hasMedia, run: () => act("video.rotate") },
-        { label: "Deinterlace", hint: hint("video.deinterlace"), checked: s.adjust.deinterlace, disabled: !hasMedia, run: () => act("video.deinterlace") },
-        { label: "Save frame to Pictures", hint: hint("video.snapshot"), disabled: !hasMedia, run: () => act("video.snapshot") },
-      ],
-    },
-    {
-      title: "View",
-      items: [
-        { label: "Queue", hint: hint("view.queue"), checked: panel === "queue", run: () => act("view.queue") },
-        { label: "Playback details", hint: hint("view.inspector"), checked: panel === "inspector", run: () => act("view.inspector") },
-        { label: "Immersive mode", hint: hint("view.immersive"), checked: immersive, run: () => act("view.immersive") },
-        { label: "Open file…", hint: hint("file.open"), run: () => act("file.open") },
-        { label: "Back to library", hint: hint("view.library"), run: () => act("view.library") },
-        { label: "Keyboard shortcuts", hint: hint("view.help"), run: () => act("view.help") },
-        { label: "Settings…", hint: hint("view.settings"), run: () => act("view.settings") },
-      ],
-    },
-  ];
+  const menus = buildPlayerMenus({
+    s,
+    q,
+    hasMedia,
+    isFullscreen,
+    immersive,
+    panel,
+    act,
+    exec: (c) => run(execute(c)),
+    setRepeat: (m) => run(queue.setRepeat(m)),
+    hint,
+  });
+  const menuLabel: Record<DeckMenu, string> = { root: "Player menu", speed: "Playback speed", audio: "Audio", subtitles: "Subtitles" };
 
-  // The deck's More menu: the tools that are not on the deck itself.
-  const toolGroups: CtxGroup[] = [
-    {
-      title: "Position",
-      items: [
-        { label: "Go to time…", hint: hint("seek.goto"), disabled: !hasMedia, run: () => act("seek.goto") },
-        { label: "Next frame", hint: hint("frame.next"), disabled: !hasMedia, run: () => act("frame.next") },
-        { label: "Previous frame", hint: hint("frame.prev"), disabled: !hasMedia, run: () => act("frame.prev") },
-        { label: "Save frame to Pictures", hint: hint("video.snapshot"), disabled: !hasMedia, run: () => act("video.snapshot") },
-      ],
-    },
-    ...ctxGroups
-      .filter((g) => g.title === "Video" || g.title === "Audio" || g.title === "Subtitles")
-      .map((g) => ({ ...g, items: g.items.filter((i) => !/^(Fullscreen|Exit fullscreen|Save frame)/.test(i.label)) })),
-  ];
+  const tally = s.phase === "playing" || s.phase === "seeking" ? "live" : s.phase === "loading" ? "busy" : hasMedia ? "held" : "idle";
+  const stateWord = { playing: "Playing", paused: "Paused", loading: "Loading", seeking: "Seeking", ended: "Ended", stopped: "Stopped", idle: "No signal", error: "Error" }[s.phase];
+  const spec = s.video
+    ? [s.video.codec?.toUpperCase(), s.video.width ? `${s.video.width}×${s.video.height}` : null, s.video.hwdec ? "HW" : "SW"].filter(Boolean)
+    : [];
 
   return (
     <main
+      ref={mainRef}
       className={`fixed inset-0 select-none ${hidden && hasMedia ? "cursor-none" : ""}`}
       onMouseMove={(e) => {
         if (immersive) setNearBottom(window.innerHeight - e.clientY < 150);
@@ -455,7 +461,8 @@ export function PlayerView(props: { active: boolean; onBrowse: () => void; onOpe
       onWheel={onWheel}
       onContextMenu={(e) => {
         e.preventDefault();
-        setCtx({ x: e.clientX, y: e.clientY });
+        if ((e.target as HTMLElement).closest("aside,dialog")) return;
+        setMenu({ which: "root", x: e.clientX, y: e.clientY });
       }}
       onMouseUp={(e) => {
         if (e.button === 3) act("queue.prev");
@@ -476,50 +483,60 @@ export function PlayerView(props: { active: boolean; onBrowse: () => void; onOpe
         />
       )}
 
-      {(s.phase === "loading" || s.phase === "seeking") && (
+      {s.phase === "loading" && (
         <div role="status" className="pointer-events-none absolute inset-0 flex items-center justify-center">
           <span className="text-room-ink-2 motion-safe:animate-pulse">
-            <Symbol size={s.phase === "loading" ? 44 : 28} />
+            <Symbol size={44} />
           </span>
-          <span className="sr-only">{s.phase === "loading" ? "Loading" : "Seeking"}</span>
+          <span className="sr-only">Loading</span>
         </div>
       )}
 
       {dragOver && (
-        <div className="pointer-events-none absolute inset-4 z-40 flex items-center justify-center rounded-[14px] border-2 border-dashed border-ember/80 bg-room/70">
+        <div className="pointer-events-none absolute inset-3 z-40 flex items-center justify-center rounded-[10px] border-2 border-dashed border-ember/80 bg-room/80">
           <p className="spine text-[32px] text-cream">{panel === "queue" ? "Drop to add to the queue" : "Drop to play"}</p>
         </div>
       )}
 
-      {/* Top bar: way back, what is playing, and the one view toggle. Everything else lives in the deck. */}
-      <div
-        className={[
-          "absolute inset-x-0 top-0 z-20 flex items-start gap-2 bg-gradient-to-b from-black/85 via-black/45 to-transparent px-4 pb-12 pt-3 [text-shadow:0_1px_2px_rgb(0_0_0/0.6)]",
-          "transition-opacity duration-200 ease-(--ease-out-strong)",
-          topHidden ? "pointer-events-none opacity-0" : "opacity-100",
-        ].join(" ")}
-        style={{ right: panel ? PANEL_WIDTH : 0 }}
-        onMouseEnter={() => (overControls.current = true)}
-        onMouseLeave={() => (overControls.current = false)}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <Button tone="room" variant="ghost" onClick={props.onBrowse} icon={<ChevronLeftIcon size={18} />} className="text-room-ink">
-          Library
-        </Button>
-        <div className="min-w-0 flex-1 pl-1 pt-0.5">
-          {hasMedia && s.mediaTitle && <p className="spine truncate text-[19px] text-room-ink">{s.mediaTitle}</p>}
-          {hasMedia && s.video && (
-            <p className="truncate text-[12px] text-room-ink-2">
-              {[s.video.codec?.toUpperCase(), s.video.width ? `${s.video.width}×${s.video.height}` : null, s.video.hwdec ? "hardware decoding" : "software decoding"]
-                .filter(Boolean)
-                .join(" · ")}
-            </p>
+      {/* Top strip: the way back, the tally and what is on the monitor. */}
+      {!showEmpty && (
+        <div
+          className={[
+            "absolute inset-x-0 top-0 z-20 flex h-11 items-center gap-3 border-b border-room-seam bg-room-ply pl-2 pr-4",
+            "transition-opacity duration-200 ease-(--ease-out-strong)",
+            topHidden ? "pointer-events-none opacity-0" : "opacity-100",
+          ].join(" ")}
+          style={{ right: panel ? PANEL_WIDTH : 0 }}
+          onMouseEnter={() => (overControls.current = true)}
+          onMouseLeave={() => (overControls.current = false)}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <Button tone="room" variant="ghost" onClick={props.onBrowse} icon={<ChevronLeftIcon size={17} />} title={`Back to library (${hint("view.library") ?? "Backspace"})`} className="h-8 px-2 text-room-ink-2">
+            Library
+          </Button>
+          <span aria-hidden className="h-5 w-px bg-room-seam" />
+          <span className="flex shrink-0 items-center gap-2" role="status" aria-label={`Player ${stateWord}`}>
+            <span className="tally" data-state={tally} aria-hidden />
+            <span className={`engrave ${tally === "live" ? "text-room-ink" : "text-room-ink-3"}`}>{stateWord}</span>
+          </span>
+          {hasMedia && s.mediaTitle && <p className="spine min-w-0 flex-1 truncate text-[17px] text-room-ink">{s.mediaTitle}</p>}
+          {!hasMedia && <span className="flex-1" />}
+          {hasMedia && spec.length > 0 && (
+            <button
+              type="button"
+              onClick={() => act("view.inspector")}
+              title={`Playback details (${hint("view.inspector") ?? "I"})`}
+              className="flex shrink-0 items-center gap-2.5 rounded-[5px] px-2 py-1 hover:bg-white/[0.07] max-[720px]:hidden"
+            >
+              {spec.map((x, i) => (
+                <span key={i} className={`readout text-[11.5px] ${x === "HW" ? "text-room-ink" : "text-room-ink-2"}`}>
+                  {x}
+                </span>
+              ))}
+            </button>
           )}
         </div>
-        <IconButton tone="room" label={`Immersive mode (${hint("view.immersive") ?? "Z"})`} active={immersive} aria-pressed={immersive} onClick={() => act("view.immersive")}>
-          <ImmersiveIcon />
-        </IconButton>
-      </div>
+      )}
 
       <ResumeToast sessionId={s.sessionId} hasMedia={hasMedia} />
 
@@ -533,74 +550,70 @@ export function PlayerView(props: { active: boolean; onBrowse: () => void; onOpe
         />
       )}
 
-      {(notice || s.issues.length > 0) && (
-        <div className="pointer-events-none absolute left-1/2 top-16 z-20 flex -translate-x-1/2 flex-col items-center gap-2">
-          {notice && (
-            <p role="status" className="pointer-events-auto flex items-center gap-3 rounded-full bg-room-glass py-1.5 pl-4 pr-1.5 text-[13px] text-room-ink ring-1 ring-room-seam">
-              <span className={notice.action ? "" : "pr-2.5"}>{notice.text}</span>
-              {notice.action && (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    notice.action!.run();
-                  }}
-                  className="press rounded-full bg-white/10 px-3 py-1 text-[12.5px] font-[600] text-room-ink hover:bg-white/15"
-                >
-                  {notice.action.label}
-                </button>
-              )}
+      {/* OSD readout, top right like a monitor's. Engine-confirmed values only. */}
+      <div className="pointer-events-none absolute right-4 top-[60px] z-20 flex flex-col items-end gap-2" style={{ right: (panel ? PANEL_WIDTH : 0) + 16 }}>
+        {osd && (
+          <div key={`${osd.name}-${osd.value}`} role="status" className="osd-notice pointer-events-auto flex max-w-[min(520px,70vw)] items-center gap-3 rounded-[6px] border border-room-seam bg-room-ply px-3 py-2 shadow-[0_10px_28px_-12px_rgb(0_0_0/0.8)]" onClick={(e) => e.stopPropagation()}>
+            {osd.name && <span className="engrave text-room-ink-3">{osd.name}</span>}
+            <span className={`text-[13px] text-room-ink ${osd.name ? "readout" : ""}`}>{osd.value}</span>
+            {osd.level != null && (
+              <span aria-hidden className="relative h-[3px] w-20 overflow-hidden rounded-full bg-white/[0.18]">
+                <span className="absolute inset-y-0 left-0 bg-cream" style={{ width: `${Math.max(0, Math.min(1, osd.level)) * 100}%` }} />
+              </span>
+            )}
+            {osd.action && (
+              <button type="button" onClick={osd.action.run} className="press rounded-[4px] bg-white/10 px-2.5 py-1 text-[12.5px] font-[600] text-room-ink hover:bg-white/15">
+                {osd.action.label}
+              </button>
+            )}
+          </div>
+        )}
+        {s.issues.map((issue) => (
+          <div key={issue.kind} role="status" className="pointer-events-auto max-w-md rounded-[6px] border border-room-seam bg-room-ply px-4 py-3 text-[13px] text-room-ink">
+            <p className="font-[650]">
+              {issue.kind === "videoDecoderMissing" ? "NOVA can't decode this video" : "NOVA can't decode this audio"}
+              <span className="readout font-normal text-room-ink-2"> · {issue.codec}</span>
             </p>
-          )}
-          {s.issues.map((issue) => (
-            <div key={issue.kind} role="status" className="max-w-lg rounded-[10px] bg-room-glass px-4 py-3 text-[13px] text-room-ink ring-1 ring-room-seam">
-              <p className="font-[650]">
-                {issue.kind === "videoDecoderMissing" ? "NOVA can't decode this video" : "NOVA can't decode this audio"}
-                <span className="font-normal text-room-ink-2"> · codec {issue.codec}</span>
-              </p>
-              <p className="mt-1 text-[12.5px] leading-relaxed text-room-ink-2">
-                {issue.kind === "videoDecoderMissing" ? "Sound plays without picture. " : "Picture plays without sound. "}
-                Export the file to H.264, HEVC or ProRes, or open it in the software that recorded it.
-              </p>
-            </div>
-          ))}
+            <p className="mt-1 text-[12.5px] leading-relaxed text-room-ink-2">
+              {issue.kind === "videoDecoderMissing" ? "Sound plays without picture. " : "Picture plays without sound. "}
+              Export the file to H.264, HEVC or ProRes, or open it in the software that recorded it.
+            </p>
+          </div>
+        ))}
+      </div>
+
+      {!showEmpty && (
+        <div
+          className={["absolute bottom-0 left-0 z-20", "transition-opacity duration-200 ease-(--ease-out-strong)", hidden ? "pointer-events-none opacity-0" : "opacity-100"].join(" ")}
+          style={{ right: panel ? PANEL_WIDTH : 0 }}
+          ref={deckRef}
+          onMouseEnter={() => (overControls.current = true)}
+          onMouseLeave={() => (overControls.current = false)}
+          onClick={(e) => e.stopPropagation()}
+          onContextMenu={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setMenu({ which: "root", x: e.clientX, y: e.clientY });
+          }}
+        >
+          <ControlBar
+            snapshot={s}
+            isFullscreen={isFullscreen}
+            panel={panel}
+            hint={hint}
+            onToggleFullscreen={() => void toggleFullscreen()}
+            onTogglePanel={(p) => act(p === "queue" ? "view.queue" : "view.inspector")}
+            onOpenMenu={(which, anchor) => setMenu((m) => (m?.which === which && m.anchor ? null : { which, anchor }))}
+            onError={reportError}
+          />
         </div>
       )}
-
-      <div
-        className={[
-          "absolute bottom-0 left-0 z-20 bg-gradient-to-t from-black/90 via-black/60 to-transparent",
-          "transition-opacity duration-200 ease-(--ease-out-strong)",
-          hidden ? "pointer-events-none opacity-0" : "opacity-100",
-        ].join(" ")}
-        style={{ right: panel ? PANEL_WIDTH : 0 }}
-        ref={deckRef}
-        onMouseEnter={() => (overControls.current = true)}
-        onMouseLeave={() => (overControls.current = false)}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <ControlBar
-          snapshot={s}
-          isFullscreen={isFullscreen}
-          panel={panel}
-          hint={hint}
-          onToggleFullscreen={() => void toggleFullscreen()}
-          onTogglePanel={(p) => act(p === "queue" ? "view.queue" : "view.inspector")}
-          onOpenTools={(anchor) => setCtx({ x: anchor.right, y: anchor.top, anchor, tools: true })}
-          onMenuChange={(open) => {
-            menuOpen.current = open;
-            if (!open) showControls();
-          }}
-          onError={reportError}
-        />
-      </div>
 
       {panel && (
         <aside
           style={{ width: PANEL_WIDTH }}
-          className="absolute inset-y-0 right-0 z-30 border-l border-room-seam bg-room-glass text-room-ink backdrop-blur-xl"
+          className="absolute inset-y-0 right-0 z-30 border-l border-room-seam bg-room-ply-2 text-room-ink"
           onClick={(e) => e.stopPropagation()}
-          onWheel={(e) => e.stopPropagation()}
           onKeyDown={(e) => {
             if (e.key === "Escape") {
               e.stopPropagation();
@@ -616,20 +629,22 @@ export function PlayerView(props: { active: boolean; onBrowse: () => void; onOpe
         </aside>
       )}
 
-      {ctx && (
-        <ContextMenu
-          x={ctx.x}
-          y={ctx.y}
-          anchor={ctx.anchor}
-          label={ctx.tools ? "More controls" : "Player menu"}
-          groups={ctx.tools ? toolGroups : ctxGroups}
-          onClose={() => setCtx(null)}
+      {menu && (
+        <OsdMenu
+          nodes={menus[menu.which]}
+          label={menuLabel[menu.which]}
+          x={menu.x}
+          y={menu.y}
+          anchor={menu.anchor}
+          fromKeyboard={menu.fromKeyboard}
+          onClose={closeMenu(setMenu)}
         />
       )}
 
       <GoToTime
         open={gotoOpen}
         durationMs={s.durationMs}
+        positionMs={s.positionMs}
         onClose={() => setGotoOpen(false)}
         onGo={(ms) => {
           setGotoOpen(false);
@@ -640,18 +655,30 @@ export function PlayerView(props: { active: boolean; onBrowse: () => void; onOpe
   );
 }
 
-type Notice = { text: string; action?: { label: string; run: () => void } };
+// Stable identity so the menu's outside-press listener is not re-bound on every snapshot.
+const closers = new WeakMap<object, () => void>();
+function closeMenu(set: (m: null) => void) {
+  let f = closers.get(set);
+  if (!f) {
+    f = () => set(null);
+    closers.set(set, f);
+  }
+  return f;
+}
 
 /** End of the last title: say so, and offer the obvious next moves. */
 function EndedCard(props: { title: string | null; next?: string; onReplay: () => void; onNext: () => void; onBrowse: () => void }) {
   return (
     <div
       role="status"
-      className="rise absolute bottom-36 left-6 z-20 w-[min(440px,calc(100vw-48px))] rounded-[12px] bg-room-glass p-5 ring-1 ring-room-seam backdrop-blur-xl"
+      className="rise absolute bottom-32 left-5 z-20 w-[min(440px,calc(100vw-40px))] rounded-[8px] border border-room-seam bg-room-ply-2 p-5 shadow-[0_18px_40px_-16px_rgb(0_0_0/0.85)]"
       onClick={(e) => e.stopPropagation()}
     >
-      <p className="text-[11.5px] font-[650] uppercase tracking-[0.14em] text-ember">Finished</p>
-      {props.title && <p className="spine mt-1 truncate text-[22px] text-room-ink">{props.title}</p>}
+      <p className="flex items-center gap-2">
+        <span className="tally" data-state="held" aria-hidden />
+        <span className="engrave text-room-ink-3">End of title</span>
+      </p>
+      {props.title && <p className="spine mt-2 truncate text-[22px] text-room-ink">{props.title}</p>}
       <div className="mt-4 flex flex-wrap gap-2">
         {props.next && (
           <Button variant="primary" onClick={props.onNext} icon={<NextIcon size={16} />} className="max-w-full">
@@ -669,12 +696,18 @@ function EndedCard(props: { title: string | null; next?: string; onReplay: () =>
   );
 }
 
-function GoToTime(props: { open: boolean; durationMs: number | null; onClose: () => void; onGo: (ms: number) => void }) {
+function GoToTime(props: { open: boolean; durationMs: number | null; positionMs: number; onClose: () => void; onGo: (ms: number) => void }) {
   const [text, setText] = useState("");
   const ms = parseTimeInput(text);
   const tooLong = ms != null && props.durationMs != null && ms > props.durationMs;
   return (
-    <Dialog open={props.open} onClose={props.onClose} title="Go to time" width="min(380px, calc(100vw - 48px))">
+    <Dialog
+      open={props.open}
+      onClose={props.onClose}
+      title="Jump to time"
+      description={`Now at ${formatTime(props.positionMs)}${props.durationMs != null ? ` of ${formatTime(props.durationMs)}` : ""}`}
+      width="min(380px, calc(100vw - 48px))"
+    >
       <form
         className="px-5 py-4"
         onSubmit={(e) => {
@@ -686,22 +719,26 @@ function GoToTime(props: { open: boolean; durationMs: number | null; onClose: ()
         }}
       >
         <label className="block text-[13px] text-ink-2">
-          Time ({props.durationMs != null ? `up to ${formatTime(props.durationMs)}` : "hh:mm:ss"})
+          Time
           <input
             data-autofocus
             value={text}
             onChange={(e) => setText(e.currentTarget.value)}
             placeholder="1:02:30"
             aria-invalid={text !== "" && (ms == null || tooLong)}
-            className="mt-1.5 h-10 w-full rounded-[8px] border border-seam-strong bg-paper-raised px-3 text-[16px] tabular-nums text-ink focus:border-ember focus:outline-none"
+            aria-describedby="goto-help"
+            className="readout mt-1.5 h-10 w-full rounded-[6px] border border-seam-strong bg-paper-raised px-3 text-[16px] text-ink focus:border-ember focus:outline-none"
           />
         </label>
-        <p className="mt-2 min-h-4 text-[12.5px] text-danger" role="alert">
-          {text && ms == null ? "Use hh:mm:ss, mm:ss, seconds, or 1h2m3s." : tooLong ? "That's past the end of this title." : ""}
+        <p id="goto-help" className={`mt-2 min-h-4 text-[12.5px] ${text && (ms == null || tooLong) ? "text-danger" : "text-ink-3"}`} role={text && (ms == null || tooLong) ? "alert" : undefined}>
+          {text && ms == null ? "Use hh:mm:ss, mm:ss, seconds, or 1h2m3s." : tooLong ? "That's past the end of this title." : "hh:mm:ss, mm:ss, seconds, or 1h2m3s"}
         </p>
-        <div className="mt-3 flex justify-end">
+        <div className="mt-3 flex justify-end gap-2">
+          <Button variant="ghost" onClick={props.onClose}>
+            Cancel
+          </Button>
           <Button variant="primary" type="submit" disabled={ms == null || tooLong}>
-            Go
+            Jump
           </Button>
         </div>
       </form>
@@ -713,8 +750,12 @@ function EmptyState({ onOpen, onBrowse, openHint }: { onOpen: () => void; onBrow
   return (
     <div className="absolute inset-0 flex items-center bg-room px-[8vw]" onClick={(e) => e.stopPropagation()}>
       <div className="max-w-lg">
-        <h1 className="spine-xl text-[64px] text-cream">Nothing playing</h1>
-        <p className="mt-3 text-[15px] leading-relaxed text-room-ink-2">Drop a file anywhere in this window, open one, or pick something from your shelf.</p>
+        <p className="flex items-center gap-2">
+          <span className="tally" data-state="idle" aria-hidden />
+          <span className="engrave text-room-ink-3">No signal</span>
+        </p>
+        <h1 className="spine-xl mt-4 text-[64px] text-cream">Nothing playing</h1>
+        <p className="mt-3 text-[15px] leading-relaxed text-room-ink-2">Drop a file anywhere in this window, open one, or pick something from your library.</p>
         <div className="mt-6 flex gap-2">
           <Button variant="primary" onClick={onOpen} icon={<FileIcon size={16} />}>
             Open file{openHint && <span className="ml-1 opacity-70">{openHint}</span>}
@@ -745,18 +786,21 @@ function ErrorPanel({
   return (
     <div className="absolute inset-0 flex items-center bg-room px-[8vw]" role="alert" onClick={(e) => e.stopPropagation()}>
       <div className="max-w-xl">
-        {fileName && <p className="mb-2 truncate text-[13px] font-[600] text-room-ink-3">{fileName}</p>}
-        <h2 className="spine-xl text-[48px] text-cream">{d.title}</h2>
+        <p className="flex items-center gap-2">
+          <span className="size-[9px] rounded-[2px] bg-danger-room" aria-hidden />
+          <span className="engrave text-room-ink-3">Can't play{fileName ? ` · ${fileName}` : ""}</span>
+        </p>
+        <h2 className="spine-xl mt-4 text-[48px] text-cream">{d.title}</h2>
         <p className="mt-3 text-[15px] leading-relaxed text-room-ink-2">{d.detail}</p>
-        <ul className="mt-4 space-y-1.5 text-[14px] text-room-ink">
-          {d.steps.map((step) => (
-            <li key={step} className="flex gap-2">
-              <span aria-hidden className="mt-[7px] size-1.5 shrink-0 rounded-full bg-ember" />
+        <ol className="mt-5 space-y-2 border-l border-room-seam pl-4 text-[14px] text-room-ink">
+          {d.steps.map((step, i) => (
+            <li key={step} className="flex gap-3">
+              <span className="readout w-4 shrink-0 text-room-ink-3">{i + 1}</span>
               {step}
             </li>
           ))}
-        </ul>
-        <details className="mt-4 text-[12.5px] text-room-ink-3">
+        </ol>
+        <details className="mt-5 text-[12.5px] text-room-ink-3">
           <summary className="cursor-pointer hover:text-room-ink-2">Technical details</summary>
           <code className="mt-1 block select-text break-all">
             {error.kind}: {error.message}

@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api/core";
+import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { useSyncExternalStore } from "react";
 import { SnapshotStore } from "./store";
@@ -109,6 +109,8 @@ export const mediaDetails = () => invoke<MediaDetails | null>("playback_media_de
 export const screenshot = (withSubtitles: boolean) => invoke<string>("playback_screenshot", { withSubtitles });
 /** Selects a saved frame in Explorer (only files inside Pictures\NOVA). */
 export const revealScreenshot = (path: string) => invoke<void>("reveal_screenshot", { path });
+/** A decoded frame of the playing media at `positionMs`, as an image URL. Rejects when busy or impossible. */
+export const previewFrame = (positionMs: number) => invoke<string>("preview_frame", { positionMs }).then((p) => convertFileSrc(p));
 export const launchMediaPaths = () => invoke<string[]>("launch_media_paths");
 
 export function isPlaybackError(e: unknown): e is PlaybackError {

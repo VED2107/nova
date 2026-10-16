@@ -52,3 +52,5 @@ export const PencilIcon = (p: P) => <svg {...base(p)}><path d="M12.8 4.2 15.8 7.
 export const ReplayIcon = (p: P) => <svg {...base(p)}><path d="M4.3 10a5.7 5.7 0 1 0 1.8-4.2" /><path d="M4 3.6v3.6h3.6" /></svg>;
 export const SaveIcon = (p: P) => <svg {...base(p)}><path d="M4 3.5h9.5l2.5 2.5v10.5H4z" /><path d="M7 3.5v4h6v-4M7 16.5v-5h6v5" /></svg>;
 export const ImmersiveIcon = (p: P) => <svg {...base(p)}><rect x="2.8" y="4.2" width="14.4" height="11.6" rx="1.6" /><path d="M2.8 13h14.4" /></svg>;
+export const StopIcon = (p: P) => <svg {...base(p)}><rect x="5" y="5" width="10" height="10" rx="1.2" fill="currentColor" stroke="none" /></svg>;
+export const SubtitlesIcon = (p: P) => <svg {...base(p)}><rect x="2.8" y="4.2" width="14.4" height="11.6" rx="2" /><path d="M6 10.6h3M11 10.6h3M6 13h5" /></svg>;

@@ -25,6 +25,24 @@ pub const PREFERENCES: &[(&str, &[&str], &str)] = &[
     ("wheel", &["volume", "seek", "none"], "volume"),
     ("click", &["pause", "none"], "pause"),
     ("dblclick", &["fullscreen", "none"], "fullscreen"),
+    // Timeline across the full deck, or short and inline between the controls.
+    ("timelineLayout", &["wide", "compact"], "wide"),
+    // Ctrl + wheel over the picture.
+    (
+        "ctrlWheel",
+        &["subtitleSize", "volume", "none"],
+        "subtitleSize",
+    ),
+    // Subtitle size, percent of the authored size, in steps of 10.
+    (
+        "subScale",
+        &[
+            "50", "60", "70", "80", "90", "100", "110", "120", "130", "140", "150", "160", "170",
+            "180", "190", "200", "210", "220", "230", "240", "250", "260", "270", "280", "290",
+            "300",
+        ],
+        "100",
+    ),
 ];
 
 /// Free-form preferences validated structurally instead of by enumeration.
@@ -284,6 +302,11 @@ mod tests {
                 .unwrap()
         );
         assert_eq!(s.preferences().unwrap()["wheel"], "volume");
+        assert_eq!(s.preferences().unwrap()["subScale"], "100");
+        assert!(validate_preference("subScale", "130"));
+        assert!(!validate_preference("subScale", "135"));
+        assert!(!validate_preference("subScale", "310"));
+        assert!(validate_preference("ctrlWheel", "subtitleSize"));
     }
 
     #[test]

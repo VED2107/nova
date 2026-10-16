@@ -39,6 +39,8 @@ pub enum EngineEvent {
     RotationChanged(u16),
     DeinterlaceChanged(bool),
     LoopFileChanged(bool),
+    SubtitleScaleChanged(u16),
+    ChaptersChanged(Vec<crate::Chapter>),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -75,6 +77,7 @@ pub struct PlaybackState {
     tracks: Vec<Track>,
     video: Option<VideoInfo>,
     ab_loop: AbLoop,
+    chapters: Vec<crate::Chapter>,
     issues: Vec<crate::PlaybackIssue>,
     adjust: crate::Adjustments,
     error: Option<PlaybackError>,
@@ -100,6 +103,7 @@ impl Default for PlaybackState {
             tracks: Vec::new(),
             video: None,
             ab_loop: AbLoop::default(),
+            chapters: Vec::new(),
             issues: Vec::new(),
             adjust: crate::Adjustments::default(),
             error: None,
@@ -163,6 +167,7 @@ impl PlaybackState {
                 | EngineEvent::RotationChanged(_)
                 | EngineEvent::DeinterlaceChanged(_)
                 | EngineEvent::LoopFileChanged(_)
+                | EngineEvent::SubtitleScaleChanged(_)
         );
         if !player_wide && session != self.session_id {
             return false;
@@ -221,6 +226,8 @@ impl PlaybackState {
             EngineEvent::RotationChanged(v) => self.adjust.rotation = v,
             EngineEvent::DeinterlaceChanged(v) => self.adjust.deinterlace = v,
             EngineEvent::LoopFileChanged(v) => self.adjust.loop_file = v,
+            EngineEvent::SubtitleScaleChanged(v) => self.adjust.subtitle_scale_percent = v,
+            EngineEvent::ChaptersChanged(c) => self.chapters = c,
             EngineEvent::Issue(i) => {
                 if !self.issues.contains(&i) {
                     self.issues.push(i);
@@ -254,6 +261,7 @@ impl PlaybackState {
             tracks: self.tracks.clone(),
             video: self.video.clone(),
             ab_loop: self.ab_loop,
+            chapters: self.chapters.clone(),
             issues: self.issues.clone(),
             adjust: self.adjust.clone(),
             error: self.error.clone(),
@@ -468,5 +476,40 @@ mod tests {
         let seq = s.snapshot().seq;
         started(&mut s, 2);
         assert!(s.snapshot().seq > seq);
+    }
+
+    #[test]
+    fn chapters_belong_to_one_session() {
+        let mut s = playing(1);
+        let ch = vec![
+            crate::Chapter {
+                time_ms: 0,
+                title: Some("Opening".into()),
+            },
+            crate::Chapter {
+                time_ms: 4_000,
+                title: None,
+            },
+        ];
+        assert!(s.apply(1, EngineEvent::ChaptersChanged(ch.clone())));
+        assert_eq!(s.snapshot().chapters, ch);
+        assert!(
+            !s.apply(0, EngineEvent::ChaptersChanged(vec![])),
+            "stale session ignored"
+        );
+        started(&mut s, 2);
+        assert!(
+            s.snapshot().chapters.is_empty(),
+            "a new file starts without chapters"
+        );
+    }
+
+    #[test]
+    fn subtitle_scale_is_player_wide() {
+        let mut s = playing(1);
+        assert_eq!(s.snapshot().adjust.subtitle_scale_percent, 100);
+        assert!(s.apply(0, EngineEvent::SubtitleScaleChanged(130)));
+        started(&mut s, 2);
+        assert_eq!(s.snapshot().adjust.subtitle_scale_percent, 130);
     }
 }

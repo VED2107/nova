@@ -43,9 +43,10 @@ export function ShortcutsDialog(props: { open: boolean; onClose: () => void; onC
         <section className="mb-5 break-inside-avoid">
           <h3 className="catalog mb-1.5 text-ink-3">Mouse</h3>
           <ul className="space-y-1 border-t border-seam pt-1.5 text-[13px] text-ink">
-            <li>Wheel over the picture {wheel}; over the timeline it seeks</li>
+            <li>Wheel over the picture {wheel}; over the timeline it seeks; Shift + wheel seeks</li>
+            <li>Ctrl + wheel over the picture: {{ subtitleSize: "subtitle size", volume: "volume", none: "nothing" }[p.ctrlWheel]}</li>
             <li>Click: {p.click === "pause" ? "play / pause" : "nothing"} · Double-click: {p.dblclick === "fullscreen" ? "fullscreen" : "nothing"}</li>
-            <li>Right-click: the full player menu</li>
+            <li>Right-click, Menu key or Shift+F10: every player tool</li>
             <li>Back / forward buttons: previous / next in queue</li>
           </ul>
         </section>

@@ -103,6 +103,8 @@ export interface PlaybackSnapshot {
   video: VideoInfo | null;
   abLoop: AbLoop;
   adjust: Adjustments;
+  /** Container chapters in time order; empty when the file has none. */
+  chapters: Chapter[];
   issues: PlaybackIssue[];
   error: PlaybackError | null;
 }
@@ -114,7 +116,17 @@ export interface Adjustments {
   rotation: number;
   deinterlace: boolean;
   loopFile: boolean;
+  /** Subtitle size, percent of the authored size. */
+  subtitleScalePercent: number;
 }
+
+export interface Chapter {
+  timeMs: number;
+  title: string | null;
+}
+
+/** Must match nova-playback-api SUBTITLE_SCALE_RANGE. */
+export const SUBTITLE_SCALE_RANGE = [50, 300] as const;
 
 /** Must match nova-playback-api ASPECT_RATIOS. */
 export const ASPECT_RATIOS = ["16:9", "4:3", "1:1", "16:10", "2.21:1", "2.35:1", "2.39:1", "5:4", "1.85:1"] as const;
@@ -164,6 +176,7 @@ export type PlaybackCommand =
   | { type: "setAspectRatio"; ratio: string | null }
   | { type: "setRotation"; degrees: number }
   | { type: "setSubtitleMargin"; margin: number }
+  | { type: "setSubtitleScale"; percent: number }
   | { type: "setVideoMarginRight"; ratio: number }
   | { type: "setDeinterlace"; enabled: boolean }
   | { type: "setLoopFile"; enabled: boolean }
@@ -190,7 +203,8 @@ export const INITIAL_SNAPSHOT: PlaybackSnapshot = {
   tracks: [],
   video: null,
   abLoop: { aMs: null, bMs: null },
-  adjust: { subtitleDelayMs: 0, audioDelayMs: 0, aspectRatio: null, rotation: 0, deinterlace: false, loopFile: false },
+  adjust: { subtitleDelayMs: 0, audioDelayMs: 0, aspectRatio: null, rotation: 0, deinterlace: false, loopFile: false, subtitleScalePercent: 100 },
+  chapters: [],
   issues: [],
   error: null,
 };

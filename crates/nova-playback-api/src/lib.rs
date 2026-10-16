@@ -113,6 +113,10 @@ pub enum PlaybackCommand {
     SetVideoMarginRight {
         ratio: f64,
     },
+    /// Subtitle size as a percentage of the engine default (100 = as authored).
+    SetSubtitleScale {
+        percent: u16,
+    },
     /// Load an external subtitle file for the current media and select it.
     AddSubtitle {
         path: String,
@@ -121,6 +125,8 @@ pub enum PlaybackCommand {
 
 /// Largest subtitle lift accepted, in scaled pixels of a 720-high window.
 pub const MAX_SUBTITLE_MARGIN: u32 = 400;
+/// Accepted subtitle size range, in percent of the authored size.
+pub const SUBTITLE_SCALE_RANGE: (u16, u16) = (50, 300);
 
 /// Aspect ratios offered for override (VLC-equivalent set).
 pub const ASPECT_RATIOS: &[&str] = &[
@@ -178,6 +184,14 @@ impl PlaybackCommand {
             Self::SetSubtitleMargin { margin } if *margin > MAX_SUBTITLE_MARGIN => Err(
                 PlaybackError::invalid("subtitle margin must be at most 400"),
             ),
+            Self::SetSubtitleScale { percent }
+                if !(SUBTITLE_SCALE_RANGE.0..=SUBTITLE_SCALE_RANGE.1).contains(percent) =>
+            {
+                Err(PlaybackError::invalid(format!(
+                    "subtitle size must be {}..={} percent",
+                    SUBTITLE_SCALE_RANGE.0, SUBTITLE_SCALE_RANGE.1
+                )))
+            }
             Self::SetVideoMarginRight { ratio }
                 if !ratio.is_finite() || !(0.0..=0.6).contains(ratio) =>
             {
@@ -311,13 +325,23 @@ pub struct PlaybackSnapshot {
     pub ab_loop: AbLoop,
     /// Engine-confirmed picture and timing adjustments (player-wide).
     pub adjust: Adjustments,
+    /// Chapter starts reported by the container, in order (empty when none).
+    pub chapters: Vec<Chapter>,
     /// Non-fatal problems observed for this media (e.g. no video decoder).
     pub issues: Vec<PlaybackIssue>,
     pub error: Option<PlaybackError>,
 }
 
+/// One container-reported chapter.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Chapter {
+    pub time_ms: MediaTimeMs,
+    pub title: Option<String>,
+}
+
 /// Engine-confirmed picture/timing adjustments.
-#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Adjustments {
     pub subtitle_delay_ms: i64,
@@ -326,6 +350,22 @@ pub struct Adjustments {
     pub rotation: u16,
     pub deinterlace: bool,
     pub loop_file: bool,
+    /// Subtitle size in percent of the authored size.
+    pub subtitle_scale_percent: u16,
+}
+
+impl Default for Adjustments {
+    fn default() -> Self {
+        Self {
+            subtitle_delay_ms: 0,
+            audio_delay_ms: 0,
+            aspect_ratio: None,
+            rotation: 0,
+            deinterlace: false,
+            loop_file: false,
+            subtitle_scale_percent: 100,
+        }
+    }
 }
 
 /// Engine-confirmed A–B loop points.
@@ -577,6 +617,10 @@ mod tests {
         assert!(C::SetRotation { degrees: 45 }.validate().is_err());
         assert!(C::SetSubtitleMargin { margin: 120 }.validate().is_ok());
         assert!(C::SetSubtitleMargin { margin: 401 }.validate().is_err());
+        assert!(C::SetSubtitleScale { percent: 100 }.validate().is_ok());
+        assert!(C::SetSubtitleScale { percent: 300 }.validate().is_ok());
+        assert!(C::SetSubtitleScale { percent: 49 }.validate().is_err());
+        assert!(C::SetSubtitleScale { percent: 301 }.validate().is_err());
         assert!(C::SetVideoMarginRight { ratio: 0.26 }.validate().is_ok());
         assert!(C::SetVideoMarginRight { ratio: 0.9 }.validate().is_err());
         assert!(

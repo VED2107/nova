@@ -5,9 +5,9 @@ import { Button, IconButton, Segmented } from "../../components/ui/controls";
 import { ConfirmDialog } from "../../components/ui/Dialog";
 import { library } from "../../services/library/client";
 import { queue } from "../../services/playback/client";
-import { ContextMenu } from "../player/ContextMenu";
+import { OsdMenu } from "../../components/OsdMenu";
 import type { LibraryItem, LibrarySort, ScanProgress, ScanRoot } from "../../services/library/types";
-import { folderName, pagesFor, visibleRange } from "../../services/library/view";
+import { folderName, pagesFor, specLine, timeLeft, visibleRange } from "../../services/library/view";
 import { ItemRow, ListHeader, ROW_HEIGHT } from "./ItemRow";
 
 const PAGE = 100;
@@ -50,6 +50,7 @@ export function LibraryView(props: { onPlay: (item: LibraryItem) => void; onAddF
       /* private mode: keep the choice for this session only */
     }
   };
+  const closeMenu = useCallback(() => setMenu(null), []);
   const openMenu = (e: React.MouseEvent, item: LibraryItem) => {
     e.preventDefault();
     setMenu({ x: e.clientX, y: e.clientY, item });
@@ -315,21 +316,27 @@ export function LibraryView(props: { onPlay: (item: LibraryItem) => void; onAddF
       </section>
 
       {menu && (
-        <ContextMenu
+        <OsdMenu
           tone="paper"
           x={menu.x}
           y={menu.y}
           label={`${menu.item.title} menu`}
-          groups={[
+          nodes={[
             {
-              title: menu.item.title,
-              items: [
-                { label: menu.item.progress && !menu.item.progress.completed ? "Resume" : "Play", disabled: menu.item.missing, run: () => props.onPlay(menu.item) },
-                { label: "Add to queue", disabled: menu.item.missing, run: () => void queue.append([menu.item.path]).catch(fail) },
-              ],
+              kind: "item",
+              id: "play",
+              label: menu.item.progress && !menu.item.progress.completed ? "Resume" : "Play",
+              value: menu.item.progress && !menu.item.progress.completed ? (timeLeft(menu.item.progress) ?? undefined) : undefined,
+              disabled: menu.item.missing,
+              reason: "The file was moved or deleted",
+              run: () => props.onPlay(menu.item),
             },
+            { kind: "item", id: "queue", label: "Add to queue", disabled: menu.item.missing, reason: "The file was moved or deleted", run: () => void queue.append([menu.item.path]).catch(fail) },
+            { kind: "sep", id: "s1" },
+            { kind: "label", id: "where", text: folderName(menu.item.folder) },
+            { kind: "item", id: "spec", label: specLine(menu.item) || "No facts measured yet", disabled: true, run: () => {} },
           ]}
-          onClose={() => setMenu(null)}
+          onClose={closeMenu}
         />
       )}
 

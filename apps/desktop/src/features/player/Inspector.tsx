@@ -108,7 +108,7 @@ export function Inspector(props: { open: boolean; sessionId: number; engine: Eng
               )}
             </Block>
             <details className="mt-2 border-t border-room-seam pt-2">
-              <summary className="catalog cursor-pointer py-1.5 text-room-ink-3 hover:text-room-ink-2">Advanced</summary>
+              <summary className="engrave cursor-pointer py-2 text-room-ink-3 hover:text-room-ink-2">Advanced</summary>
               <div className="pb-2">
                 <Row k="Pixel format" v={val(v?.pixelFormat)} mono />
                 <Row k="Matrix" v={val(v?.colorMatrix)} mono />
@@ -132,7 +132,7 @@ export function Inspector(props: { open: boolean; sessionId: number; engine: Eng
 function Block({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div className="border-t border-room-seam py-2 first:border-t-0">
-      <h3 className="catalog py-1.5 text-room-ink-3">{title}</h3>
+      <h3 className="engrave py-2 text-room-ink-3">{title}</h3>
       <dl>{children}</dl>
     </div>
   );
@@ -143,7 +143,7 @@ function Row({ k, v, hint, mono }: { k: string; v: string; hint?: string; mono?:
   return (
     <div className="grid grid-cols-[112px_1fr] gap-3 py-[3px] text-[13px]">
       <dt className="text-room-ink-3">{k}</dt>
-      <dd className={`min-w-0 break-words ${unknown ? "italic text-room-ink-3" : "text-room-ink"} ${mono ? "tabular-nums" : ""}`} title={hint}>
+      <dd className={`min-w-0 break-words ${mono ? "readout " : ""}${unknown ? "italic text-room-ink-3" : "text-room-ink"} ${mono ? "tabular-nums" : ""}`} title={hint}>
         {v}
         {hint && <span className="block text-[11.5px] not-italic text-room-ink-3">{hint}</span>}
       </dd>

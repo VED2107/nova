@@ -12,6 +12,12 @@ export interface Prefs {
   wheel: "volume" | "seek" | "none";
   click: "pause" | "none";
   dblclick: "fullscreen" | "none";
+  /** Timeline across the deck ("wide") or short and inline with the controls ("compact"). */
+  timelineLayout: "wide" | "compact";
+  /** Ctrl + wheel over the picture. */
+  ctrlWheel: "subtitleSize" | "volume" | "none";
+  /** Subtitle size in percent ("50".."300", steps of 10). */
+  subScale: string;
   /** JSON: action id -> chords (overrides only). */
   keymap: string;
 }
@@ -26,6 +32,9 @@ export const DEFAULT_PREFS: Prefs = {
   wheel: "volume",
   click: "pause",
   dblclick: "fullscreen",
+  timelineLayout: "wide",
+  ctrlWheel: "subtitleSize",
+  subScale: "100",
   keymap: "{}",
 };
 

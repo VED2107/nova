@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { CloseIcon, GripIcon, PlusIcon, SaveIcon, TrashIcon } from "../../components/icons";
+import { CloseIcon, PlusIcon, SaveIcon, TrashIcon } from "../../components/icons";
 import { Button, IconButton } from "../../components/ui/controls";
 import { ConfirmDialog } from "../../components/ui/Dialog";
 import { library } from "../../services/library/client";
@@ -84,7 +84,7 @@ export function QueuePanel(props: { onClose: () => void; onAddFiles: () => void;
         </div>
       ) : (
         <ol
-          className="min-h-0 flex-1 overflow-y-auto py-2"
+          className="min-h-0 flex-1 overflow-y-auto py-3"
           onDragOver={(e) => e.preventDefault()}
           onDrop={(e) => {
             e.preventDefault();
@@ -120,27 +120,35 @@ export function QueuePanel(props: { onClose: () => void; onAddFiles: () => void;
                   e.stopPropagation();
                   run(queue.move(item.id, Math.max(0, Math.min(q.items.length - 1, i + (e.key === "ArrowUp" ? -1 : 1)))));
                 }}
-                className={`group relative mx-2 flex items-center gap-2 rounded-[6px] pr-1 ${current ? "bg-white/[0.07]" : "hover:bg-white/[0.04]"} ${dragId === item.id ? "opacity-40" : ""}`}
+                className={`group relative mx-2 flex items-center gap-1.5 rounded-[5px] pr-1 ${current ? "bg-white/[0.06]" : "hover:bg-white/[0.04]"} ${dragId === item.id ? "opacity-40" : ""}`}
               >
                 {dropIndex === i && dragId != null && dragId !== item.id && <span aria-hidden className="absolute inset-x-2 -top-px h-[2px] rounded-full bg-ember" />}
-                <span aria-hidden className="cursor-grab pl-1 text-room-ink-3 opacity-0 group-hover:opacity-100">
-                  <GripIcon size={16} />
+                {/* The queue is a line of stations: played ones go hollow, the current one is the interchange. */}
+                <span aria-hidden className="relative flex w-7 shrink-0 cursor-grab items-center justify-center self-stretch">
+                  <span className={`absolute left-1/2 w-px -translate-x-1/2 bg-room-seam ${i === 0 ? "top-1/2" : "top-0"} ${i === q.items.length - 1 ? "bottom-1/2" : "bottom-0"}`} />
+                  <span
+                    className={`relative rounded-full ${
+                      current
+                        ? "size-[13px] bg-ember shadow-[0_0_0_3px_var(--color-room-ply-2),0_0_0_4.5px_var(--color-ember)]"
+                        : played
+                          ? "size-[9px] border-[1.5px] border-room-ink-3 bg-room-ply-2"
+                          : "size-[9px] bg-room-ink-2"
+                    }`}
+                  />
                 </span>
                 <button
                   type="button"
                   aria-current={current ? "true" : undefined}
                   aria-describedby="queue-move-hint"
+                  aria-label={`${i + 1}. ${item.title}${current ? ", playing" : played ? ", played" : ""}`}
                   onClick={() => run(queue.select(item.id))}
                   title={item.path}
-                  className="flex min-w-0 flex-1 items-center gap-3 py-2 text-left"
+                  className="flex min-w-0 flex-1 items-center gap-3 py-2.5 text-left"
                 >
-                  <span className={`w-5 shrink-0 text-right text-[12px] font-[600] tabular-nums ${current ? "text-ember" : "text-room-ink-3"}`}>
-                    {current ? <span className="inline-block size-1.5 rounded-full bg-ember align-middle" /> : i + 1}
-                  </span>
                   <span className={`min-w-0 flex-1 truncate text-[13.5px] ${current ? "font-[650] text-room-ink" : played ? "text-room-ink-3" : "text-room-ink-2"}`}>
                     {item.title}
                   </span>
-                  {d && <span className="shrink-0 text-[12px] tabular-nums text-room-ink-3">{d}</span>}
+                  {d && <span className="readout shrink-0 text-[12px] text-room-ink-3">{d}</span>}
                 </button>
                 <IconButton tone="room" size="sm" label={`Remove ${item.title}`} onClick={() => run(queue.remove(item.id))} className="opacity-0 focus-visible:opacity-100 group-hover:opacity-100">
                   <CloseIcon size={16} />

@@ -10,6 +10,8 @@ use std::ffi::{CString, c_void};
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
+static WORK_SEQ: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct Thumbnail {
     pub image: PathBuf,
@@ -29,6 +31,53 @@ pub fn extract(
     max_width: u32,
     timeout: Duration,
 ) -> Result<Thumbnail, String> {
+    extract_with(
+        library,
+        media,
+        out_file,
+        format!("{}%", at_percent.min(95)),
+        max_width,
+        timeout,
+        &[],
+    )
+}
+
+/// Writes the frame shown at `at_ms` (exact, decoded from the previous
+/// keyframe) as a small JPEG for timeline previews. Loop filtering is skipped
+/// to keep long-GOP and 4K sources fast; the result is a preview, not a still.
+pub fn extract_at_ms(
+    library: &Path,
+    media: &Path,
+    out_file: &Path,
+    at_ms: u64,
+    max_width: u32,
+    timeout: Duration,
+) -> Result<Thumbnail, String> {
+    extract_with(
+        library,
+        media,
+        out_file,
+        format!("{:.3}", at_ms as f64 / 1000.0),
+        max_width,
+        timeout,
+        &[
+            ("vd-lavc-skiploopfilter", "all"),
+            ("vd-lavc-fast", "yes"),
+            ("hr-seek-framedrop", "yes"),
+            ("demuxer-max-bytes", "8MiB"),
+        ],
+    )
+}
+
+fn extract_with(
+    library: &Path,
+    media: &Path,
+    out_file: &Path,
+    start: String,
+    max_width: u32,
+    timeout: Duration,
+    extra: &[(&str, &str)],
+) -> Result<Thumbnail, String> {
     let api = unsafe { MpvApi::load(library) }?;
     let h = unsafe { (api.create)() };
     if h.is_null() {
@@ -45,7 +94,11 @@ pub fn extract(
     let work = out_file
         .parent()
         .ok_or("output path has no folder")?
-        .join(format!(".frame-{}", std::process::id()));
+        .join(format!(
+            ".frame-{}-{}",
+            std::process::id(),
+            WORK_SEQ.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+        ));
     let _ = std::fs::remove_dir_all(&work);
     std::fs::create_dir_all(&work).map_err(|e| e.to_string())?;
     let work_str = work.to_string_lossy().into_owned();
@@ -65,7 +118,7 @@ pub fn extract(
         ("sid", "no".into()),
         ("hwdec", "no".into()),
         ("frames", "1".into()),
-        ("start", format!("{}%", at_percent.min(95))),
+        ("start", start),
         ("vf", format!("lavfi=[scale={max_width}:-2]")),
         ("hr-seek", "yes".into()),
     ];
@@ -73,6 +126,16 @@ pub fn extract(
         let (k, v) = (
             CString::new(*k).unwrap(),
             CString::new(v.as_str()).map_err(|e| e.to_string())?,
+        );
+        let rc = unsafe { (api.set_option_string)(h, k.as_ptr(), v.as_ptr()) };
+        if rc < 0 {
+            return Err(format!("option {k:?}: {}", api.error_message(rc)));
+        }
+    }
+    for (k, v) in extra {
+        let (k, v) = (
+            CString::new(*k).map_err(|e| e.to_string())?,
+            CString::new(*v).map_err(|e| e.to_string())?,
         );
         let rc = unsafe { (api.set_option_string)(h, k.as_ptr(), v.as_ptr()) };
         if rc < 0 {

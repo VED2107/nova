@@ -3,7 +3,7 @@ import { SnapshotStore } from "./store";
 import { formatTime, languageName, trackLabel } from "./format";
 import { describeError } from "./errors";
 import { nextAbLoop } from "./shortcuts";
-import { ACTIONS, actionForChord, chordOf, commandFor, conflicts, cycleTrack, effectiveKeymap, nextAspect, nextSpeed, parseKeymap } from "./actions";
+import { ACTIONS, actionForChord, chapterTarget, chordOf, commandFor, conflicts, cycleTrack, effectiveKeymap, nextAspect, nextSpeed, nextSubScale, parseKeymap } from "./actions";
 import { INITIAL_SNAPSHOT, type PlaybackSnapshot, type Track } from "./types";
 
 const snap = (over: Partial<PlaybackSnapshot>): PlaybackSnapshot => ({ ...INITIAL_SNAPSHOT, ...over });
@@ -132,5 +132,38 @@ describe("error explanations", () => {
     const r = describeError({ kind: "requiresExternalDecoder", message: "Blackmagic RAW can't be decoded…" });
     expect(r.title).toMatch(/RAW/);
     expect(r.detail).toContain("Blackmagic RAW");
+  });
+});
+
+describe("subtitle size", () => {
+  it("steps by 10% within the engine range", () => {
+    expect(nextSubScale(100, 1)).toBe(110);
+    expect(nextSubScale(104, -1)).toBe(90);
+    expect(nextSubScale(300, 1)).toBe(300);
+    expect(nextSubScale(50, -1)).toBe(50);
+  });
+  it("maps the size actions to engine commands", () => {
+    const s = snap({ adjust: { ...INITIAL_SNAPSHOT.adjust, subtitleScalePercent: 120 } });
+    expect(commandFor("subs.bigger", s)).toEqual({ type: "setSubtitleScale", percent: 130 });
+    expect(commandFor("subs.sizeReset", s)).toEqual({ type: "setSubtitleScale", percent: 100 });
+  });
+  it("default keys do not conflict", () => {
+    expect(conflicts(effectiveKeymap({})).size).toBe(0);
+  });
+});
+
+describe("chapters", () => {
+  const ch = [{ timeMs: 0 }, { timeMs: 40_000 }, { timeMs: 95_000 }];
+  it("jumps to the next chapter start", () => {
+    expect(chapterTarget(ch, 10_000, 1)).toBe(40_000);
+    expect(chapterTarget(ch, 100_000, 1)).toBeNull();
+  });
+  it("restarts the current chapter, or goes back one when near its start", () => {
+    expect(chapterTarget(ch, 50_000, -1)).toBe(40_000);
+    expect(chapterTarget(ch, 41_000, -1)).toBe(0);
+    expect(chapterTarget([], 1_000, -1)).toBeNull();
+  });
+  it("does nothing without chapters", () => {
+    expect(commandFor("chapter.next", snap({ chapters: [] }))).toBeNull();
   });
 });

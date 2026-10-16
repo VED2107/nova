@@ -18,7 +18,7 @@ use nova_playback_api::{
     AudioDetails, MediaDetails, PlaybackIssue, VideoDetails, pixel_format_traits,
 };
 use nova_playback_api::{
-    Capabilities, CommandAck, EngineEvent, MediaSource, MediaSourceError, PlaybackBackend,
+    Capabilities, Chapter, CommandAck, EngineEvent, MediaSource, MediaSourceError, PlaybackBackend,
     PlaybackCommand, PlaybackError, PlaybackErrorKind, PlaybackPhase, PlaybackSnapshot,
     PlaybackState, SessionId, Track, TrackId, TrackKind, VideoInfo,
 };
@@ -138,6 +138,8 @@ const P_ASPECT: u64 = 16;
 const P_ROTATE: u64 = 17;
 const P_DEINT: u64 = 18;
 const P_LOOP_FILE: u64 = 19;
+const P_SUB_SCALE: u64 = 20;
+const P_CHAPTERS: u64 = 21;
 
 const OBSERVED: &[(u64, &str, c_int)] = &[
     (P_PAUSE, "pause", MPV_FORMAT_FLAG),
@@ -159,6 +161,8 @@ const OBSERVED: &[(u64, &str, c_int)] = &[
     (P_ROTATE, "video-rotate", MPV_FORMAT_STRING),
     (P_DEINT, "deinterlace", MPV_FORMAT_STRING),
     (P_LOOP_FILE, "loop-file", MPV_FORMAT_STRING),
+    (P_SUB_SCALE, "sub-scale", MPV_FORMAT_DOUBLE),
+    (P_CHAPTERS, "chapter-list", MPV_FORMAT_NODE),
 ];
 
 fn engine_err(msg: impl Into<String>) -> PlaybackError {
@@ -624,6 +628,9 @@ impl PlaybackBackend for MpvPlayer {
             PlaybackCommand::SetSubtitleMargin { margin } => {
                 i.set_string("sub-margin-y", &margin.to_string())?
             }
+            PlaybackCommand::SetSubtitleScale { percent } => {
+                i.set_double("sub-scale", f64::from(percent) / 100.0)?
+            }
             PlaybackCommand::SetVideoMarginRight { ratio } => {
                 i.set_double("video-margin-ratio-right", ratio)?
             }
@@ -773,6 +780,33 @@ fn secs_to_ms(secs: f64) -> u64 {
     } else {
         0
     }
+}
+
+/// Container chapters in time order; entries without a usable time are dropped.
+fn parse_chapters(node: &Node) -> Vec<Chapter> {
+    let Node::Array(items) = node else {
+        return Vec::new();
+    };
+    let mut out: Vec<Chapter> = items
+        .iter()
+        .filter_map(|c| {
+            let t = c
+                .get("time")?
+                .as_f64()
+                .filter(|t| t.is_finite() && *t >= 0.0)?;
+            Some(Chapter {
+                time_ms: secs_to_ms(t),
+                title: c
+                    .get("title")
+                    .and_then(Node::as_str)
+                    .map(str::trim)
+                    .filter(|t| !t.is_empty())
+                    .map(str::to_owned),
+            })
+        })
+        .collect();
+    out.sort_by_key(|c| c.time_ms);
+    out
 }
 
 fn parse_tracks(node: &Node) -> Vec<Track> {
@@ -1052,6 +1086,14 @@ impl EventLoop {
                 string().is_some_and(|v| v != "no"),
             )),
             P_AB_B => self.apply(EngineEvent::AbLoopBChanged(double().map(secs_to_ms))),
+            P_SUB_SCALE => {
+                if let Some(v) = double().filter(|v| v.is_finite()) {
+                    self.apply(EngineEvent::SubtitleScaleChanged(
+                        (v * 100.0).round().clamp(0.0, 1000.0) as u16,
+                    ))
+                }
+            }
+            P_CHAPTERS => self.apply(EngineEvent::ChaptersChanged(parse_chapters(&node()))),
             P_SPEED => {
                 if let Some(s) = double() {
                     self.apply(EngineEvent::SpeedChanged(s))
@@ -1095,6 +1137,33 @@ mod tests {
         );
         assert!(track_selector(Some("sub:2"), TrackKind::Audio).is_err());
         assert!(track_selector(Some("audio:x"), TrackKind::Audio).is_err());
+    }
+
+    #[test]
+    fn chapters_parse_in_order_and_skip_bad_times() {
+        let ch = |t: Node, title: &str| {
+            Node::Map(
+                [
+                    ("time".to_owned(), t),
+                    ("title".to_owned(), Node::String(title.to_owned())),
+                ]
+                .into_iter()
+                .collect(),
+            )
+        };
+        let n = Node::Array(vec![
+            ch(Node::Double(40.0), "Middle"),
+            ch(Node::Double(0.0), "Opening"),
+            ch(Node::String("x".into()), "Broken"),
+            ch(Node::Double(f64::NAN), "Nan"),
+            ch(Node::Double(95.5), "  "),
+        ]);
+        let got = parse_chapters(&n);
+        assert_eq!(got.len(), 3);
+        assert_eq!(got[0].title.as_deref(), Some("Opening"));
+        assert_eq!(got[1].time_ms, 40_000);
+        assert_eq!(got[2].title, None, "blank titles are unknown, not empty");
+        assert!(parse_chapters(&Node::None).is_empty());
     }
 
     #[test]

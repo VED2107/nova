@@ -1,5 +1,5 @@
 import type { PlaybackCommand, PlaybackSnapshot } from "./types";
-import { ASPECT_RATIOS, MAX_VOLUME } from "./types";
+import { ASPECT_RATIOS, MAX_VOLUME, SUBTITLE_SCALE_RANGE } from "./types";
 
 /**
  * Every player action, with VLC-parity defaults. Key bindings are data: the
@@ -37,6 +37,8 @@ export const ACTIONS: ActionDef[] = [
   { id: "seek.fwd.tiny", label: "Forward 1 second", group: "Navigation", keys: ["Alt+ArrowRight"], media: true },
   { id: "seek.start", label: "Go to start", group: "Navigation", keys: ["Home"], media: true },
   { id: "seek.goto", label: "Go to time…", group: "Navigation", keys: ["Ctrl+T"], media: true },
+  { id: "chapter.next", label: "Next chapter", group: "Navigation", keys: ["Shift+N"], media: true },
+  { id: "chapter.prev", label: "Previous chapter", group: "Navigation", keys: ["Shift+P"], media: true },
   { id: "time.toggle", label: "Elapsed / remaining time", group: "Navigation", keys: ["T"] },
   { id: "volume.up", label: "Volume up", group: "Audio", keys: ["ArrowUp", "Ctrl+ArrowUp"] },
   { id: "volume.down", label: "Volume down", group: "Audio", keys: ["ArrowDown", "Ctrl+ArrowDown"] },
@@ -50,14 +52,17 @@ export const ACTIONS: ActionDef[] = [
   { id: "subs.later", label: "Subtitles later (+50 ms)", group: "Subtitles", keys: ["H"], media: true },
   { id: "subs.reset", label: "Reset subtitle delay", group: "Subtitles", keys: ["Shift+H"], media: true },
   { id: "subs.add", label: "Add subtitle file…", group: "Subtitles", keys: ["Shift+V"], media: true },
+  { id: "subs.bigger", label: "Larger subtitles", group: "Subtitles", keys: ["Alt+ArrowUp"] },
+  { id: "subs.smaller", label: "Smaller subtitles", group: "Subtitles", keys: ["Alt+ArrowDown"] },
+  { id: "subs.sizeReset", label: "Subtitles at authored size", group: "Subtitles", keys: ["Alt+0"] },
   { id: "view.fullscreen", label: "Fullscreen", group: "Video", keys: ["F", "F11"] },
   { id: "view.exitFullscreen", label: "Exit fullscreen", group: "Video", keys: ["Escape"] },
   { id: "video.aspect", label: "Next aspect ratio", group: "Video", keys: ["A"], media: true },
   { id: "video.rotate", label: "Rotate 90°", group: "Video", keys: ["Shift+R"], media: true },
   { id: "video.deinterlace", label: "Deinterlace", group: "Video", keys: ["D"], media: true },
   { id: "video.snapshot", label: "Save frame to Pictures", group: "Video", keys: ["Shift+S"], media: true },
-  { id: "queue.next", label: "Next in queue", group: "Queue", keys: ["N", "Shift+N", "MediaTrackNext"] },
-  { id: "queue.prev", label: "Previous in queue", group: "Queue", keys: ["P", "Shift+P", "MediaTrackPrevious"] },
+  { id: "queue.next", label: "Next in queue", group: "Queue", keys: ["N", "MediaTrackNext"] },
+  { id: "queue.prev", label: "Previous in queue", group: "Queue", keys: ["P", "MediaTrackPrevious"] },
   { id: "queue.shuffle", label: "Shuffle upcoming", group: "Queue", keys: ["R"] },
   { id: "view.queue", label: "Show queue", group: "View", keys: ["Q"] },
   { id: "view.inspector", label: "Show playback details", group: "View", keys: ["I"] },
@@ -176,6 +181,25 @@ export function cycleTrack(s: PlaybackSnapshot, kind: "audio" | "subtitle"): str
   return tracks[(i + 1) % tracks.length]!.id;
 }
 
+export const SUB_SCALE_STEP = 10;
+
+/** Next subtitle size in steps of 10%, clamped to the engine's range. */
+export function nextSubScale(current: number, dir: 1 | -1): number {
+  const snapped = Math.round(current / SUB_SCALE_STEP) * SUB_SCALE_STEP;
+  return Math.min(SUBTITLE_SCALE_RANGE[1], Math.max(SUBTITLE_SCALE_RANGE[0], snapped + dir * SUB_SCALE_STEP));
+}
+
+/** Start of the chapter after (dir 1) or before (dir -1) `positionMs`. Going back
+ *  from more than 3 s into a chapter restarts it, like most players. */
+export function chapterTarget(chapters: { timeMs: number }[], positionMs: number, dir: 1 | -1): number | null {
+  if (chapters.length === 0) return null;
+  if (dir > 0) return chapters.find((c) => c.timeMs > positionMs + 500)?.timeMs ?? null;
+  const current = [...chapters].reverse().find((c) => c.timeMs <= positionMs + 500);
+  if (current && positionMs - current.timeMs > 3_000) return current.timeMs;
+  const before = [...chapters].reverse().find((c) => c.timeMs < (current?.timeMs ?? positionMs) - 1);
+  return before?.timeMs ?? 0;
+}
+
 export function nextAspect(current: string | null): string | null {
   const order: (string | null)[] = [null, ...ASPECT_RATIOS];
   return order[(order.indexOf(current) + 1) % order.length] ?? null;
@@ -203,6 +227,14 @@ export function commandFor(id: string, s: PlaybackSnapshot): PlaybackCommand | n
     case "subs.earlier": return { type: "setSubtitleDelay", ms: a.subtitleDelayMs - 50 };
     case "subs.later": return { type: "setSubtitleDelay", ms: a.subtitleDelayMs + 50 };
     case "subs.reset": return { type: "setSubtitleDelay", ms: 0 };
+    case "subs.bigger": return { type: "setSubtitleScale", percent: nextSubScale(a.subtitleScalePercent, 1) };
+    case "subs.smaller": return { type: "setSubtitleScale", percent: nextSubScale(a.subtitleScalePercent, -1) };
+    case "subs.sizeReset": return { type: "setSubtitleScale", percent: 100 };
+    case "chapter.next":
+    case "chapter.prev": {
+      const t = chapterTarget(s.chapters, s.positionMs, id === "chapter.next" ? 1 : -1);
+      return t == null ? null : { type: "seek", positionMs: t, exact: true };
+    }
     case "video.aspect": return { type: "setAspectRatio", ratio: nextAspect(a.aspectRatio) };
     case "video.rotate": return { type: "setRotation", degrees: (a.rotation + 90) % 360 };
     case "video.deinterlace": return { type: "setDeinterlace", enabled: !a.deinterlace };

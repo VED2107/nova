@@ -73,10 +73,14 @@
   --color-room: #0b0b0a;
   /* Opaque enough on its own: backdrop-filter cannot blur the native video surface below the WebView. */
   --color-room-glass: rgb(13 13 12 / 0.93);
+  /* Monitor ply: the one depth level above the picture (strip, menus, panels). */
+  --color-room-ply: rgb(14 14 13 / 0.95);
+  --color-room-ply-2: rgb(24 24 22 / 0.97);
   --color-room-ink: #f2efe8;
   --color-room-ink-2: #c9c6be;
   --color-room-ink-3: #a3a19a;
   --color-room-seam: rgb(242 239 232 / 0.12);
+  --color-danger-room: #ff8a7a;
   --color-cream: #f7f4ee;
   --font-sans: "Archivo", "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
   --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
@@ -171,21 +175,76 @@ textarea {
   line-height: 16px;
 }
 
-/* Timeline. The native input keeps keyboard and screen-reader behaviour with an
-   invisible thumb; the component draws the track and the beam playhead. */
+/* Engraved label: the monitor's silk-screened legend. Condensed caps, small,
+   tracked; it names a control, the readout beside it says its state. */
+.engrave {
+  font-stretch: 78%;
+  font-weight: 640;
+  font-size: 10.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  line-height: 1;
+}
+/* Readout: a value the engine reported. Always tabular. */
+.readout {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+/* Tally lamp: ember when live, an ember outline when held, dim when idle. */
+.tally {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  box-shadow: inset 0 0 0 1.5px var(--color-ember);
+  transition: background-color 160ms ease;
+}
+.tally[data-state="live"] {
+  background: var(--color-ember);
+}
+.tally[data-state="idle"] {
+  box-shadow: inset 0 0 0 1.5px var(--color-room-ink-3);
+}
+.tally[data-state="busy"] {
+  background: var(--color-ember);
+  animation: tally-blink 1s steps(2, jump-none) infinite;
+}
+@keyframes tally-blink {
+  50% {
+    background: transparent;
+  }
+}
+
+/* OSD menus: pointer-opened roots rise from their corner; keyboard-opened
+   roots and every submenu appear at once. */
+.osd-menu[data-animate="true"] {
+  transition:
+    opacity 130ms var(--ease-out-strong),
+    transform 130ms var(--ease-out-strong);
+  @starting-style {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}
+
+/* Timeline. The native range input carries keyboard and screen-reader
+   behaviour (invisible thumb); the component draws a slim track that
+   thickens on intent, chapter cuts, the A–B bracket and the beam playhead. */
 .seek-input {
   -webkit-appearance: none;
   appearance: none;
   background: transparent;
 }
 .seek-input::-webkit-slider-runnable-track {
-  height: 28px;
+  height: 22px;
   background: transparent;
 }
 .seek-input::-webkit-slider-thumb {
   -webkit-appearance: none;
-  width: 14px;
-  height: 28px;
+  width: 12px;
+  height: 22px;
   opacity: 0;
 }
 .seek-input:focus-visible {
@@ -193,24 +252,29 @@ textarea {
 }
 .timeline-track {
   height: 6px;
-  transform: scaleY(0.667);
-  transition: transform 160ms var(--ease-out-strong);
+  transform: scaleY(0.5);
+  transition: transform 140ms var(--ease-out-strong);
 }
 .timeline:hover .timeline-track,
-.timeline[data-scrubbing="true"] .timeline-track {
+.timeline[data-scrubbing="true"] .timeline-track,
+.timeline:has(.seek-input:focus-visible) .timeline-track {
   transform: scaleY(1);
 }
-/* The playhead is the Lumen beam: the N's diagonal at 15.3 degrees. A dark
-   keyline keeps it visible on bright footage. */
+/* Played portion, chapter cuts and hover ghost are drawn as line form, not colour shifts. */
+.timeline-ghost {
+  background-image: repeating-linear-gradient(90deg, rgb(242 239 232 / 0.38) 0 3px, transparent 3px 6px);
+}
+/* The playhead is the Lumen beam: the N's diagonal at 15.3 degrees, with a
+   dark keyline so it holds on bright footage. */
 .timeline-beam {
   top: 50%;
-  width: 5px;
-  height: 22px;
+  width: 4px;
+  height: 16px;
   border-radius: 1px;
   background: var(--color-ember);
-  box-shadow: 0 0 0 1.5px rgb(11 11 10 / 0.55);
-  transform: translate(-50%, -50%) skewX(-15.3deg) scaleY(0.73);
-  transition: transform 160ms var(--ease-out-strong);
+  box-shadow: 0 0 0 1.5px rgb(11 11 10 / 0.7);
+  transform: translate(-50%, -50%) skewX(-15.3deg) scaleY(0.75);
+  transition: transform 140ms var(--ease-out-strong);
 }
 .timeline:hover .timeline-beam,
 .timeline[data-scrubbing="true"] .timeline-beam,
@@ -219,8 +283,33 @@ textarea {
 }
 .timeline:has(.seek-input:focus-visible) .timeline-beam {
   box-shadow:
-    0 0 0 1.5px rgb(11 11 10 / 0.55),
+    0 0 0 1.5px rgb(11 11 10 / 0.7),
     0 0 0 3.5px var(--color-cream);
+}
+.timeline-preview {
+  transition: opacity 120ms ease;
+  @starting-style {
+    opacity: 0;
+  }
+}
+
+/* OSD notices (volume, subtitle size, delays) settle in from above. */
+.osd-notice {
+  transition:
+    opacity 160ms var(--ease-out-strong),
+    transform 160ms var(--ease-out-strong);
+  @starting-style {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+/* Styled tooltip for deck keys (native title tooltips are kept for icon-only paper controls). */
+.tip {
+  transition: opacity 120ms ease;
+  @starting-style {
+    opacity: 0;
+  }
 }
 
 .level-input {
@@ -230,13 +319,20 @@ textarea {
   border-radius: 9999px;
   background: linear-gradient(to right, var(--color-cream) var(--fill), rgb(242 239 232 / 0.22) var(--fill));
 }
+.level-input {
+  height: 3px;
+  border-radius: 2px;
+}
 .level-input::-webkit-slider-thumb {
   -webkit-appearance: none;
-  width: 12px;
-  height: 12px;
-  border-radius: 9999px;
+  width: 4px;
+  height: 14px;
+  border-radius: 1px;
   background: var(--color-cream);
-  box-shadow: 0 1px 4px rgb(0 0 0 / 0.5);
+  box-shadow: 0 0 0 1.5px rgb(11 11 10 / 0.7);
+}
+.level-input:focus-visible {
+  outline-offset: 6px;
 }
 
 dialog:focus-visible {
@@ -266,5 +362,8 @@ dialog::backdrop {
   }
   .press:active:not(:disabled) {
     transform: none;
+  }
+  .tally[data-state="busy"] {
+    animation: none;
   }
 }

@@ -37,6 +37,20 @@ React store ◀──emit("playback://snapshot")──────────�
 `abLoop` reports engine-confirmed points. Points are reset on every `Open`
 (mpv keeps them player-wide; NOVA treats them as per-media).
 
+## Subtitle size, chapters and preview frames
+
+- `SetSubtitleScale { percent }` (50–300) sets mpv `sub-scale`; the confirmed
+  value is `adjust.subtitleScalePercent` (player-wide, survives new files). The
+  UI saves it as the `subScale` preference and re-applies it at start-up.
+- `chapters: [{ timeMs, title }]` comes from mpv `chapter-list`, sorted, reset
+  for every new session. Empty means the container has none; the UI draws no
+  chapter marks and disables chapter actions with that reason.
+- `preview_frame(positionMs)` (Tauri command, not part of the contract) decodes
+  one frame of the **playing** file with a short-lived, isolated libmpv
+  instance (software decoding, 320 px wide) for timeline hover previews. One
+  decode at a time (`"busy"` otherwise); files live beside the library
+  thumbnails as `p-*.jpg` and are purged at start-up.
+
 ## Queue (application layer)
 
 `crates/nova-application::QueueService` owns a `nova-domain::Queue` and drives
