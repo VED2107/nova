@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "NOVA",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "identifier": "com.snowbros.nova",
   "build": {
     "beforeDevCommand": "pnpm dev",
@@ -51,6 +51,30 @@
       "../../../LICENSES/GPL-2.0.txt": "licenses/GPL-2.0.txt",
       "../../../LICENSES/LGPL-2.1.txt": "licenses/LGPL-2.1.txt",
       "../src/assets/fonts/OFL.txt": "licenses/Archivo-OFL.txt"
+    },
+    "createUpdaterArtifacts": true,
+    "windows": {
+      "nsis": {
+        "installerIcon": "icons/icon.ico",
+        "headerImage": "installer/header.bmp",
+        "sidebarImage": "installer/sidebar.bmp",
+        "installMode": "currentUser",
+        "displayLanguageSelector": false
+      }
+    },
+    "publisher": "SNOWBROS",
+    "shortDescription": "NOVA — a private, open-source media player",
+    "copyright": "© 2026 SNOWBROS"
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDVERDhFQUJCRUVGNjc4NzUKUldSMWVQYnV1K3JZWGNWWlhWSFBFNGlHL21uak80OFBnT1Q3aC9yQzNXeEQ3N0E3cTlGQlBzN20K",
+      "endpoints": [
+        "https://github.com/VED2107/nova/releases/latest/download/latest.json"
+      ],
+      "windows": {
+        "installMode": "passive"
+      }
     }
   }
 }

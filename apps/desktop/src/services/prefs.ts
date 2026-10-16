@@ -12,6 +12,8 @@ export interface Prefs {
   wheel: "volume" | "seek" | "none";
   click: "pause" | "none";
   dblclick: "fullscreen" | "none";
+  /** Look for a new signed release at start-up, or only when asked. */
+  updates: "auto" | "manual";
   /** Timeline across the deck ("wide") or short and inline with the controls ("compact"). */
   timelineLayout: "wide" | "compact";
   /** Ctrl + wheel over the picture. */
@@ -32,6 +34,7 @@ export const DEFAULT_PREFS: Prefs = {
   wheel: "volume",
   click: "pause",
   dblclick: "fullscreen",
+  updates: "auto",
   timelineLayout: "wide",
   ctrlWheel: "subtitleSize",
   subScale: "100",

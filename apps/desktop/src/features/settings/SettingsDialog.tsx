@@ -3,6 +3,7 @@ import { CheckIcon, CloseIcon, SearchIcon } from "../../components/icons";
 import { Button, Kbd, Segmented, Switch } from "../../components/ui/controls";
 import { ConfirmDialog, Dialog } from "../../components/ui/Dialog";
 import { library } from "../../services/library/client";
+import { checkForUpdate, installUpdate, useUpdates } from "../../services/updates";
 import { ACTIONS, ACTION_BY_ID, chordLabel, chordOf, conflicts, effectiveKeymap, parseKeymap, type ActionGroup, type Keymap } from "../../services/playback/actions";
 import { engineInfo, type EngineInfo } from "../../services/playback/client";
 import { setPref, usePrefs, type Prefs } from "../../services/prefs";
@@ -507,6 +508,51 @@ function Formats() {
   );
 }
 
+function Updates() {
+  const p = usePrefs();
+  const u = useUpdates();
+  const [err, setErr] = useState<string | null>(null);
+  const status =
+    u.kind === "checking"
+      ? "Checking…"
+      : u.kind === "none"
+        ? "NOVA is up to date."
+        : u.kind === "available"
+          ? `NOVA ${u.version} is available.`
+          : u.kind === "downloading"
+            ? `Downloading NOVA ${u.version}${u.total ? ` · ${Math.round((u.received / u.total) * 100)}%` : "…"}`
+            : u.kind === "installing"
+              ? `Installing NOVA ${u.version}…`
+              : u.kind === "error"
+                ? u.message
+                : "";
+  return (
+    <div className="mt-6 border-t border-seam pt-2">
+      <Switch
+        label="Check for updates automatically"
+        description="Shortly after start-up NOVA asks GitHub whether a newer release exists. Only signed NOVA releases are installed, and only when you choose to. Nothing about you or your library is sent."
+        checked={p.updates === "auto"}
+        onChange={(v) => void setPref("updates", v ? "auto" : "manual").catch((e) => setErr(String(e)))}
+      />
+      <div className="flex flex-wrap items-center gap-3 px-3 py-2">
+        {u.kind === "available" ? (
+          <Button variant="primary" onClick={() => void installUpdate()}>
+            Install {u.version} and restart
+          </Button>
+        ) : (
+          <Button onClick={() => void checkForUpdate()} disabled={u.kind === "checking" || u.kind === "downloading" || u.kind === "installing"}>
+            Check for updates
+          </Button>
+        )}
+        <span role="status" aria-live="polite" className={`text-[13px] ${u.kind === "error" ? "text-danger" : "text-ink-2"}`}>
+          {err ?? status}
+        </span>
+      </div>
+      {u.kind === "available" && u.notes && <p className="mx-3 mt-1 max-w-lg whitespace-pre-line rounded-[6px] bg-paper-sunk px-3 py-2 text-[12.5px] leading-relaxed text-ink-2">{u.notes}</p>}
+    </div>
+  );
+}
+
 function About() {
   const [engine, setEngine] = useState<EngineInfo | null>(null);
   useEffect(() => {
@@ -515,7 +561,7 @@ function About() {
   return (
     <section className="px-3">
       <h3 className="spine-xl text-[44px] text-ink">NOVA</h3>
-      <p className="text-[13px] text-ink-3">by SNOWBROS · version 0.1.0 (development build, Windows)</p>
+      <p className="text-[13px] text-ink-3">by SNOWBROS · version {__APP_VERSION__} · Windows</p>
       <dl className="mt-5 grid grid-cols-[140px_1fr] gap-y-1.5 text-[13px]">
         <dt className="text-ink-3">Playback engine</dt>
         <dd className="text-ink">{engine?.mpvVersion ?? "Not reported"}</dd>
@@ -528,6 +574,7 @@ function About() {
         NOVA is licensed MIT OR Apache-2.0. Its bundled engine build includes GPL components, so this installer as a whole is distributed under the
         GPL; licences and engine source details are in the licenses folder. Interface font: Archivo, SIL Open Font License 1.1.
       </p>
+      <Updates />
     </section>
   );
 }

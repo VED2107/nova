@@ -121,10 +121,13 @@ export function usePlayback(): PlaybackSnapshot {
   return useSyncExternalStore(store.subscribe, store.get);
 }
 
-/** Path of the media that is loaded (playing or paused), or null. Re-renders only when it changes. */
+/** Windows paths compare without regard to case or slash direction. */
+export const pathKey = (p: string) => p.replace(/\//g, "\\").toLowerCase();
+
+/** Normalised path of the media that is loaded (playing or paused), or null. Re-renders only when it changes. */
 export function useOnAirPath(): string | null {
   return useSyncExternalStore(store.subscribe, () => {
     const s = store.get();
-    return ["idle", "stopped", "error"].includes(s.phase) ? null : s.path;
+    return ["idle", "stopped", "error"].includes(s.phase) || !s.path ? null : pathKey(s.path);
   });
 }

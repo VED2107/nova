@@ -67,7 +67,12 @@ export function OsdMenu(props: {
   // Outside press, window blur and resize close the whole ladder.
   useEffect(() => {
     const down = (e: PointerEvent) => {
-      if (!rootRef.current?.contains(e.target as Node)) props.onClose();
+      if (rootRef.current?.contains(e.target as Node)) return;
+      // A press on the trigger is left to the trigger, which toggles the menu closed;
+      // closing here too would make that click open it again.
+      const a = props.anchor;
+      if (a && e.clientX >= a.left && e.clientX <= a.right && e.clientY >= a.top && e.clientY <= a.bottom) return;
+      props.onClose();
     };
     const close = () => props.onClose();
     window.addEventListener("pointerdown", down, true);
@@ -78,7 +83,7 @@ export function OsdMenu(props: {
       window.removeEventListener("blur", close);
       window.removeEventListener("resize", close);
     };
-  }, [props.onClose]);
+  }, [props.onClose, props.anchor]);
 
   return (
     <div ref={rootRef} onContextMenu={(e) => e.preventDefault()} onClick={(e) => e.stopPropagation()} onWheel={(e) => e.stopPropagation()}>

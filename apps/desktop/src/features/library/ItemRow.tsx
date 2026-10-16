@@ -1,7 +1,7 @@
 import { Thumb } from "../../components/Thumb";
 import { OnAir } from "../../components/OnAir";
 import { Stamp } from "../../components/ui/controls";
-import { useOnAirPath } from "../../services/playback/client";
+import { pathKey, useOnAirPath } from "../../services/playback/client";
 import type { LibraryItem } from "../../services/library/types";
 import { catalogNo, folderName, formatBytes, formatDuration, resolutionLabel, stampFor, timeLeft, watchedFraction } from "../../services/library/view";
 
@@ -39,7 +39,7 @@ export function ItemRow({
   style?: React.CSSProperties;
 }) {
   const stamp = stampFor(item);
-  const onAir = useOnAirPath() === item.path;
+  const onAir = useOnAirPath() === pathKey(item.path);
   const frac = watchedFraction(item.progress);
   const left = stamp === "progress" ? timeLeft(item.progress) : null;
   return (

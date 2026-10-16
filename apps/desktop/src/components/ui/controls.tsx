@@ -111,7 +111,7 @@ export function Segmented<T extends string>(props: { label: string; value: T; op
               props.onChange(n.value);
               (e.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>("[role=radio]")[props.options.indexOf(n)])?.focus();
             }}
-            className={`press h-7 rounded-[6px] px-3 text-[13px] font-[560] ${on ? "bg-ink text-paper" : "text-ink-2 hover:text-ink"}`}
+            className={`press h-7 whitespace-nowrap rounded-[6px] px-3 text-[13px] font-[560] ${on ? "bg-ink text-paper" : "text-ink-2 hover:text-ink"}`}
           >
             {o.label}
           </button>

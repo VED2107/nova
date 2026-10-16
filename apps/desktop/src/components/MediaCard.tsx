@@ -1,6 +1,6 @@
 import type { LibraryItem } from "../services/library/types";
 import { catalogNo, specLine, stampFor, timeLeft, watchedFraction } from "../services/library/view";
-import { useOnAirPath } from "../services/playback/client";
+import { pathKey, useOnAirPath } from "../services/playback/client";
 import { OnAir } from "./OnAir";
 import { Thumb } from "./Thumb";
 import { Stamp } from "./ui/controls";
@@ -18,7 +18,7 @@ export function MediaCard({
   onContextMenu?: (e: React.MouseEvent, item: LibraryItem) => void;
 }) {
   const stamp = stampFor(item);
-  const onAir = useOnAirPath() === item.path;
+  const onAir = useOnAirPath() === pathKey(item.path);
   const sub = showLeft ? (timeLeft(item.progress) ?? specLine(item)) : specLine(item);
   return (
     <button

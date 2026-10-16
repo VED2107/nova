@@ -25,6 +25,8 @@ pub const PREFERENCES: &[(&str, &[&str], &str)] = &[
     ("wheel", &["volume", "seek", "none"], "volume"),
     ("click", &["pause", "none"], "pause"),
     ("dblclick", &["fullscreen", "none"], "fullscreen"),
+    // Look for a new release on GitHub at start-up ("manual": only when asked).
+    ("updates", &["auto", "manual"], "auto"),
     // Timeline across the full deck, or short and inline between the controls.
     ("timelineLayout", &["wide", "compact"], "wide"),
     // Ctrl + wheel over the picture.

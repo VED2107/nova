@@ -12,6 +12,8 @@
     "dialog:allow-open",
     "core:window:allow-set-title",
     "core:window:allow-set-theme",
-    "core:window:allow-theme"
+    "core:window:allow-theme",
+    "updater:default",
+    "process:allow-restart"
   ]
 }

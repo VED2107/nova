@@ -14,6 +14,7 @@ import { actionForChord, chordOf, effectiveKeymap, parseKeymap } from "../servic
 import { queue, usePlayback } from "../services/playback/client";
 import { MEDIA_EXTENSIONS } from "../services/playback/types";
 import { usePrefs } from "../services/prefs";
+import { checkForUpdate, dismissUpdate, installUpdate, isDismissed, useUpdates } from "../services/updates";
 
 export type View = "home" | "library" | "player";
 
@@ -26,6 +27,14 @@ export function App() {
   const [error, setError] = useState<string | null>(null);
   const [settings, setSettings] = useState<null | "appearance" | "controls">(null);
   const [help, setHelp] = useState(false);
+
+  // Look for a signed release a little after start-up (Settings → About turns this off).
+  const updates = useUpdates();
+  useEffect(() => {
+    if (prefs.updates !== "auto") return;
+    const t = window.setTimeout(() => void checkForUpdate(true), 8000);
+    return () => window.clearTimeout(t);
+  }, [prefs.updates]);
 
   // Any newly started media (library, queue, drop, launch args) shows the player.
   useEffect(() => {
@@ -160,6 +169,35 @@ export function App() {
               Open file
             </Button>
           </header>
+          {(updates.kind === "available" || updates.kind === "downloading" || updates.kind === "installing") && !(updates.kind === "available" && isDismissed(updates.version)) && (
+            <div role="status" className="flex items-center gap-3 border-b border-seam bg-paper-sunk px-6 py-2 text-[13px]">
+              <span aria-hidden className="size-[9px] shrink-0 rounded-[2px] bg-ember" />
+              <span className="min-w-0 flex-1 truncate text-ink-2">
+                {updates.kind === "available" ? (
+                  <>
+                    <span className="font-[650] text-ink">NOVA {updates.version}</span> is ready to install. NOVA restarts to finish{hasMedia ? "; what's playing will stop" : ""}.
+                  </>
+                ) : updates.kind === "downloading" ? (
+                  <>
+                    Downloading NOVA {updates.version}
+                    {updates.total ? <span className="readout"> · {Math.round((updates.received / updates.total) * 100)}%</span> : "…"}
+                  </>
+                ) : (
+                  <>Installing NOVA {updates.version}. NOVA will restart.</>
+                )}
+              </span>
+              {updates.kind === "available" && (
+                <>
+                  <Button variant="ghost" onClick={() => dismissUpdate(updates.version)}>
+                    Later
+                  </Button>
+                  <Button variant="primary" onClick={() => void installUpdate()}>
+                    Install and restart
+                  </Button>
+                </>
+              )}
+            </div>
+          )}
           {error && (
             <p role="alert" className="flex items-center justify-between gap-4 border-b border-seam px-6 py-2 text-[13px] text-ink-2">
               {error}
