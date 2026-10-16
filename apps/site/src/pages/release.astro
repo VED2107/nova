@@ -26,7 +26,7 @@ const openGates = RELEASE_GATES.filter((g) => g.state !== "done").length;
 
 <Base
   title="Release"
-  description="Download NOVA 0.1.0 for Windows: checksum, licences, engine source, platforms and what is still open."
+  description="Download NOVA 0.2.0 for Windows: checksum, licences, engine source, platforms and what is still open."
 >
   <section class="section">
     <div class="wrap">
@@ -36,7 +36,9 @@ const openGates = RELEASE_GATES.filter((g) => g.state !== "done").length;
           <p class="ver spine-xl num">{VERSION.version}</p>
           <p class="state"><Stamp tier="preview" label="Released" /> Windows x64, {VERSION.date}</p>
           <p class="body">
-            The first public release. Built from the <code>v0.1.0</code> tag and tested on one Windows 11 machine. NOVA's code
+            The redesigned player: a Full or Compact control bar, a right-click menu with submenus, timeline previews and
+            chapters, subtitle size on Ctrl + wheel, and in-app updates from here on. Built from the <code>v0.2.0</code> tag
+            and tested on one Windows 11 machine. 0.1.0 has no updater, so install 0.2.0 once by hand. NOVA's code
             is MIT OR Apache-2.0; the installer bundles a third-party mpv/FFmpeg build with GPL components, so the installer as
             a whole is distributed under the GPL, with licence texts, notices and the engine's source. The next releases move to
             an LGPL engine built from source.
@@ -82,7 +84,7 @@ const openGates = RELEASE_GATES.filter((g) => g.state !== "done").length;
 
   <section class="section sunk" aria-labelledby="gates-h">
     <div class="wrap">
-      <SectionHead id="gates-h" title="Still open after 0.1.0" />
+      <SectionHead id="gates-h" title="Still open after 0.2.0" />
       <ol class="gates">
         {
           RELEASE_GATES.map((g, i) => (
@@ -173,7 +175,7 @@ const openGates = RELEASE_GATES.filter((g) => g.state !== "done").length;
           </article>
         ))
       }
-      <p class="muted small">Full notes: <a href="https://github.com/VED2107/nova/blob/v0.1.0/CHANGELOG.md">CHANGELOG.md</a>.</p>
+      <p class="muted small">Full notes: <a href="https://github.com/VED2107/nova/blob/v0.2.0/CHANGELOG.md">CHANGELOG.md</a>.</p>
     </div>
   </section>
 </Base>

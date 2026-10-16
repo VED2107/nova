@@ -1,18 +1,25 @@
 ---
 title: Getting started
-summary: Download and install NOVA 0.1.0, what it needs, and opening your first file.
+summary: Download and install NOVA 0.2.0, what it needs, and opening your first file.
 order: 1
 status: incomplete
-statusNote: Written for 0.1.0. Installing has been tested on one machine only.
+statusNote: Written for 0.2.0. Installing has been tested on one machine only.
 ---
 
 ## Download and install
 
-1. Download `NOVA_0.1.0_x64-setup.exe` from [Release](/release) and compare its SHA-256 with the one shown there. In PowerShell: `Get-FileHash .\NOVA_0.1.0_x64-setup.exe`.
+1. Download `NOVA_0.2.0_x64-setup.exe` from [Release](/release) and compare its SHA-256 with the one shown there. In PowerShell: `Get-FileHash .\NOVA_0.2.0_x64-setup.exe`.
 2. Run it. The installer is not signed, so Windows SmartScreen may warn. Choose **More info → Run anyway** only if the checksum matches.
-3. NOVA installs for your user account, without administrator rights, and adds an uninstall entry named “NOVA 0.1.0”.
+3. NOVA installs for your user account, without administrator rights, and adds an uninstall entry named “NOVA 0.2.0”.
 
-The installer bundles a third-party mpv/FFmpeg build with GPL components, so it is distributed under the GPL. Licence texts and the engine's source details are in the `licenses` folder of the install directory and on the [GitHub release](https://github.com/VED2107/nova/releases/tag/v0.1.0).
+The installer bundles a third-party mpv/FFmpeg build with GPL components, so it is distributed under the GPL. Licence texts and the engine's source details are in the `licenses` folder of the install directory and on the [GitHub release](https://github.com/VED2107/nova/releases/tag/v0.2.0).
+
+## Updates
+
+From 0.2.0, NOVA checks GitHub for a newer release shortly after it starts and shows a notice when one is ready.
+**Install and restart** downloads it, checks that it is signed with NOVA's key, installs it and reopens NOVA; **Later**
+hides the notice until the next start. Turn the check off, or check by hand, in **Settings → About**. 0.1.0 has no
+updater: install 0.2.0 from this site once.
 
 ## What it runs on
 

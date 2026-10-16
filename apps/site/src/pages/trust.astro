@@ -20,8 +20,8 @@ const filmUse = (id: keyof typeof FILMS) =>
   Object.values(SHOTS).filter((s) => (s.films as string[]).includes(id)).length;
 
 const components = [
-  ["libmpv (mpv)", "GPLv2+ by default; LGPLv2.1+ when built with -Dgpl=false", "Playback engine. 0.1.0 bundles the shinchiro build 20261015 (GPL). Next: our own LGPL build."],
-  ["FFmpeg", "LGPLv2.1+, or GPL when built with GPL parts", "Decoders and demuxers inside libmpv. The 0.1.0 build includes x264/x265, which makes it GPL."],
+  ["libmpv (mpv)", "GPLv2+ by default; LGPLv2.1+ when built with -Dgpl=false", "Playback engine. 0.1.0 and 0.2.0 bundle the shinchiro build 20261015 (GPL). Next: our own LGPL build."],
+  ["FFmpeg", "LGPLv2.1+, or GPL when built with GPL parts", "Decoders and demuxers inside libmpv. The bundled build includes x264/x265, which makes it GPL."],
   ["NOVA", "MIT OR Apache-2.0", "This application's own code"],
   ["Tauri 2, tauri-plugin-dialog, tauri-plugin-log", "MIT OR Apache-2.0", "Application shell"],
   ["React 19, Vite 8, Tailwind CSS 4", "MIT", "Interface"],
@@ -59,7 +59,7 @@ const components = [
       <dl class="facts">
         <div>
           <dt>Development</dt>
-          <dd><Stamp tier="preview" label="0.1.0" /> Released 2026-10-16. Active development.</dd>
+          <dd><Stamp tier="preview" label="0.2.0" /> Released 2026-10-17. Active development.</dd>
         </div>
         <div>
           <dt>Source code</dt>
@@ -108,7 +108,9 @@ const components = [
           <ul class="specs">
             <li><span>An account or sign-in</span><Stamp tier="verified" label="None" /></li>
             <li><span>Telemetry, analytics or crash-reporting code</span><Stamp tier="verified" label="None in code" /></li>
-            <li><span>An HTTP client in the app's runtime dependencies</span><Stamp tier="verified" label="None in code" /></li>
+            <li>
+              <span>Network requests made by NOVA: one update check to github.com shortly after start-up, which you can turn off in Settings → About. It downloads only releases signed with NOVA's key, and only when you choose to install.</span><Stamp tier="verified" label="Since 0.2.0" />
+            </li>
             <li>
               <span>Engine extras: web fetching (ytdl), user scripts, outside config files</span><Stamp tier="verified" label="Switched off" />
             </li>
@@ -173,9 +175,9 @@ const components = [
       <SectionHead id="licensing" title="Licensing" />
       <div class="two">
         <div class="col">
-          <p class="big spine">NOVA's code is MIT OR Apache-2.0. The 0.1.0 installer is GPL.</p>
+          <p class="big spine">NOVA's code is MIT OR Apache-2.0. The 0.2.0 installer is GPL.</p>
           <p>
-            0.1.0 bundles a third-party engine build. It ships under the GPL with licence texts, notices, source archives of
+            0.1.0 and 0.2.0 bundle a third-party engine build. It ships under the GPL with licence texts, notices, source archives of
             the exact mpv and FFmpeg commits and the build recipe, and a written offer for the rest. The plan for later
             releases is an LGPL engine built from source (option B), so installers can follow NOVA's own licence.
           </p>
@@ -198,7 +200,7 @@ const components = [
               <tr>
                 <th scope="row">A. Ship a GPL build</th>
                 <td>Ship the third-party GPL engine build and meet the GPL: licence text, corresponding source, notices.</td>
-                <td><Stamp tier="verified" label="Used for 0.1.0" /></td>
+                <td><Stamp tier="verified" label="Used for 0.1.0 and 0.2.0" /></td>
               </tr>
               <tr>
                 <th scope="row">B. Build an LGPL engine</th>

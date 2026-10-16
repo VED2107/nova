@@ -2,6 +2,39 @@
   "$comment": "Public release records, newest first. scripts/check-dist.mjs enforces: an installer link needs an https URL, a SHA-256 and a notices page; a \"gpl\" engine build also needs a corresponding-source URL. Engine \"gpl\" = the third-party mpv/FFmpeg build with GPL parts (0.1.0); \"lgpl\" = our own LGPL build (ADR 0003, option B).",
   "releases": [
     {
+      "version": "0.2.0",
+      "date": "2026-10-17",
+      "channel": "Release",
+      "engine": "gpl",
+      "platforms": [
+        {
+          "name": "Windows 11 x64",
+          "state": "Tested on one machine"
+        },
+        {
+          "name": "Windows 10 x64",
+          "state": "Not tested"
+        }
+      ],
+      "download": {
+        "url": "https://github.com/VED2107/nova/releases/download/v0.2.0/NOVA_0.2.0_x64-setup.exe",
+        "sha256": "c98992f18a2abe28edc033609e6018b0ca18dbd65ef7c393429cf32034621ae1",
+        "size": "37 MB",
+        "signed": false,
+        "notices": "https://github.com/VED2107/nova/blob/v0.2.0/THIRD-PARTY-NOTICES.md",
+        "source": "https://github.com/VED2107/nova/releases/tag/v0.2.0",
+        "release": "https://github.com/VED2107/nova/releases/tag/v0.2.0"
+      },
+      "notes": [
+        "Redesigned player: a Full or Compact control bar (Compact is a small bar centred at the bottom), switched with one button or C.",
+        "Translucent header and controls; the picture shows through.",
+        "Right-click menu with Playback, Audio, Subtitles, Video, View, Playlist and Tools submenus.",
+        "Timeline frame previews on hover, chapter marks and names, A–B loop bracket.",
+        "Subtitle size with Ctrl + mouse wheel or Alt+↑/↓, remembered between sessions; chapters on Shift+N / Shift+P.",
+        "In-app updates from signed GitHub releases (can be turned off); installer with NOVA's artwork."
+      ]
+    },
+    {
       "version": "0.1.0",
       "date": "2026-10-16",
       "channel": "Release",

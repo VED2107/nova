@@ -1,7 +1,7 @@
 /**
  * Product facts with their status, transcribed from the RC1 test record
- * (docs/testing/rc1-local-windows.md), the redesign record
- * (docs/design/redesign-v2.md) and CHANGELOG.md. Status words follow the RC1
+ * (docs/testing/rc1-local-windows.md), the redesign records
+ * (docs/design/redesign-v2.md, docs/design/redesign-v3.md) and CHANGELOG.md. Status words follow the RC1
  * audit: Verified = exercised in the real app; Partial = present, not fully
  * re-exercised or with a limitation; Deferred = not built yet.
  */
@@ -22,8 +22,8 @@ export interface Feature {
 }
 
 export const VERSION = {
-  version: "0.1.0",
-  date: "2026-10-16",
+  version: "0.2.0",
+  date: "2026-10-17",
   channel: "Release",
   platform: "Windows x64",
   tested: "Windows 11, one machine (i5-10300H, Intel UHD 630 + GTX 1650)",
@@ -38,6 +38,11 @@ export const FEATURES: Record<string, Feature[]> = {
     { name: "A–B loop", status: "verified" },
     { name: "Hardware decoding with automatic software fallback", status: "harness", note: "d3d11va / nvdec used where the GPU supports the profile; the Settings toggle itself is Partial." },
     { name: "Save the current frame to Pictures\\NOVA, then Show in folder", status: "verified" },
+    { name: "Right-click menu with Playback, Audio, Subtitles, Video, View, Playlist and Tools submenus", status: "verified" },
+    { name: "Full or Compact control bar, switched from the bar, the C key or Settings", status: "verified" },
+    { name: "Timeline frame previews on hover, chapter marks, A–B bracket", status: "verified", note: "Previews are decoded on demand in software; speed on 4K/HDR sources not measured." },
+    { name: "Subtitle size: Ctrl + wheel over the picture, Alt+↑ / Alt+↓, menu or Settings", status: "verified" },
+    { name: "Chapter navigation (Shift+N / Shift+P) and chapter list", status: "verified", note: "Checked with a synthetic file with four chapters." },
   ],
   continuity: [
     { name: "Resume where you stopped, across restarts", status: "verified", note: "Titles under 60 seconds do not resume, by design." },
@@ -65,15 +70,15 @@ export const FEATURES: Record<string, Feature[]> = {
     { name: "Shortcuts help on F1 or ?", status: "verified" },
     { name: "Mouse wheel, click and double-click choices", status: "partial", note: "Settings render; wheel over the picture not re-exercised." },
     { name: "Daylight, Night or System theme; the player is always dark", status: "verified" },
+    { name: "In-app updates from signed GitHub releases", status: "partial", note: "The check is verified; download, signature check and install run end to end for the first time with the release after 0.2.0." },
   ],
 };
 
 export const KNOWN_ISSUES = [
-  "Subtitles drawn by the engine can sit under the control bar while the controls are visible.",
-  "Side panels and menus can't blur the video, which is a native surface below the interface; they use a 93% opaque fill instead.",
+  "The controls can't blur the video, which is a native surface below the interface; they are translucent instead.",
   "A playlist's duration reads “0:30 known”: correct, but awkward.",
   "Interface contrast was computed from colour tokens, not measured on rendered pixels.",
-  "No timeline preview frames when hovering the seek bar.",
+  "0.1.0 has no updater: install 0.2.0 once by hand; later releases arrive in the app.",
   "Alpha video is shown over black; image sequences, embedded timecode and camera RAW decoding are not built.",
 ];
 
