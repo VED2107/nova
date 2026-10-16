@@ -1,6 +1,17 @@
 # Changelog
 
-All notable changes to NOVA. No public release has been made: licensing is still unresolved (ADR 0003).
+All notable changes to NOVA.
+
+## 0.1.0 (2026-10-16) — first public release
+
+Windows x64 NSIS installer, built from tag `v0.1.0`. Tested on one Windows 11 machine.
+
+- NOVA's code is licensed MIT OR Apache-2.0 (`LICENSE-MIT`, `LICENSE-APACHE`).
+- The installer bundles the shinchiro mpv/FFmpeg build `20261015`, which contains GPL components, so the installer as
+  a whole is distributed under the GPL. Licence texts, `THIRD-PARTY-NOTICES.md` and the engine's source information
+  ship in the install folder's `licenses/` and on the GitHub release (ADR 0003).
+- Settings → About states the licensing.
+- Everything in 0.1.0-rc.1 below.
 
 ## 0.1.0-rc.1 (2026-10-16) — local release candidate, not distributed
 

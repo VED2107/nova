@@ -1,6 +1,6 @@
 # ADR 0003 — libmpv build, distribution and licensing
 
-- **Status:** Accepted, 2026-10-16. Option **B**: build our own LGPL libmpv + FFmpeg. NOVA's own code is licensed **MIT OR Apache-2.0**.
+- **Status:** Accepted, 2026-10-16. NOVA's own code is licensed **MIT OR Apache-2.0**. Target: option **B**, our own LGPL libmpv + FFmpeg. **0.1.0 ships under option A** (GPL), see below.
 - **Not legal advice.** Have counsel review the final distribution configuration.
 
 ## Decision (2026-10-16)
@@ -9,11 +9,26 @@
   without `--enable-gpl` / `--enable-nonfree`, with its exact configuration recorded.
 - NOVA's own source is dual-licensed **MIT OR Apache-2.0** (`LICENSE-MIT`, `LICENSE-APACHE`; `license` in
   `Cargo.toml` and `package.json`).
-- The shinchiro GPL build stays **development-only**. No installer built with it is distributed.
+- The shinchiro GPL build was meant to stay development-only; 0.1.0 is the documented exception below.
 - A public download is enabled only when all of these exist for that build: the LGPL engine build with its
   configuration and source reference, a check that it contains no GPL or non-free components, third-party notices
   in the installer, the LGPL source/relinking information, and a clean-machine install test.
 - **Status of the LGPL build:** not built yet (2026-10-16).
+
+## 0.1.0: released under option A (2026-10-16)
+
+The owner chose to release 0.1.0 before the LGPL build exists. The 0.1.0 installer bundles the pinned shinchiro
+build (GPL), so **the installer as a whole is distributed under the GPL (v2 or later)**. To meet that:
+
+- The repository is public, so NOVA's complete source for the release is available at tag `v0.1.0`.
+- The installer carries `licenses/` with `LICENSE-MIT`, `LICENSE-APACHE`, `GPL-2.0.txt`, `LGPL-2.1.txt`, the Archivo
+  OFL and `THIRD-PARTY-NOTICES.md`.
+- The GitHub release attaches source archives of the exact mpv (`492bae0768f5e826991bf9fb222fa303371e8498`) and
+  FFmpeg (`ee8cbd7dbce9b293905f3088192e4b43ab00c33a`) commits and of the build recipe
+  (`shinchiro/mpv-winbuild-cmake` `1f8d2e76255abc48f0456d9be99b4cab9c6566e6`), plus a written offer, valid for
+  three years, for the sources of the other components compiled into `libmpv-2.dll`.
+
+Option B remains the plan for later releases. Counsel review of this distribution is still recommended.
 
 ## What we use today (development only)
 

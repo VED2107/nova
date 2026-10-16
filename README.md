@@ -80,9 +80,10 @@ Tests: see [docs/testing/README.md](docs/testing/README.md).
 
 ## Known limitations
 
-- **Licensing decided, engine build pending:** NOVA's code is MIT OR Apache-2.0, and releases will bundle an LGPL
-  libmpv/FFmpeg built from source ([ADR 0003](docs/adr/0003-libmpv-distribution-and-licensing.md), option B). The
-  development libmpv build is GPL (contains x264/x265): do not distribute installers built with it.
+- **Licensing:** NOVA's code is MIT OR Apache-2.0. The 0.1.0 installer bundles a third-party libmpv build with GPL
+  parts (x264/x265), so the installer is distributed under the GPL with its source and notices
+  ([THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md), [ADR 0003](docs/adr/0003-libmpv-distribution-and-licensing.md)).
+  Later releases move to an LGPL engine built from source.
 - Windows only, by design.
 - Not yet tested: clean-machine install, multi-monitor/mixed DPI, display disconnect in fullscreen, Windows 10, AMD GPUs, HDR, long soak (2 h), Bluetooth audio latency.
 - The dev libmpv build imports `vulkan-1.dll` (from GPU drivers); clean-machine behavior unverified.

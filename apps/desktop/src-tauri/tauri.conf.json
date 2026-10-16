@@ -44,7 +44,13 @@
       "icons/icon.ico"
     ],
     "resources": {
-      "../../../vendor/libmpv/libmpv-2.dll": "libmpv-2.dll"
+      "../../../vendor/libmpv/libmpv-2.dll": "libmpv-2.dll",
+      "../../../LICENSE-MIT": "licenses/LICENSE-MIT",
+      "../../../LICENSE-APACHE": "licenses/LICENSE-APACHE",
+      "../../../THIRD-PARTY-NOTICES.md": "licenses/THIRD-PARTY-NOTICES.md",
+      "../../../LICENSES/GPL-2.0.txt": "licenses/GPL-2.0.txt",
+      "../../../LICENSES/LGPL-2.1.txt": "licenses/LGPL-2.1.txt",
+      "../src/assets/fonts/OFL.txt": "licenses/Archivo-OFL.txt"
     }
   }
 }
