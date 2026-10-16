@@ -1,5 +1,7 @@
 import { Thumb } from "../../components/Thumb";
+import { OnAir } from "../../components/OnAir";
 import { Stamp } from "../../components/ui/controls";
+import { useOnAirPath } from "../../services/playback/client";
 import type { LibraryItem } from "../../services/library/types";
 import { catalogNo, folderName, formatBytes, formatDuration, resolutionLabel, stampFor, timeLeft, watchedFraction } from "../../services/library/view";
 
@@ -37,6 +39,7 @@ export function ItemRow({
   style?: React.CSSProperties;
 }) {
   const stamp = stampFor(item);
+  const onAir = useOnAirPath() === item.path;
   const frac = watchedFraction(item.progress);
   const left = stamp === "progress" ? timeLeft(item.progress) : null;
   return (
@@ -61,7 +64,7 @@ export function ItemRow({
       <span className="text-right text-[13px] tabular-nums text-ink-2 max-[899px]:hidden">{resolutionLabel(item.width, item.height) ?? "—"}</span>
       <span className="text-right text-[13px] tabular-nums text-ink-2 max-[899px]:hidden">{formatBytes(item.sizeBytes)}</span>
       <span className="truncate text-[13px] text-ink-2 max-[1179px]:hidden">{folderName(item.folder)}</span>
-      <span>{stamp && <Stamp kind={stamp} />}</span>
+      <span>{onAir ? <OnAir paper /> : stamp && <Stamp kind={stamp} />}</span>
     </button>
   );
 }

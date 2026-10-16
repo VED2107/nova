@@ -1,5 +1,7 @@
 import type { LibraryItem } from "../services/library/types";
 import { catalogNo, specLine, stampFor, timeLeft, watchedFraction } from "../services/library/view";
+import { useOnAirPath } from "../services/playback/client";
+import { OnAir } from "./OnAir";
 import { Thumb } from "./Thumb";
 import { Stamp } from "./ui/controls";
 
@@ -16,6 +18,7 @@ export function MediaCard({
   onContextMenu?: (e: React.MouseEvent, item: LibraryItem) => void;
 }) {
   const stamp = stampFor(item);
+  const onAir = useOnAirPath() === item.path;
   const sub = showLeft ? (timeLeft(item.progress) ?? specLine(item)) : specLine(item);
   return (
     <button
@@ -30,7 +33,8 @@ export function MediaCard({
           progress={watchedFraction(item.progress)}
           className={`aspect-video w-full rounded-[6px] ring-1 ring-seam transition-[box-shadow] duration-200 group-hover:ring-[var(--seam-strong)] ${item.missing ? "opacity-50 grayscale" : ""}`}
         />
-        {stamp && stamp !== "progress" && (
+        {onAir && <OnAir className="absolute bottom-2 left-2" />}
+        {stamp && stamp !== "progress" && !onAir && (
           <span className="absolute left-2 top-2 rounded-[3px] bg-paper px-0.5">
             <Stamp kind={stamp} />
           </span>

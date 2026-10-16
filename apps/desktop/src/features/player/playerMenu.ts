@@ -9,6 +9,7 @@ export interface MenuContext {
   hasMedia: boolean;
   isFullscreen: boolean;
   immersive: boolean;
+  compactDeck: boolean;
   panel: "queue" | "inspector" | null;
   /** Runs a registered action (same path as its keyboard shortcut). */
   act: (id: string) => void;
@@ -198,6 +199,7 @@ export function buildPlayerMenus(c: MenuContext) {
 
   const view: OsdNode[] = [
     action("view.fullscreen", "Fullscreen", { checked: c.isFullscreen, disabled: false, reason: undefined }),
+    action("view.deck", "Compact control bar", { checked: c.compactDeck, disabled: false, reason: undefined }),
     action("view.immersive", "Hide controls (immersive)", { checked: c.immersive, disabled: false, reason: undefined }),
     sep("view-s1"),
     action("view.queue", "Queue panel", { checked: c.panel === "queue", disabled: false, reason: undefined }),

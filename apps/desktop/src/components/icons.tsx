@@ -54,3 +54,5 @@ export const SaveIcon = (p: P) => <svg {...base(p)}><path d="M4 3.5h9.5l2.5 2.5v
 export const ImmersiveIcon = (p: P) => <svg {...base(p)}><rect x="2.8" y="4.2" width="14.4" height="11.6" rx="1.6" /><path d="M2.8 13h14.4" /></svg>;
 export const StopIcon = (p: P) => <svg {...base(p)}><rect x="5" y="5" width="10" height="10" rx="1.2" fill="currentColor" stroke="none" /></svg>;
 export const SubtitlesIcon = (p: P) => <svg {...base(p)}><rect x="2.8" y="4.2" width="14.4" height="11.6" rx="2" /><path d="M6 10.6h3M11 10.6h3M6 13h5" /></svg>;
+export const DeckCompactIcon = (p: P) => <svg {...base(p)}><rect x="2.8" y="4.2" width="14.4" height="11.6" rx="1.6" /><path d="M5.5 13.2h9" /><path d="m8 7.4 2 2 2-2" /></svg>;
+export const DeckFullIcon = (p: P) => <svg {...base(p)}><rect x="2.8" y="4.2" width="14.4" height="11.6" rx="1.6" /><path d="M5.5 10.6h9M5.5 13.2h9" /><path d="m8 8.4 2-2 2 2" /></svg>;

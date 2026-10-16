@@ -115,16 +115,13 @@ function Appearance({ onError }: { onError: (e: string) => void }) {
       <Field label="Theme" description="Home, Library and Settings. The player is always dark.">
         <Segmented label="Theme" value={p.theme} onChange={(v) => set("theme", v)} options={[{ value: "system", label: "System" }, { value: "light", label: "Daylight" }, { value: "dark", label: "Night" }]} />
       </Field>
-      <Field label="Player controls" description="Compact gives the picture more room.">
-        <Segmented label="Player controls" value={p.controls} onChange={(v) => set("controls", v)} options={[{ value: "comfortable", label: "Comfortable" }, { value: "compact", label: "Compact" }]} />
-      </Field>
-      <Field label="Timeline" description="Wide runs the full width above the controls. Compact is a short bar between them, as in VLC.">
+      <Field label="Control bar" description="Full: the timeline runs across the player above the buttons. Compact: one slim row with a short timeline in the middle, as in VLC. Also the button on the control bar, or C.">
         <Segmented
-          label="Timeline"
+          label="Control bar"
           value={p.timelineLayout}
           onChange={(v) => set("timelineLayout", v)}
           options={[
-            { value: "wide", label: "Wide" },
+            { value: "wide", label: "Full" },
             { value: "compact", label: "Compact" },
           ]}
         />

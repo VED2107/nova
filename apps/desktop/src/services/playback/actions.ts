@@ -67,6 +67,7 @@ export const ACTIONS: ActionDef[] = [
   { id: "view.queue", label: "Show queue", group: "View", keys: ["Q"] },
   { id: "view.inspector", label: "Show playback details", group: "View", keys: ["I"] },
   { id: "view.immersive", label: "Immersive mode", group: "View", keys: ["Z"] },
+  { id: "view.deck", label: "Compact / full control bar", group: "View", keys: ["C"] },
   { id: "view.library", label: "Back to library", group: "View", keys: ["Backspace"] },
   { id: "file.open", label: "Open file…", group: "View", keys: ["O", "Ctrl+O"] },
   { id: "view.settings", label: "Settings", group: "View", keys: ["Ctrl+,"] },

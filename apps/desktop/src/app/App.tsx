@@ -142,13 +142,12 @@ export function App() {
               <button
                 type="button"
                 onClick={() => setView("player")}
-                className="press flex max-w-[22rem] items-center gap-2 rounded-[6px] border border-seam-strong px-3 py-1.5 text-[13px] hover:bg-[var(--hover)]"
+                title="Back to the player"
+                className="press flex max-w-[24rem] items-center gap-2.5 rounded-[6px] border border-seam-strong py-1.5 pl-2.5 pr-3 text-[13px] hover:bg-[var(--hover)]"
               >
-                <span className="size-1.5 shrink-0 rounded-full bg-ember" aria-hidden />
-                <span className="truncate">
-                  <span className="text-ink-3">{s.phase === "paused" ? "Paused" : "Now playing"} · </span>
-                  {s.mediaTitle}
-                </span>
+                <span aria-hidden className={`size-[9px] shrink-0 rounded-[2px] ${s.phase === "playing" ? "bg-ember" : "shadow-[inset_0_0_0_1.5px_var(--ember)]"}`} />
+                <span className="engrave shrink-0 text-ink-3">{s.phase === "playing" ? "Playing" : s.phase === "paused" ? "Paused" : "Loaded"}</span>
+                <span className="truncate font-[560]">{s.mediaTitle}</span>
               </button>
             )}
             <IconButton label="Keyboard & mouse (?)" onClick={() => setHelp(true)}>

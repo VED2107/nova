@@ -120,3 +120,11 @@ export function isPlaybackError(e: unknown): e is PlaybackError {
 export function usePlayback(): PlaybackSnapshot {
   return useSyncExternalStore(store.subscribe, store.get);
 }
+
+/** Path of the media that is loaded (playing or paused), or null. Re-renders only when it changes. */
+export function useOnAirPath(): string | null {
+  return useSyncExternalStore(store.subscribe, () => {
+    const s = store.get();
+    return ["idle", "stopped", "error"].includes(s.phase) ? null : s.path;
+  });
+}

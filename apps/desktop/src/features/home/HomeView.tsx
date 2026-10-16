@@ -62,8 +62,9 @@ export function HomeView(props: {
                 {loading ? (
                   <div className="mt-5 aspect-[2.6/1] animate-pulse rounded-[8px] bg-paper-sunk motion-reduce:animate-none" aria-label="Loading" />
                 ) : !lead ? (
-                  <p className="mt-4 max-w-md text-[14px] leading-relaxed text-ink-3">
-                    Nothing in progress. Stop anything partway through and it waits for you here.
+                  <p className="mt-3 flex items-center gap-2 text-[13.5px] text-ink-3">
+                    <span aria-hidden className="size-[9px] rounded-[2px] shadow-[inset_0_0_0_1.5px_var(--ink-3)]" />
+                    Nothing in progress. Stop anything partway through and it waits here.
                   </p>
                 ) : (
                   <>

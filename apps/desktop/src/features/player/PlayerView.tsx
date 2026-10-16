@@ -5,7 +5,7 @@ import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { ChevronLeftIcon, FileIcon, NextIcon, ReplayIcon } from "../../components/icons";
 import { OsdMenu } from "../../components/OsdMenu";
 import { Symbol } from "../../components/Wordmark";
-import { Button } from "../../components/ui/controls";
+import { Button, IconButton } from "../../components/ui/controls";
 import { Dialog } from "../../components/ui/Dialog";
 import { ACTIONS, actionForChord, chordLabel, chordOf, commandFor, effectiveKeymap, nextSubScale, parseKeymap } from "../../services/playback/actions";
 import { engineInfo, execute, isPlaybackError, launchMediaPaths, queue, revealScreenshot, screenshot, useQueue, usePlayback, type EngineInfo } from "../../services/playback/client";
@@ -234,6 +234,7 @@ export function PlayerView(props: { active: boolean; onBrowse: () => void; onOpe
   }, [menu == null]);
 
   const hasMedia = !["idle", "error", "stopped"].includes(s.phase);
+  const compactDeck = prefs.timelineLayout === "compact";
 
   /** Runs any registered action (keyboard, menus, mouse). */
   const act = useCallback(
@@ -305,6 +306,9 @@ export function PlayerView(props: { active: boolean; onBrowse: () => void; onOpe
         case "view.immersive":
           setImmersive((v) => !v);
           break;
+        case "view.deck":
+          run(setPref("timelineLayout", prefs.timelineLayout === "compact" ? "wide" : "compact"));
+          break;
         case "view.library":
           props.onBrowse();
           break;
@@ -319,7 +323,7 @@ export function PlayerView(props: { active: boolean; onBrowse: () => void; onOpe
           break;
       }
     },
-    [s, q.repeat, hasMedia, run, flash, showOsd, addSubtitle, toggleFullscreen, pickFiles, prefs.timeDisplay, props],
+    [s, q.repeat, hasMedia, run, flash, showOsd, addSubtitle, toggleFullscreen, pickFiles, prefs.timeDisplay, prefs.timelineLayout, props],
   );
 
   // Keyboard: chord -> action through the user's keymap. The menu key (or
@@ -415,7 +419,7 @@ export function PlayerView(props: { active: boolean; onBrowse: () => void; onOpe
       cancelAnimationFrame(raf);
       window.removeEventListener("resize", apply);
     };
-  }, [subsLifted, hasMedia, s.sessionId, prefs.controls, isFullscreen]);
+  }, [subsLifted, hasMedia, s.sessionId, prefs.timelineLayout, isFullscreen]);
 
   // A side panel reserves its width in the engine, so the picture re-centres beside it.
   useEffect(() => {
@@ -435,6 +439,7 @@ export function PlayerView(props: { active: boolean; onBrowse: () => void; onOpe
     hasMedia,
     isFullscreen,
     immersive,
+    compactDeck,
     panel,
     act,
     exec: (c) => run(execute(c)),
@@ -446,7 +451,7 @@ export function PlayerView(props: { active: boolean; onBrowse: () => void; onOpe
   const tally = s.phase === "playing" || s.phase === "seeking" ? "live" : s.phase === "loading" ? "busy" : hasMedia ? "held" : "idle";
   const stateWord = { playing: "Playing", paused: "Paused", loading: "Loading", seeking: "Seeking", ended: "Ended", stopped: "Stopped", idle: "No signal", error: "Error" }[s.phase];
   const spec = s.video
-    ? [s.video.codec?.toUpperCase(), s.video.width ? `${s.video.width}×${s.video.height}` : null, s.video.hwdec ? "HW" : "SW"].filter(Boolean)
+    ? [s.video.codec?.toUpperCase(), s.video.width ? `${s.video.width}×${s.video.height}` : null, s.video.hwdec ? "hardware decode" : "software decode"].filter(Boolean)
     : [];
 
   return (
@@ -498,11 +503,11 @@ export function PlayerView(props: { active: boolean; onBrowse: () => void; onOpe
         </div>
       )}
 
-      {/* Top strip: the way back, the tally and what is on the monitor. */}
+      {/* Top strip: the way back, then one title block — what is on the monitor and its state. */}
       {!showEmpty && (
         <div
           className={[
-            "absolute inset-x-0 top-0 z-20 flex h-11 items-center gap-3 border-b border-room-seam bg-room-ply pl-2 pr-4",
+            "glass-top absolute inset-x-0 top-0 z-20 flex items-center gap-3 py-2 pl-2 pr-5",
             "transition-opacity duration-200 ease-(--ease-out-strong)",
             topHidden ? "pointer-events-none opacity-0" : "opacity-100",
           ].join(" ")}
@@ -511,30 +516,26 @@ export function PlayerView(props: { active: boolean; onBrowse: () => void; onOpe
           onMouseLeave={() => (overControls.current = false)}
           onClick={(e) => e.stopPropagation()}
         >
-          <Button tone="room" variant="ghost" onClick={props.onBrowse} icon={<ChevronLeftIcon size={17} />} title={`Back to library (${hint("view.library") ?? "Backspace"})`} className="h-8 px-2 text-room-ink-2">
-            Library
-          </Button>
-          <span aria-hidden className="h-5 w-px bg-room-seam" />
-          <span className="flex shrink-0 items-center gap-2" role="status" aria-label={`Player ${stateWord}`}>
-            <span className="tally" data-state={tally} aria-hidden />
-            <span className={`engrave ${tally === "live" ? "text-room-ink" : "text-room-ink-3"}`}>{stateWord}</span>
-          </span>
-          {hasMedia && s.mediaTitle && <p className="spine min-w-0 flex-1 truncate text-[17px] text-room-ink">{s.mediaTitle}</p>}
-          {!hasMedia && <span className="flex-1" />}
-          {hasMedia && spec.length > 0 && (
-            <button
-              type="button"
-              onClick={() => act("view.inspector")}
-              title={`Playback details (${hint("view.inspector") ?? "I"})`}
-              className="flex shrink-0 items-center gap-2.5 rounded-[5px] px-2 py-1 hover:bg-white/[0.07] max-[720px]:hidden"
-            >
-              {spec.map((x, i) => (
-                <span key={i} className={`readout text-[11.5px] ${x === "HW" ? "text-room-ink" : "text-room-ink-2"}`}>
-                  {x}
-                </span>
-              ))}
-            </button>
-          )}
+          <IconButton tone="room" label={`Back to library (${hint("view.library") ?? "Backspace"})`} onClick={props.onBrowse} className="bg-white/[0.08] text-room-ink">
+            <ChevronLeftIcon size={20} />
+          </IconButton>
+          <div className="min-w-0 flex-1">
+            <p className="spine truncate text-[18px] leading-tight text-room-ink">{hasMedia && s.mediaTitle ? s.mediaTitle : stateWord}</p>
+            <p className="mt-0.5 flex min-w-0 items-center gap-2 text-room-ink-2" role="status" aria-label={`Player ${stateWord}`}>
+              <span className="tally" data-state={tally} aria-hidden />
+              <span className={`engrave ${tally === "live" ? "text-room-ink" : ""}`}>{stateWord}</span>
+              {hasMedia && spec.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => act("view.inspector")}
+                  title={`Playback details (${hint("view.inspector") ?? "I"})`}
+                  className="readout truncate rounded-[3px] text-[11.5px] hover:text-room-ink max-[640px]:hidden"
+                >
+                  · {spec.join(" · ")}
+                </button>
+              )}
+            </p>
+          </div>
         </div>
       )}
 
@@ -584,7 +585,12 @@ export function PlayerView(props: { active: boolean; onBrowse: () => void; onOpe
 
       {!showEmpty && (
         <div
-          className={["absolute bottom-0 left-0 z-20", "transition-opacity duration-200 ease-(--ease-out-strong)", hidden ? "pointer-events-none opacity-0" : "opacity-100"].join(" ")}
+          className={[
+            "absolute bottom-0 left-0 z-20 transition-opacity duration-200 ease-(--ease-out-strong)",
+            // Compact: a small bar floating in the middle of the bottom edge.
+            compactDeck ? "flex justify-center px-3 pb-3 [&>*]:w-[min(760px,100%)]" : "",
+            hidden ? "pointer-events-none opacity-0" : "opacity-100",
+          ].join(" ")}
           style={{ right: panel ? PANEL_WIDTH : 0 }}
           ref={deckRef}
           onMouseEnter={() => (overControls.current = true)}
