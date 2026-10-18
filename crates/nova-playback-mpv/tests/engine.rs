@@ -229,7 +229,12 @@ fn relative_seeks_land_on_requested_time() {
     h.wait("paused at 3s", 5_000, |s| {
         s.phase == P::Paused && s.position_ms.abs_diff(3_000) <= 34
     });
-    for (offset, expect) in [(5_000, 8_000), (5_000, 13_000), (-5_000, 8_000), (-1_000, 7_000)] {
+    for (offset, expect) in [
+        (5_000, 8_000),
+        (5_000, 13_000),
+        (-5_000, 8_000),
+        (-1_000, 7_000),
+    ] {
         h.exec(Cmd::SeekRelative { offset_ms: offset });
         // One frame at 30 fps is 33.3 ms.
         h.wait(&format!("relative {offset} -> {expect}"), 5_000, |s| {

@@ -8,7 +8,9 @@
 //!
 //! Usage:
 //!   cargo run -p nova-playback-mpv --example seek_probe --release -- [dir] [--json out.json]
-use nova_playback_api::{PlaybackBackend, PlaybackCommand as Cmd, PlaybackPhase as P, PlaybackSnapshot};
+use nova_playback_api::{
+    PlaybackBackend, PlaybackCommand as Cmd, PlaybackPhase as P, PlaybackSnapshot,
+};
 use nova_playback_mpv::{MpvConfig, MpvPlayer};
 use std::path::{Path, PathBuf};
 use std::sync::mpsc::{Receiver, channel};
@@ -38,8 +40,11 @@ impl Series {
     fn push(&mut self, pts: &[f64], target: f64, landed: f64, latency: f64) {
         self.err_ms.push((landed - target) * 1000.0);
         let got = nearest_frame(pts, landed);
-        self.frame_err.push(got as i64 - frame_at(pts, target) as i64);
-        let rule = pts.partition_point(|&p| p < target - 0.005).min(pts.len() - 1);
+        self.frame_err
+            .push(got as i64 - frame_at(pts, target) as i64);
+        let rule = pts
+            .partition_point(|&p| p < target - 0.005)
+            .min(pts.len() - 1);
         if got == rule {
             self.rule_hits += 1;
         }
@@ -67,7 +72,10 @@ impl Probe {
         if pred(&self.player.snapshot()) {
             return true;
         }
-        while let Ok(s) = self.rx.recv_timeout(deadline.saturating_duration_since(Instant::now())) {
+        while let Ok(s) = self
+            .rx
+            .recv_timeout(deadline.saturating_duration_since(Instant::now()))
+        {
             if pred(&s) {
                 return true;
             }
@@ -77,8 +85,16 @@ impl Probe {
 
     fn open(&self, path: &str) -> Option<u64> {
         self.drain();
-        let ack = self.player.execute(Cmd::Open { path: path.into(), start_ms: None }).ok()?;
-        self.wait(15_000, |s| s.session_id == ack.session_id && s.phase == P::Playing && s.duration_ms.is_some());
+        let ack = self
+            .player
+            .execute(Cmd::Open {
+                path: path.into(),
+                start_ms: None,
+            })
+            .ok()?;
+        self.wait(15_000, |s| {
+            s.session_id == ack.session_id && s.phase == P::Playing && s.duration_ms.is_some()
+        });
         self.player.execute(Cmd::Pause).ok()?;
         self.wait(3_000, |s| s.phase == P::Paused);
         self.player.snapshot().duration_ms
@@ -99,7 +115,11 @@ impl Probe {
         let latency = t0.elapsed().as_secs_f64() * 1000.0;
         // time-pos is updated with the restart; read the engine directly.
         std::thread::sleep(Duration::from_millis(15));
-        let pos = self.player.property_string("time-pos")?.parse::<f64>().ok()?;
+        let pos = self
+            .player
+            .property_string("time-pos")?
+            .parse::<f64>()
+            .ok()?;
         Some((pos, latency))
     }
 }
@@ -115,7 +135,10 @@ fn frame_at(pts: &[f64], t: f64) -> usize {
 fn nearest_frame(pts: &[f64], t: f64) -> usize {
     let i = pts.partition_point(|&p| p < t);
     let cands = [i.saturating_sub(1), i.min(pts.len() - 1)];
-    *cands.iter().min_by(|a, b| (pts[**a] - t).abs().total_cmp(&(pts[**b] - t).abs())).unwrap()
+    *cands
+        .iter()
+        .min_by(|a, b| (pts[**a] - t).abs().total_cmp(&(pts[**b] - t).abs()))
+        .unwrap()
 }
 
 /// Deterministic targets: edges, frame boundaries and a spread over the file.
@@ -175,32 +198,48 @@ fn summarize(name: &str, mode: &str, s: &Series) -> String {
 fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
-    let dir = args.iter().find(|a| !a.starts_with("--")).map(PathBuf::from).unwrap_or(root.join("tests/fixtures/seek"));
-    let lib = std::env::var_os("NOVA_LIBMPV_PATH").map(PathBuf::from).unwrap_or(root.join("vendor/libmpv/libmpv-2.dll"));
+    let dir = args
+        .iter()
+        .find(|a| !a.starts_with("--"))
+        .map(PathBuf::from)
+        .unwrap_or(root.join("tests/fixtures/seek"));
+    let lib = std::env::var_os("NOVA_LIBMPV_PATH")
+        .map(PathBuf::from)
+        .unwrap_or(root.join("vendor/libmpv/libmpv-2.dll"));
     let only: Option<String> = std::env::var("SEEK_ONLY").ok();
 
     let mut files: Vec<PathBuf> = std::fs::read_dir(&dir)
         .expect("seek corpus; run scripts/generate-seek-fixtures.sh")
         .filter_map(|e| e.ok().map(|e| e.path()))
         .filter(|p| p.extension().is_some_and(|x| x != "pts"))
-        .filter(|p| only.as_ref().is_none_or(|o| p.to_string_lossy().contains(o.as_str())))
+        .filter(|p| {
+            only.as_ref()
+                .is_none_or(|o| p.to_string_lossy().contains(o.as_str()))
+        })
         .collect();
     files.sort();
 
     let probe = Probe::new(&lib);
-    println!("| File | Mode | n | median abs err ms | p95 | max | on-screen frame | engine rule | frame err range | latency p50 ms | p95 | unmeasured |");
+    println!(
+        "| File | Mode | n | median abs err ms | p95 | max | on-screen frame | engine rule | frame err range | latency p50 ms | p95 | unmeasured |"
+    );
     println!("|---|---|---|---|---|---|---|---|---|---|---|---|");
     for f in files {
-        let pts: Vec<f64> = std::fs::read_to_string(f.with_extension(format!("{}.pts", f.extension().unwrap().to_string_lossy())))
-            .unwrap_or_default()
-            .lines()
-            .filter_map(|l| l.trim().parse().ok())
-            .collect();
+        let pts: Vec<f64> = std::fs::read_to_string(
+            f.with_extension(format!("{}.pts", f.extension().unwrap().to_string_lossy())),
+        )
+        .unwrap_or_default()
+        .lines()
+        .filter_map(|l| l.trim().parse().ok())
+        .collect();
         if pts.is_empty() {
             continue;
         }
         let name = f.file_name().unwrap().to_string_lossy().to_string();
-        let path = f.to_string_lossy().trim_start_matches(r"\\?\").replace('/', "\\");
+        let path = f
+            .to_string_lossy()
+            .trim_start_matches(r"\\?\")
+            .replace('/', "\\");
         let Some(dur_ms) = probe.open(&path) else {
             println!("| {name} | open failed | | | | | | | | | |");
             continue;
@@ -212,7 +251,10 @@ fn main() {
             let mut s = Series::default();
             for &t in &tg {
                 let ms = (t * 1000.0).round() as u64;
-                match probe.settle(Cmd::Seek { position_ms: ms, exact }) {
+                match probe.settle(Cmd::Seek {
+                    position_ms: ms,
+                    exact,
+                }) {
                     Some((landed, lat)) => s.push(&pts, ms as f64 / 1000.0, landed, lat),
                     None => s.unmeasured += 1,
                 }
@@ -224,11 +266,21 @@ fn main() {
         let mut s = Series::default();
         for (k, &t) in tg.iter().enumerate().take(SAMPLES / 2) {
             let start = t.clamp(6.0, dur - 7.0);
-            if probe.settle(Cmd::Seek { position_ms: (start * 1000.0) as u64, exact: true }).is_none() {
+            if probe
+                .settle(Cmd::Seek {
+                    position_ms: (start * 1000.0) as u64,
+                    exact: true,
+                })
+                .is_none()
+            {
                 s.unmeasured += 1;
                 continue;
             }
-            let Some(from) = probe.player.property_string("time-pos").and_then(|v| v.parse::<f64>().ok()) else {
+            let Some(from) = probe
+                .player
+                .property_string("time-pos")
+                .and_then(|v| v.parse::<f64>().ok())
+            else {
                 s.unmeasured += 1;
                 continue;
             };
@@ -247,25 +299,42 @@ fn main() {
             let mut last = 0u64;
             for i in 0..12 {
                 last = (((round * 12 + i) as f64 * 0.0731).fract() * (dur - 2.0) * 1000.0) as u64;
-                let _ = probe.player.execute(Cmd::Seek { position_ms: last, exact: true });
+                let _ = probe.player.execute(Cmd::Seek {
+                    position_ms: last,
+                    exact: true,
+                });
             }
             let t0 = Instant::now();
             // Settled = not seeking for a while.
             loop {
                 std::thread::sleep(Duration::from_millis(60));
-                if probe.player.property_string("seeking").as_deref() == Some("no") || t0.elapsed() > Duration::from_secs(20) {
+                if probe.player.property_string("seeking").as_deref() == Some("no")
+                    || t0.elapsed() > Duration::from_secs(20)
+                {
                     break;
                 }
             }
             std::thread::sleep(Duration::from_millis(50));
-            let landed = probe.player.property_string("time-pos").and_then(|v| v.parse::<f64>().ok());
+            let landed = probe
+                .player
+                .property_string("time-pos")
+                .and_then(|v| v.parse::<f64>().ok());
             let snap = probe.player.snapshot();
             match landed {
                 Some(l) => {
-                    s.push(&pts, last as f64 / 1000.0, l, t0.elapsed().as_secs_f64() * 1000.0);
+                    s.push(
+                        &pts,
+                        last as f64 / 1000.0,
+                        l,
+                        t0.elapsed().as_secs_f64() * 1000.0,
+                    );
                     // The snapshot the UI sees must agree with the engine.
                     if (snap.position_ms as f64 - l * 1000.0).abs() > 50.0 {
-                        eprintln!("{name}: stale snapshot {} vs engine {:.0}", snap.position_ms, l * 1000.0);
+                        eprintln!(
+                            "{name}: stale snapshot {} vs engine {:.0}",
+                            snap.position_ms,
+                            l * 1000.0
+                        );
                     }
                 }
                 None => s.unmeasured += 1,
