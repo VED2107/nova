@@ -251,25 +251,11 @@ textarea {
   }
 }
 
-/* Timeline. The native range input carries keyboard and screen-reader
-   behaviour (invisible thumb); the component draws a slim track that
-   thickens on intent, chapter cuts, the A–B bracket and the beam playhead. */
-.seek-input {
-  -webkit-appearance: none;
-  appearance: none;
-  background: transparent;
-}
-.seek-input::-webkit-slider-runnable-track {
-  height: 22px;
-  background: transparent;
-}
-.seek-input::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 12px;
-  height: 22px;
-  opacity: 0;
-}
-.seek-input:focus-visible {
+/* Timeline. A role="slider" surface maps the pointer edge to edge (no thumb
+   inset, so hover time = landing time); the component draws a slim track that
+   thickens on intent, chapter cuts, the A–B bracket and the beam playhead,
+   which carries the focus ring. */
+.timeline:focus-visible {
   outline: none;
 }
 .timeline-track {
@@ -279,7 +265,7 @@ textarea {
 }
 .timeline:hover .timeline-track,
 .timeline[data-scrubbing="true"] .timeline-track,
-.timeline:has(.seek-input:focus-visible) .timeline-track {
+.timeline:focus-visible .timeline-track {
   transform: scaleY(1);
 }
 /* Played portion, chapter cuts and hover ghost are drawn as line form, not colour shifts. */
@@ -300,10 +286,10 @@ textarea {
 }
 .timeline:hover .timeline-beam,
 .timeline[data-scrubbing="true"] .timeline-beam,
-.timeline:has(.seek-input:focus-visible) .timeline-beam {
+.timeline:focus-visible .timeline-beam {
   transform: translate(-50%, -50%) skewX(-15.3deg);
 }
-.timeline:has(.seek-input:focus-visible) .timeline-beam {
+.timeline:focus-visible .timeline-beam {
   box-shadow:
     0 0 0 1.5px rgb(11 11 10 / 0.7),
     0 0 0 3.5px var(--color-cream);

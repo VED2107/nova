@@ -587,8 +587,11 @@ impl PlaybackBackend for MpvPlayer {
                 i.command(&["seek", &secs, flags])?
             }
             PlaybackCommand::SeekRelative { offset_ms } => {
+                // Exact: libmpv's default for relative seeks is keyframe
+                // seeking, which measured up to a whole GOP (9.9 s) off the
+                // requested ±5 s on long-GOP media (docs/testing/seek/).
                 let secs = format!("{:.3}", offset_ms as f64 / 1000.0);
-                i.command(&["seek", &secs, "relative"])?
+                i.command(&["seek", &secs, "relative+exact"])?
             }
             PlaybackCommand::SetVolume { percent } => i.set_double("volume", percent.into())?,
             PlaybackCommand::SetMuted { muted } => i.set_flag("mute", muted)?,

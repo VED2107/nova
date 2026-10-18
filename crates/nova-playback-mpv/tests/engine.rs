@@ -215,6 +215,29 @@ fn rapid_seeks_settle_on_last_target() {
     });
 }
 
+/// Arrow-key seeks are relative. The fixture uses x264's default 250-frame
+/// GOP (8.3 s at 30 fps), so a keyframe seek would land seconds away.
+#[test]
+fn relative_seeks_land_on_requested_time() {
+    let mut h = Harness::new();
+    h.open_and_play("h264_aac_1080p30_30s.mp4");
+    h.exec(Cmd::Pause);
+    h.exec(Cmd::Seek {
+        position_ms: 3_000,
+        exact: true,
+    });
+    h.wait("paused at 3s", 5_000, |s| {
+        s.phase == P::Paused && s.position_ms.abs_diff(3_000) <= 34
+    });
+    for (offset, expect) in [(5_000, 8_000), (5_000, 13_000), (-5_000, 8_000), (-1_000, 7_000)] {
+        h.exec(Cmd::SeekRelative { offset_ms: offset });
+        // One frame at 30 fps is 33.3 ms.
+        h.wait(&format!("relative {offset} -> {expect}"), 5_000, |s| {
+            s.phase == P::Paused && s.position_ms.abs_diff(expect) <= 34
+        });
+    }
+}
+
 #[test]
 fn reaches_end_and_can_seek_back() {
     let mut h = Harness::new();

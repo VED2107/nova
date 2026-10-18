@@ -41,12 +41,15 @@ pub enum PlaybackCommand {
     Pause,
     TogglePause,
     Stop,
-    /// Absolute seek. `exact` trades speed for frame accuracy.
+    /// Absolute seek. `exact` lands on the first frame at or after the target
+    /// (accurate seek); otherwise on a nearby keyframe, which can be a whole
+    /// GOP away (fast seek). See docs/architecture/seeking.md.
     Seek {
         position_ms: MediaTimeMs,
         exact: bool,
     },
-    /// Relative seek in milliseconds (may be negative).
+    /// Relative seek in milliseconds (may be negative). Always accurate:
+    /// a step of N seconds must move by N seconds, not to a keyframe.
     SeekRelative {
         offset_ms: i64,
     },

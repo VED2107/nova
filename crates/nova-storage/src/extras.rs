@@ -29,6 +29,9 @@ pub const PREFERENCES: &[(&str, &[&str], &str)] = &[
     ("updates", &["auto", "manual"], "auto"),
     // Timeline across the full deck, or short and inline between the controls.
     ("timelineLayout", &["wide", "compact"], "wide"),
+    // Timeline dragging: accurate frames while the engine keeps up ("auto"),
+    // always accurate, or always keyframes (fastest, least precise).
+    ("scrub", &["auto", "accurate", "fast"], "auto"),
     // Ctrl + wheel over the picture.
     (
         "ctrlWheel",
