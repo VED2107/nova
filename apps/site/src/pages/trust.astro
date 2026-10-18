@@ -59,7 +59,7 @@ const components = [
       <dl class="facts">
         <div>
           <dt>Development</dt>
-          <dd><Stamp tier="preview" label="0.2.0" /> Released 2026-10-17. Active development.</dd>
+          <dd><Stamp tier="preview" label="0.2.0" /> Windows released 2026-10-17; Android pre-release 2026-10-18. Active development.</dd>
         </div>
         <div>
           <dt>Source code</dt>
@@ -72,7 +72,8 @@ const components = [
           <dt>Distribution</dt>
           <dd>
             Windows installer on GitHub Releases. Because it bundles an engine build with GPL components, the installer as a
-            whole is distributed under the GPL. See <a href="/release">Release</a>.
+            whole is distributed under the GPL. Android: a signed APK on GitHub Releases, outside Google Play, containing no GPL
+            or LGPL code. iPhone: no download. See <a href="/release">Release</a>.
           </dd>
         </div>
         <div>
@@ -116,6 +117,9 @@ const components = [
             </li>
             <li>
               <span>Interface network access: content policy allows only the app itself and its IPC bridge</span><Stamp tier="verified" label="In config" />
+            </li>
+            <li>
+              <span>Android: the same single update check to GitHub (Settings → Updates). Downloads are checked against the release's SHA-256, and Android installs them only if they carry NOVA's signature. No storage, media or microphone permission.</span><Stamp tier="verified" label="In code" />
             </li>
           </ul>
           <p class="small">
@@ -175,7 +179,7 @@ const components = [
       <SectionHead id="licensing" title="Licensing" />
       <div class="two">
         <div class="col">
-          <p class="big spine">NOVA's code is MIT OR Apache-2.0. The 0.2.0 installer is GPL.</p>
+          <p class="big spine">NOVA's code is MIT OR Apache-2.0. The 0.2.0 Windows installer is GPL; the Android APK is not.</p>
           <p>
             0.1.0 and 0.2.0 bundle a third-party engine build. It ships under the GPL with licence texts, notices, source archives of
             the exact mpv and FFmpeg commits and the build recipe, and a written offer for the rest. The plan for later

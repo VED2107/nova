@@ -11,7 +11,7 @@ interface Props {
   noindex?: boolean;
 }
 const { title, description, image = "/og.png", noindex = false } = Astro.props;
-const fullTitle = title === "NOVA" ? "NOVA — a calm, honest media player for Windows" : `${title} — NOVA`;
+const fullTitle = title === "NOVA" ? "NOVA — a calm, honest media player for Windows and Android" : `${title} — NOVA`;
 const canonical = new URL(Astro.url.pathname, Astro.site);
 const imageUrl = new URL(image, Astro.site);
 ---
