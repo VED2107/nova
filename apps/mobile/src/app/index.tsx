@@ -13,6 +13,7 @@ import { openFiles, openFolder } from "@/features/library/actions";
 import { ItemMenu } from "@/features/library/ItemMenu";
 import { LibraryView } from "@/features/library/LibraryView";
 import { play } from "@/features/library/actions";
+import { UpdateBanner } from "@/features/updates/UpdatePanel";
 
 /**
  * The app frame, as on desktop: NOVA wordmark, Home and Library tabs, the
@@ -99,6 +100,7 @@ export default function Shell() {
       )}
 
       <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + space.xxl }} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
+        <UpdateBanner gutter={gutter} />
         {narrow && onAir && (
           <Pressable accessibilityRole="button" accessibilityLabel={`Up next: ${onAir.title}. Open player`} onPress={() => play(onAir)} style={[styles.chip, styles.chipWide, { borderColor: s.seamStrong, marginHorizontal: gutter }]}>
             <View style={[styles.lamp, { backgroundColor: s.ember }]} />

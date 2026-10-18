@@ -19,6 +19,16 @@ for (const r of releaseData.releases) {
   }
   ALLOWED_DOWNLOADS.add(d.url);
 }
+// Android APKs: same rules, no engine source needed (the APK has no GPL or LGPL code), plus the signing certificate.
+for (const r of releaseData.android ?? []) {
+  if (!r.download) continue;
+  const d = r.download;
+  if (!/^[0-9a-f]{64}$/i.test(d.sha256 ?? "") || !d.notices || !/^https:\/\//.test(d.url ?? "") || !/\.apk$/.test(d.url) || !/^([0-9A-F]{2}:){31}[0-9A-F]{2}$/.test(r.cert ?? "")) {
+    console.error(`check-dist: Android release ${r.version} download needs an https .apk URL, sha256, notices and the certificate fingerprint`);
+    process.exit(1);
+  }
+  ALLOWED_DOWNLOADS.add(d.url);
+}
 
 const dist = fileURLToPath(new URL("../dist/", import.meta.url));
 const problems = [];
@@ -33,7 +43,7 @@ const files = [];
 })(dist);
 
 const rel = (p) => path.relative(dist, p).split(path.sep).join("/");
-const BANNED_EXT = /\.(exe|msi|msix|dll|7z|zip|nsis|appx|dmg|pkg|deb|rpm)$/i;
+const BANNED_EXT = /\.(exe|msi|msix|dll|7z|zip|nsis|appx|dmg|pkg|deb|rpm|apk|aab|ipa)$/i;
 const TEXT_EXT = /\.(html|css|js|json|xml|txt|svg|webmanifest|map)$/i;
 const PRIVATE = [
   /[A-Z]:\\Users\\/i,
@@ -61,7 +71,7 @@ for (const f of files) {
     if (/rel="canonical"/.test(m[0])) continue;
     problems.push(`${r}: external request ${m[0].slice(0, 120)}`);
   }
-  for (const m of text.matchAll(/href="([^"]*\.(?:exe|msi|msix|zip|7z))"/gi))
+  for (const m of text.matchAll(/href="([^"]*\.(?:exe|msi|msix|zip|7z|apk|aab|ipa))"/gi))
     if (!ALLOWED_DOWNLOADS.has(m[1])) problems.push(`${r}: link to an installer that is not an approved release: ${m[1]}`);
   if (/<meta name="robots" content="noindex/.test(text) && r !== "404.html") problems.push(`${r}: noindex on a public page`);
   if (!/<link rel="canonical" href="https:\/\/nova\.snowbros\.me/.test(text) && !process.env.SITE_URL) problems.push(`${r}: canonical is not nova.snowbros.me`);

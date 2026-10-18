@@ -19,6 +19,18 @@ interface ReleaseRecord {
 const releases = data.releases as ReleaseRecord[];
 const latest = releases.find((r) => r.download);
 
+interface AndroidRecord {
+  version: string;
+  date: string;
+  channel: string;
+  cert: string;
+  platforms: { name: string; state: string }[];
+  download: { url: string; sha256: string; size: string; signed: boolean; notices: string; release?: string } | null;
+  notes: string[];
+}
+const android = (data.android ?? []) as AndroidRecord[];
+const androidLatest = android.find((r) => r.download);
+
 const stateLabel = { open: "Open", "not-started": "Not started", done: "Done" } as const;
 const stateTier = { open: "partial", "not-started": "none", done: "verified" } as const;
 const openGates = RELEASE_GATES.filter((g) => g.state !== "done").length;
@@ -26,7 +38,7 @@ const openGates = RELEASE_GATES.filter((g) => g.state !== "done").length;
 
 <Base
   title="Release"
-  description="Download NOVA 0.2.0 for Windows: checksum, licences, engine source, platforms and what is still open."
+  description="Download NOVA 0.2.0 for Windows and NOVA for Android: checksums, signing certificate, licences, engine source, platforms and what is still open."
 >
   <section class="section">
     <div class="wrap">
@@ -82,7 +94,66 @@ const openGates = RELEASE_GATES.filter((g) => g.state !== "done").length;
     </div>
   </section>
 
-  <section class="section sunk" aria-labelledby="gates-h">
+  <section class="section sunk" id="android" aria-labelledby="android-h">
+    <div class="wrap">
+      <SectionHead id="android-h" title="NOVA for Android" />
+      <div class="board">
+        <div class="now">
+          <p class="state"><Stamp tier="preview" label="Pre-release" /> Android 7.0 or newer, {androidLatest?.date ?? android[0]?.date}</p>
+          <p class="body">
+            The same Home, Library and player as on Windows, made for touch: folders, search and sorting, poster frames,
+            queue and playlists, resume, exact seeking with preview frames, A–B loop, frame step, aspect and rotation,
+            save frame, picture in picture and gestures. It plays through the phone's own decoders (Media3), so MKV and
+            MP4 with H.264, HEVC, VP9 and AV1 work where the phone has the decoder; DTS, TrueHD, styled subtitles and
+            subtitle delay need NOVA's own engine on Android, which is not built yet. The APK contains no GPL or LGPL code.
+          </p>
+          <p class="body">
+            From 0.2.0 the app updates itself: it asks GitHub for a newer release, downloads it, checks the SHA-256 and
+            opens Android's installer, which accepts it only if it carries the same signature. Turn the check off in
+            Settings → Updates. 0.1.0 has no updater, so install 0.2.0 once by hand.
+          </p>
+          <p class="body muted small">
+            iPhone: there is no iOS download. Installing on iPhone needs Apple signing; until then NOVA runs on iPhone in
+            Expo Go as a development preview.
+          </p>
+        </div>
+        <div class="dl" aria-labelledby="android-dl-h">
+          <h3 id="android-dl-h" class="visually-hidden">Download for Android</h3>
+          {
+            androidLatest && androidLatest.download ? (
+              <>
+                <p class="dl-empty spine">NOVA {androidLatest.version}</p>
+                <a class="btn" href={androidLatest.download.url}>Download APK ({androidLatest.download.size})</a>
+                <p class="small">SHA-256 <code>{androidLatest.download.sha256}</code></p>
+                <p class="small">
+                  Signing certificate (SHA-256) <code>{androidLatest.cert}</code>. Every NOVA APK carries this certificate;
+                  Android refuses an update signed with any other.
+                </p>
+                <p class="small">
+                  Not from Google Play: open the file and allow “Install unknown apps” for your browser or Files when Android
+                  asks.
+                </p>
+                <p class="small">
+                  <a href={androidLatest.download.notices}>Licences and notices</a>
+                  {androidLatest.download.release && (
+                    <>
+                      {" · "}
+                      <a href={androidLatest.download.release}>Release on GitHub</a>
+                    </>
+                  )}
+                </p>
+              </>
+            ) : (
+              <p class="dl-empty spine">No Android download yet.</p>
+            )
+          }
+          {android[0] && !android[0].download && <p class="muted small">{android[0].version} is being built and signed; it appears here with its checksum when it is attached.</p>}
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="gates-h">
     <div class="wrap">
       <SectionHead id="gates-h" title="Still open after 0.2.0" />
       <ol class="gates">
@@ -175,7 +246,62 @@ const openGates = RELEASE_GATES.filter((g) => g.state !== "done").length;
           </article>
         ))
       }
-      <p class="muted small">Full notes: <a href="https://github.com/VED2107/nova/blob/v0.2.0/CHANGELOG.md">CHANGELOG.md</a>.</p>
+      {
+        android.map((r) => (
+          <article class="record">
+            <header>
+              <h3 class="spine num">Android {r.version}</h3>
+              <p class="muted">
+                {r.channel} · {r.date}
+              </p>
+            </header>
+            <dl class="fields">
+              <div>
+                <dt>Download</dt>
+                <dd>{r.download ? <a href={r.download.url}>Download APK {r.version}</a> : <span class="muted">Being built</span>}</dd>
+              </div>
+              <div>
+                <dt>SHA-256</dt>
+                <dd>{r.download ? <code>{r.download.sha256}</code> : <span class="muted">Published with the APK</span>}</dd>
+              </div>
+              <div>
+                <dt>Signature</dt>
+                <dd>
+                  Signed, certificate <code>{r.cert}</code>
+                </dd>
+              </div>
+              <div>
+                <dt>Engine</dt>
+                <dd>The phone's own decoders (Media3); no GPL or LGPL code in the APK</dd>
+              </div>
+              <div>
+                <dt>Platforms</dt>
+                <dd>
+                  <ul class="plat">
+                    {r.platforms.map((p) => (
+                      <li>
+                        <span>{p.name}</span>
+                        <span class="muted">{p.state}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </dd>
+              </div>
+              <div>
+                <dt>Highlights</dt>
+                <dd>
+                  <ul class="notes">
+                    {r.notes.map((n) => (
+                      <li>{n}</li>
+                    ))}
+                  </ul>
+                </dd>
+              </div>
+            </dl>
+          </article>
+        ))
+      }
+      <p class="muted small">Full notes: <a href="https://github.com/VED2107/nova/blob/main/CHANGELOG.md">CHANGELOG.md</a>.</p>
     </div>
   </section>
 </Base>
