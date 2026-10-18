@@ -13,7 +13,9 @@ fn dir(name: &str) -> PathBuf {
     let d = std::env::temp_dir().join("nova-scan-tests").join(name);
     let _ = std::fs::remove_dir_all(&d);
     std::fs::create_dir_all(&d).unwrap();
-    d
+    // Roots are stored canonical. CI's temp dir is an 8.3 short path
+    // (C:\Users\RUNNER~1\...), so test paths must be canonical too.
+    nova_storage::identity::canonical_path(&d).unwrap()
 }
 
 /// Writes a small file with distinct content (scanner does not decode media).

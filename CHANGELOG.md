@@ -2,6 +2,41 @@
 
 All notable changes to NOVA.
 
+## Unreleased
+
+### Seeking (Windows)
+- Arrow keys, the wheel and every ±N s action now land on the requested time. They used keyframe seeks, which
+  missed by up to a whole GOP (measured up to 9.9 s on long-GOP files); now within one frame.
+- The timeline maps the pointer edge to edge: the time in the hover preview is the time you land on (it could differ
+  by up to a minute on long files). Dragging sends one seek at a time, newest first; release lands exactly and the
+  playhead no longer jumps back while it does.
+- New setting "While dragging the timeline": Adaptive (exact frames while the decoder keeps up), Exact frames, or
+  Keyframes.
+- Hover previews are decoded for the time you hover; a nearby stand-in is dimmed and labelled with its own time.
+- PageUp / PageDown on the focused timeline move by a tenth of the file; End goes to the end.
+- Seek measurements and specification: `docs/architecture/seeking.md`.
+
+## Mobile 0.1.0 (2026-10-18), first release for Android and iPhone
+
+Android: a signed APK on GitHub (pre-release). iPhone: runs through Expo Go (SDK 57); there is no App Store build yet.
+NOVA plays through the phone's own decoders (AVPlayer, Media3). The NOVA engine (libmpv) comes later (ADR 0007).
+
+- The desktop's structure on a phone:
+  - Home: Continue, Your shelf, Recently added and Playlists.
+  - Library: folders, search, A–Z / Newest / Recent, Missing files, grid or list, poster frames and an item menu.
+  - Player: the deck with readouts, and a menu grouped like the desktop context menu.
+- Seeking: exact landing, latest-wins scrubbing, preview frames, ½–⅛ fine scrubbing, double-tap skip that adds up
+  with repeated taps, and go to time.
+- Playback:
+  - queue with repeat and shuffle; playlists
+  - A–B loop, frame step, speed 0.25–2×, audio and subtitle tracks
+  - aspect, rotation, lock, picture in picture
+  - volume and brightness swipes
+  - resume with Start over
+- Add files or whole folders without storage permissions (system picker; SAF on Android). Nothing leaves the phone.
+- Light and dark themes; haptics; screen-reader labels; 48 pt touch targets.
+- Architecture decision: `docs/adr/0007-mobile-architecture.md`. Release process: `docs/release/mobile.md`.
+
 ## 0.2.0 (2026-10-17) — the redesigned player
 
 Windows x64 NSIS installer. Licensing is unchanged from 0.1.0. 0.1.0 has no updater, so install 0.2.0 once by hand;

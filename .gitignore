@@ -8,3 +8,4 @@ tests/fixtures/media/
 apps/desktop/src-tauri/gen/
 apps/desktop/src-tauri/libmpv-2.dll
 tests/fixtures/compat/
+tests/fixtures/seek/

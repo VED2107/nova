@@ -15,7 +15,7 @@ No account, no telemetry, works offline.
 - Professional formats verified on synthetic samples (ProRes, DNxHR/HD, CineForm, XAVC-I/AVC-Intra/XDCAM-style MXF, HDR10/HLG, 4K/8K, pro audio). Camera RAW and editing projects are detected and explained. See [docs/compat](docs/compat/README.md)
 - Resume where you left off, across restarts and crashes (local SQLite; moved/renamed files keep their progress), with a "Start over" option
 - Native video (libmpv, D3D11, hardware decoding with software fallback) under a transparent React UI
-- Play/pause, seek bar (scrub + exact seek on release), ±5 s / ±30 s keys, volume/mute, speed, audio and subtitle track selection, fullscreen
+- Play/pause, frame-accurate seeking (timeline drag with exact landing, ±1/5/30/60 s keys within one frame; [measurements](docs/architecture/seeking.md)), volume/mute, speed, audio and subtitle track selection, fullscreen
 - Engine-confirmed state only: the UI shows what libmpv reports, never what it hopes happened
 - Actionable error screens for missing, damaged and non-media files
 - Playback info popover (codec, resolution, hardware/software decoder, output)
@@ -24,6 +24,7 @@ No account, no telemetry, works offline.
 
 ```text
 apps/desktop/            Tauri 2 shell + React 19 / TypeScript / Tailwind 4 UI
+apps/mobile/             Expo / React Native preview for iOS and Android (Expo Go; see its README)
   src/services/playback  typed commands, snapshot store, shortcuts
   src/features/player    player surface and controls
   src-tauri/             typed Tauri commands, engine bootstrap, native surface z-order
@@ -43,7 +44,8 @@ Decisions: [ADR 0001 engine](docs/adr/0001-playback-engine-libmpv.md) ·
 [ADR 0003 licensing](docs/adr/0003-libmpv-distribution-and-licensing.md) ·
 [ADR 0004 persistence](docs/adr/0004-local-persistence-and-resume.md) ·
 [ADR 0005 library](docs/adr/0005-media-library-scanning-and-search.md) ·
-[ADR 0006 compatibility](docs/adr/0006-media-compatibility-policy.md)
+[ADR 0006 compatibility](docs/adr/0006-media-compatibility-policy.md) ·
+[ADR 0007 mobile](docs/adr/0007-mobile-architecture.md)
 
 ## Develop (Windows)
 
@@ -84,7 +86,7 @@ Tests: see [docs/testing/README.md](docs/testing/README.md).
   parts (x264/x265), so the installer is distributed under the GPL with its source and notices
   ([THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md), [ADR 0003](docs/adr/0003-libmpv-distribution-and-licensing.md)).
   Later releases move to an LGPL engine built from source.
-- Windows only, by design.
+- Windows is the only released platform. iOS/Android exist as an Expo Go preview (`apps/mobile`), not a release.
 - Not yet tested: clean-machine install, multi-monitor/mixed DPI, display disconnect in fullscreen, Windows 10, AMD GPUs, HDR, long soak (2 h), Bluetooth audio latency.
 - The dev libmpv build imports `vulkan-1.dll` (from GPU drivers); clean-machine behavior unverified.
 - Depends on libmpv's child window class name `mpv` for z-ordering (ADR 0002).

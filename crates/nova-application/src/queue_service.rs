@@ -303,6 +303,7 @@ mod tests {
                     ab_loop: AbLoop::default(),
                     issues: vec![],
                     adjust: Default::default(),
+                    chapters: vec![],
                     error: None,
                 }),
             })

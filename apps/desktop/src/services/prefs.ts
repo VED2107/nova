@@ -16,6 +16,8 @@ export interface Prefs {
   updates: "auto" | "manual";
   /** Timeline across the deck ("wide") or short and inline with the controls ("compact"). */
   timelineLayout: "wide" | "compact";
+  /** Seeks while dragging the timeline; the release always lands accurately. */
+  scrub: "auto" | "accurate" | "fast";
   /** Ctrl + wheel over the picture. */
   ctrlWheel: "subtitleSize" | "volume" | "none";
   /** Subtitle size in percent ("50".."300", steps of 10). */
@@ -36,6 +38,7 @@ export const DEFAULT_PREFS: Prefs = {
   dblclick: "fullscreen",
   updates: "auto",
   timelineLayout: "wide",
+  scrub: "auto",
   ctrlWheel: "subtitleSize",
   subScale: "100",
   keymap: "{}",

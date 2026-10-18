@@ -151,6 +151,18 @@ function Playback({ onError }: { onError: (e: string) => void }) {
       <div className="border-b border-seam">
         <Switch label="Resume where you left off" description="Positions are still remembered when off; files simply start from the beginning." checked={p.resume === "on"} onChange={(v) => set("resume", v ? "on" : "off")} />
       </div>
+      <Field label="While dragging the timeline" description="Releasing always lands on the exact frame. Adaptive shows exact frames while the decoder keeps up and switches to keyframes on heavy files.">
+        <Segmented
+          label="Timeline dragging"
+          value={p.scrub}
+          onChange={(v) => set("scrub", v)}
+          options={[
+            { value: "auto", label: "Adaptive" },
+            { value: "accurate", label: "Exact frames" },
+            { value: "fast", label: "Keyframes" },
+          ]}
+        />
+      </Field>
       <Field label="Time display" description="Also toggled by clicking the time in the player.">
         <Segmented label="Time display" value={p.timeDisplay} onChange={(v) => set("timeDisplay", v)} options={[{ value: "elapsed", label: "Elapsed" }, { value: "remaining", label: "Remaining" }]} />
       </Field>
