@@ -1,0 +1,86 @@
+name: Mobile (Android)
+
+# Checks the mobile app on every PR that touches it; builds a signed release
+# APK and attaches it to a GitHub pre-release when a `mobile-v*` tag is pushed
+# (or by hand). The signing key comes from repository secrets:
+#   NOVA_ANDROID_KEYSTORE_B64   base64 of ~/.nova/android/nova-release.jks
+#   NOVA_ANDROID_STORE_PASSWORD store and key password (alias "nova")
+
+on:
+  pull_request:
+    paths: ["apps/mobile/**", "scripts/build-android-release.sh", ".github/workflows/mobile-android.yml"]
+  push:
+    tags: ["mobile-v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to attach the APK to (e.g. mobile-v0.1.0); empty = artifact only"
+        required: false
+
+permissions:
+  contents: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/mobile/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - run: npm run check
+      - run: npm test
+      - run: npx expo-doctor
+      - name: Export iOS and Android bundles
+        run: npx expo export --platform ios --platform android --output-dir /tmp/export
+
+  apk:
+    needs: check
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/mobile/package-lock.json
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Signing key from secrets (never printed)
+        env:
+          KEYSTORE_B64: ${{ secrets.NOVA_ANDROID_KEYSTORE_B64 }}
+          STORE_PASSWORD: ${{ secrets.NOVA_ANDROID_STORE_PASSWORD }}
+        run: |
+          test -n "$KEYSTORE_B64" || { echo "NOVA_ANDROID_KEYSTORE_B64 is not set"; exit 1; }
+          mkdir -p "$HOME/.nova/android"
+          echo "$KEYSTORE_B64" | base64 -d > "$HOME/.nova/android/nova-release.jks"
+          printf 'storeFile=%s\nstorePassword=%s\nkeyAlias=nova\nkeyPassword=%s\n' "$HOME/.nova/android/nova-release.jks" "$STORE_PASSWORD" "$STORE_PASSWORD" > "$HOME/.nova/android/keystore.properties"
+      - name: Build signed APK
+        run: bash scripts/build-android-release.sh
+      - name: Verify signature
+        run: |
+          APK=$(ls target/mobile/*.apk)
+          "$ANDROID_HOME"/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)/apksigner verify --print-certs "$APK" | grep -E "SHA-256|Signer"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nova-android
+          path: target/mobile/*
+      - name: Attach to release
+        if: startsWith(github.ref, 'refs/tags/mobile-v') || inputs.tag != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag || github.ref_name }}
+        run: gh release upload "$TAG" target/mobile/* apps/mobile/THIRD-PARTY-NOTICES.md --clobber
+      - name: Remove signing key
+        if: always()
+        run: rm -rf "$HOME/.nova/android"

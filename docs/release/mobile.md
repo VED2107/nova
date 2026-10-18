@@ -28,6 +28,18 @@ The APK asks for no storage or media permission. Files come only through the sys
 
 ## Build (Android)
 
+**Usual path: GitHub Actions** (`.github/workflows/mobile-android.yml`).
+
+- **What triggers it:** pushing a tag `mobile-vX.Y.Z` runs the checks, builds the signed APK on a GitHub runner, verifies the signature, and attaches the APK, its `.sha256` and the notices to the GitHub release with that tag.
+- **Signing:** the key comes from the encrypted repository secrets `NOVA_ANDROID_KEYSTORE_B64` and `NOVA_ANDROID_STORE_PASSWORD`. The runner deletes it after the build.
+
+```bash
+git tag mobile-v0.1.0 && git push origin mobile-v0.1.0
+gh release create mobile-v0.1.0 --prerelease --title "NOVA mobile 0.1.0" --notes-file <notes>
+```
+
+**Local build** (same script; on a slow connection the first Gradle run downloads about 1 GB of dependencies):
+
 ```bash
 bash scripts/build-android-release.sh      # → target/mobile/NOVA-<version>-android.apk (+ .sha256)
 ```
@@ -48,7 +60,8 @@ Do not run the build while a Metro dev server is running: `npm ci` cannot replac
 |---|---|
 | `npm run check`, `npm test`, `expo-doctor` | Pass |
 | JS bundles for iOS and Android build (`expo export`) | Pass |
-| Signed APK builds; manifest permissions reviewed | Pass |
+| Manifest permissions reviewed | Pass |
+| Signed APK builds, signature verified (CI, `apksigner verify`) | See the release's workflow run |
 | Licence list generated from the installed dependency tree | Pass |
 | Owner ran the app on an iPhone through Expo Go | Yes (2026-10-18, before the feature-parity update) |
 | APK installed and run on a real Android device | **Not done on this machine.** First install is the owner's check |

@@ -23,6 +23,11 @@ CI=1 npx expo prebuild --platform android --no-install --clean
 cd android
 # The wrapper's 10 s default fails on slow links while fetching Gradle.
 sed -i 's/^networkTimeout=.*/networkTimeout=600000/' gradle/wrapper/gradle-wrapper.properties
+# Reuse an already downloaded "-all" distribution of the same Gradle version if there is one.
+DIST="$(grep '^distributionUrl=' gradle/wrapper/gradle-wrapper.properties | sed 's/.*distributions\///; s/-bin.zip//')"
+if ls "$HOME/.gradle/wrapper/dists/$DIST-all/"*/"$DIST-all.zip.ok" >/dev/null 2>&1; then
+  sed -i "s/$DIST-bin.zip/$DIST-all.zip/" gradle/wrapper/gradle-wrapper.properties
+fi
 ./gradlew --no-daemon assembleRelease \
   -PreactNativeArchitectures=arm64-v8a,armeabi-v7a \
   -Pandroid.injected.signing.store.file="$(prop storeFile)" \
