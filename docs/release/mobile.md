@@ -56,7 +56,7 @@ Do not run the build while a Metro dev server is running: `npm ci` cannot replac
 
 ## Release gate (mobile)
 
-| Check | 0.1.0 |
+| Check | 0.1.0 / 0.2.0 |
 |---|---|
 | `npm run check`, `npm test`, `expo-doctor` | Pass |
 | JS bundles for iOS and Android build (`expo export`) | Pass |
@@ -71,5 +71,10 @@ Because of the two open checks, the GitHub release is marked **pre-release**.
 
 ## Updates
 
-- **Android:** download the newer APK and install it over the old one, which works because the signing key is the same.
-- **No self-updater on mobile:** the desktop updater model (signed `latest.json`) is not used; store builds update through the stores.
+- **Android (from 0.2.0): in-app updates** (`apps/mobile/src/core/updates.ts`).
+  - At start-up (setting "Check for updates automatically", on by default) the app asks `api.github.com/repos/VED2107/nova/releases` for the newest `mobile-vX.Y.Z` release that carries `NOVA-X.Y.Z-android.apk`. Desktop tags (`v*`) and drafts are ignored; a tag without its APK attached yet is skipped.
+  - **Install** downloads the APK into the app cache, checks it against the release's `.sha256` and opens Android's package installer (`REQUEST_INSTALL_PACKAGES`). Android accepts it only if it is signed with the same key, which is the real guarantee: a swapped APK with a swapped checksum is still refused.
+  - So a release must attach both `NOVA-X.Y.Z-android.apk` and `NOVA-X.Y.Z-android.apk.sha256` (the workflow does), and `app.json` must raise `version` and `android.versionCode`.
+  - 0.1.0 has no updater: users install 0.2.0 by hand once.
+  - A Google Play build must not ship this updater (Play forbids self-updates outside Play); remove it there.
+- **iPhone:** Expo Go loads the newest JavaScript from the dev server when opened; there is no iOS binary to update.

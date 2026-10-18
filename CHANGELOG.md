@@ -16,6 +16,29 @@ All notable changes to NOVA.
 - PageUp / PageDown on the focused timeline move by a tenth of the file; End goes to the end.
 - Seek measurements and specification: `docs/architecture/seeking.md`.
 
+### Windows
+- A starting logo while NOVA opens (the N with an ember rule running under it), lifted once the app has painted.
+
+## Mobile 0.2.0 (2026-10-18): desktop parity, in-app updates
+
+Android: signed APK on GitHub (pre-release). iPhone: the same app in Expo Go.
+
+- **In-app updates (Android):** NOVA checks GitHub at start-up (Settings → Updates; can be turned off), shows
+  "NOVA x.y.z is ready" on Home, downloads the APK, checks its SHA-256 and opens Android's installer. Android accepts
+  only an APK signed with NOVA's key.
+- **Open with NOVA:** video and audio files from file managers and other apps (Android; iOS document types for later
+  builds).
+- **Player menu now matches desktop's:** back/forward 5 s and 1 min, go to start, speed to 4× on Android with
+  Slower/Faster, volume steps, aspect ratio (desktop's list), zoom, rotation choices, repeat modes, gestures help,
+  Open file, Back to library. Items the system engine cannot do (chapters, delays, subtitle size, deinterlace) say why.
+- **Save frame:** the exact frame at full size as PNG, into a folder you choose once (Android) or through the share
+  sheet (iPhone).
+- **Background playback** (off by default): keeps playing with the screen off, with media controls in the
+  notification and on headphones.
+- **Hide controls while playing** setting, as on desktop.
+- **Starting logo:** the system splash hands over to an animated one; reduced motion gets a fade.
+- Fixed: an Android-only module is no longer loaded on iPhone.
+
 ## Mobile 0.1.0 (2026-10-18), first release for Android and iPhone
 
 Android: a signed APK on GitHub (pre-release). iPhone: runs through Expo Go (SDK 57); there is no App Store build yet.

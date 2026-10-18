@@ -8,6 +8,8 @@ import { Button, Seam, Segmented, T, tick, Touch } from "@/components/ui";
 import { clearHistory, removeFolder, useLibrary } from "@/core/library";
 import { setPref, usePrefs, type Prefs } from "@/core/prefs";
 import { useScheme } from "@/design/theme";
+import { UpdateStatus } from "@/features/updates/UpdatePanel";
+import { updatesUnsupported } from "@/core/updates";
 import { radius, space, TOUCH } from "@/design/tokens";
 
 /**
@@ -48,6 +50,15 @@ export default function Settings() {
           <Toggle label="Double-tap to skip" help="Double-tap the left or right side of the picture. Single taps still show and hide controls." value={p.doubleTapSeek === "on"} onChange={(v) => setPref("doubleTapSeek", v ? "on" : "off")} />
           <Toggle label="Swipe for volume and brightness" help="Swipe up or down on the right of the picture for volume, on the left for brightness. Brightness goes back to normal when you leave the player." value={p.swipeGestures === "on"} onChange={(v) => setPref("swipeGestures", v ? "on" : "off")} />
           <Toggle label="Resume where you left off" help="Positions are still remembered when off." value={p.resume === "on"} onChange={(v) => setPref("resume", v ? "on" : "off")} />
+          <Toggle label="Hide controls while playing" help="Controls fade after a few seconds of playback. Tap the picture to show them." value={p.autoHide === "on"} onChange={(v) => setPref("autoHide", v ? "on" : "off")} />
+          {Platform.OS !== "web" && (
+            <Toggle
+              label="Keep playing in the background"
+              help="Sound continues with the screen off or in another app, with play, pause and skip in the notification and on headphones. Off: NOVA pauses when you leave it."
+              value={p.background === "on"}
+              onChange={(v) => setPref("background", v ? "on" : "off")}
+            />
+          )}
         </Section>
 
         <Section title="Appearance">
@@ -89,9 +100,16 @@ export default function Settings() {
           )}
         </Section>
 
+        <Section title="Updates">
+          {!updatesUnsupported() && <Toggle label="Check for updates automatically" help="At start-up NOVA asks GitHub whether a newer release exists. Nothing else is sent. Off: only when you tap Check now." value={p.updates === "auto"} onChange={(v) => setPref("updates", v ? "auto" : "manual")} />}
+          <View style={{ marginTop: space.m }}>
+            <UpdateStatus />
+          </View>
+        </Section>
+
         <Section title="Privacy">
           <T v="body" tone="ink2">
-            No account, no analytics, no network requests from NOVA. Files you open stay on this device; NOVA keeps only titles, positions and settings, locally.
+            No account, no analytics. Files you open stay on this device; NOVA keeps only titles, positions and settings, locally. The only network request NOVA makes is the update check to GitHub, which you can turn off above.
           </T>
           <T v="caption" tone="ink3" style={{ marginTop: space.s }}>
             In development, Expo Go loads this app from your computer over the local network.

@@ -88,5 +88,54 @@
         "Home, Library grid and list, Settings key search, Formats page."
       ]
     }
+  ],
+  "$comment_android": "Android APK records, newest first. Same rules as installers (https URL, SHA-256, notices); \"cert\" is the SHA-256 fingerprint of NOVA's signing certificate, which every APK must carry. A record with download null is announced but not yet attached.",
+  "android": [
+    {
+      "version": "0.2.0",
+      "date": "2026-10-18",
+      "channel": "Pre-release",
+      "platforms": [
+        {
+          "name": "Android 7.0 or newer (arm64, armv7)",
+          "state": "Built and signed in CI; not yet tested on a device"
+        }
+      ],
+      "download": null,
+      "cert": "D6:2D:80:28:A3:4B:3C:2E:5C:4A:60:6D:32:06:ED:77:1D:FE:8E:7F:4A:BE:B7:85:13:7A:64:0D:98:AA:C1:5B",
+      "notes": [
+        "In-app updates: NOVA checks GitHub for a newer release, downloads it, checks its SHA-256 and opens Android's installer (can be turned off).",
+        "Open with NOVA from file managers and other apps.",
+        "Desktop's full player menu: seek steps, go to start, speed to 4×, volume steps, aspect ratios, rotation, repeat modes, gestures help, Open file, Back to library.",
+        "Save frame: the exact frame at full size, as PNG, into a folder you choose.",
+        "Keep playing in the background, with play, pause and skip in the notification and on headphones (off by default).",
+        "Hide-controls setting and a starting logo."
+      ]
+    },
+    {
+      "version": "0.1.0",
+      "date": "2026-10-18",
+      "channel": "Pre-release",
+      "platforms": [
+        {
+          "name": "Android 7.0 or newer (arm64, armv7)",
+          "state": "Built and signed in CI; not tested on a device"
+        }
+      ],
+      "download": {
+        "url": "https://github.com/VED2107/nova/releases/download/mobile-v0.1.0/NOVA-0.1.0-android.apk",
+        "sha256": "e02de9bab81e27102ddd80a5c43dd804f0d39b25f16d6fea287dbe896a5e0864",
+        "size": "72 MB",
+        "signed": true,
+        "notices": "https://github.com/VED2107/nova/releases/download/mobile-v0.1.0/THIRD-PARTY-NOTICES.md",
+        "release": "https://github.com/VED2107/nova/releases/tag/mobile-v0.1.0"
+      },
+      "cert": "D6:2D:80:28:A3:4B:3C:2E:5C:4A:60:6D:32:06:ED:77:1D:FE:8E:7F:4A:BE:B7:85:13:7A:64:0D:98:AA:C1:5B",
+      "notes": [
+        "First Android build: Home, Library with folders, search and sorting, poster frames, playlists and queue.",
+        "Player with the desktop control bar, exact seeking with preview frames, A–B loop, frame step, go to time, PiP, gestures.",
+        "Plays through the phone's own decoders (Media3); no GPL or LGPL code in the APK."
+      ]
+    }
   ]
 }

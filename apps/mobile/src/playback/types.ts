@@ -1,3 +1,5 @@
+import { Platform } from "react-native";
+
 /**
  * Mobile mirror of the backend-neutral contract in crates/nova-playback-api.
  * The UI speaks only these types; an engine adapter translates. Today there
@@ -73,12 +75,29 @@ export interface Commands {
   replay(): void;
 }
 
-/** Desktop's speed ladder, limited to what the system players accept everywhere (0.25–2×). */
-export const SPEEDS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2] as const;
+/**
+ * Desktop's speed ladder. Media3 (Android) plays all of it; AVPlayer keeps
+ * audio in sync only up to 2×, so iOS stops there.
+ */
+export const SPEEDS: readonly number[] = Platform.OS === "ios" ? [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2] : [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3, 4];
 
 export function nextSpeed(current: number, dir: 1 | -1): number {
   if (dir > 0) return SPEEDS.find((s) => s > current + 1e-6) ?? SPEEDS[SPEEDS.length - 1]!;
   return [...SPEEDS].reverse().find((s) => s < current - 1e-6) ?? SPEEDS[0]!;
+}
+
+/** Desktop's aspect-ratio overrides (crates/nova-playback-api, ASPECT_RATIOS). */
+export const ASPECT_RATIOS = ["16:9", "4:3", "1:1", "16:10", "2.21:1", "2.35:1", "2.39:1", "5:4", "1.85:1"] as const;
+
+export function ratioOf(r: string): number {
+  const [a, b] = r.split(":").map(Number);
+  return a && b ? a / b : 16 / 9;
+}
+
+/** The largest box of ratio `r` that fits `w × h`; the picture is stretched into it. */
+export function aspectBox(r: string, w: number, h: number): { width: number; height: number } {
+  const k = ratioOf(r);
+  return w / h > k ? { width: h * k, height: h } : { width: w, height: w / k };
 }
 
 export type Fit = "contain" | "cover" | "fill";

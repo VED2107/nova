@@ -83,9 +83,10 @@ Candidates per platform:
 
 ## Distribution and updates
 
-- No self-updater on mobile. Updates come through the App Store and Play only.
+- Store builds (App Store, Play) update only through the stores and must not contain a self-updater.
+- **Amended 2026-10-18:** the sideloaded Android APK from GitHub updates itself (Android 0.2.0), like the Windows app: GitHub releases API, SHA-256 check, then Android's package installer, which enforces the same signing key. See `docs/release/mobile.md`.
 - EAS Update (over-the-air JS) is permitted for JS and asset fixes within store rules. NOVA will not use it to change native behaviour or the app's purpose. If OTA is used it must be **signed** (code signing) and disclosed on the privacy page, or else it stays off.
-- Network use: none in the app by default. The desktop's GitHub update check has no mobile equivalent.
+- Network use: only the Android APK's update check to GitHub (can be turned off). Nothing else.
 - Privacy labels: "Data Not Collected" is achievable if this stays true.
 
 ## Consequences

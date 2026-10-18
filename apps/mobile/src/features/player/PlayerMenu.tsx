@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { ChevronDownIcon, CloseIcon } from "@/components/icons";
 import { Action, Choice, Fact, Sheet, SheetLabel, SheetNote } from "@/components/Sheet";
 import { textStyles, tick } from "@/components/ui";
@@ -8,9 +8,9 @@ import { setPref, usePrefs } from "@/core/prefs";
 import * as Q from "@/core/queue";
 import { formatBytes, formatTime } from "@/core/time";
 import { font, radius, room, space, TOUCH } from "@/design/tokens";
-import { FIT_LABEL, SPEEDS, type Capabilities, type Fit, type Snapshot } from "@/playback/types";
+import { ASPECT_RATIOS, FIT_LABEL, nextSpeed, SPEEDS, type Capabilities, type Fit, type Snapshot } from "@/playback/types";
 
-export type Page = "menu" | "speed" | "tracks" | "info" | "queue" | "goto" | null;
+export type Page = "menu" | "speed" | "tracks" | "info" | "queue" | "goto" | "aspect" | "rotation" | "repeat" | "help" | null;
 
 /** What the player hands the menu: state plus the actions only the player can do. */
 export interface MenuContext {
@@ -20,6 +20,8 @@ export interface MenuContext {
   playing: boolean;
   ab: Q.AbLoop;
   fit: Fit;
+  /** Forced aspect ratio ("16:9"), or null for the file's own. */
+  aspect: string | null;
   rotation: number;
   remaining: boolean;
   act: {
@@ -33,6 +35,13 @@ export interface MenuContext {
     mute(): void;
     fit(f: Fit): void;
     rotate(): void;
+    setRotation(degrees: number): void;
+    aspect(ratio: string | null): void;
+    seekBy(ms: number): void;
+    volume(delta: number): void;
+    snapshot(): void;
+    openFile(): void;
+    library(): void;
     pip(): void;
     lock(): void;
     rotateScreen(): void;
@@ -52,7 +61,7 @@ const ENGINE_REASON = "Needs the NOVA engine (development build)";
  */
 export function PlayerMenu({ page, setPage, ctx }: { page: Page; setPage: (p: Page) => void; ctx: MenuContext }) {
   const close = () => setPage(null);
-  const titles: Record<Exclude<Page, null>, string> = { menu: "Player", speed: "Playback speed", tracks: "Audio & subtitles", info: "Playback information", queue: "Queue", goto: "Go to time" };
+  const titles: Record<Exclude<Page, null>, string> = { menu: "Player", speed: "Playback speed", tracks: "Audio & subtitles", info: "Playback information", queue: "Queue", goto: "Go to time", aspect: "Aspect ratio", rotation: "Rotation", repeat: "Repeat", help: "Gestures & controls" };
   return (
     <Sheet visible={page != null} title={page ? titles[page] : ""} onClose={close}>
       {page === "menu" && <Menu ctx={ctx} setPage={setPage} close={close} />}
@@ -61,6 +70,10 @@ export function PlayerMenu({ page, setPage, ctx }: { page: Page; setPage: (p: Pa
       {page === "info" && <Info ctx={ctx} />}
       {page === "queue" && <QueuePage ctx={ctx} close={close} />}
       {page === "goto" && <GoTo ctx={ctx} close={close} />}
+      {page === "aspect" && <Aspect ctx={ctx} />}
+      {page === "rotation" && <Rotation ctx={ctx} />}
+      {page === "repeat" && <Repeat />}
+      {page === "help" && <Help />}
     </Sheet>
   );
 }
@@ -77,49 +90,124 @@ function Menu({ ctx, setPage, close }: { ctx: MenuContext; setPage: (p: Page) =>
     f();
     if (!keep) close();
   };
+  const noFps = !s.video?.frameRate;
   return (
     <>
-      <SheetLabel>Playback</SheetLabel>
       <Action label={ctx.playing ? "Pause" : "Play"} onPress={run(act.toggle)} />
+
+      <SheetLabel>Playback</SheetLabel>
       <Action label="Stop" onPress={run(act.stop)} />
-      <Action label="Speed" value={`${s.speed}×`} chevron onPress={() => setPage("speed")} />
-      <Action label="A–B loop" value={abValue} onPress={run(act.abCycle, true)} />
-      <Action label="Repeat" value={{ off: "Off", all: "All", one: "One" }[repeat]} onPress={run(() => setQueue({ ...getLibrary().queue, repeat: Q.cycleRepeat(repeat) }), true)} />
-      <Action label="Go to time…" chevron onPress={() => setPage("goto")} />
-      <Action label="Next frame" disabled={!s.video?.frameRate} reason="Frame rate not reported for this file" onPress={run(() => act.frame(true), true)} />
-      <Action label="Previous frame" disabled={!s.video?.frameRate} reason="Frame rate not reported for this file" onPress={run(() => act.frame(false), true)} />
+      <Action label="Back 5 seconds" onPress={run(() => act.seekBy(-5000), true)} />
+      <Action label="Forward 5 seconds" onPress={run(() => act.seekBy(5000), true)} />
+      <Action label="Back 1 minute" onPress={run(() => act.seekBy(-60_000), true)} />
+      <Action label="Forward 1 minute" onPress={run(() => act.seekBy(60_000), true)} />
+      <Action label="Go to start" onPress={run(() => act.seek(0))} />
+      <Action label="Jump to time…" chevron onPress={() => setPage("goto")} />
+      <Action label="Chapters" disabled reason="The system player does not report chapters" onPress={() => {}} />
+      <Action label="Previous frame" disabled={noFps} reason="Frame rate not reported for this file" onPress={run(() => act.frame(false), true)} />
+      <Action label="Next frame" disabled={noFps} reason="Frame rate not reported for this file" onPress={run(() => act.frame(true), true)} />
+      <Action label="Speed" value={`${+s.speed.toFixed(2)}×`} chevron onPress={() => setPage("speed")} />
+      <Action label={ab.aMs == null ? "A–B loop: set start" : ab.bMs == null ? "A–B loop: set end" : "A–B loop: clear"} value={abValue} onPress={run(act.abCycle, true)} />
 
       <SheetLabel>Audio</SheetLabel>
       <Action label="Audio track" value={audio.find((t) => t.isSelected)?.label ?? (audio.length ? "—" : "None")} chevron onPress={() => setPage("tracks")} />
-      <Action label={s.muted ? "Unmute" : "Mute"} value={`${Math.round(s.volume * 100)} %`} onPress={run(act.mute, true)} />
+      <Action label={s.muted ? "Unmute" : "Mute"} onPress={run(act.mute, true)} />
+      <Action label="Volume down" value={`${Math.round((s.muted ? 0 : s.volume) * 100)} %`} onPress={run(() => act.volume(-0.05), true)} />
+      <Action label="Volume up" onPress={run(() => act.volume(0.05), true)} />
       <Action label="Audio delay" disabled reason={ENGINE_REASON} onPress={() => {}} />
 
       <SheetLabel>Subtitles</SheetLabel>
       <Action label="Subtitles" value={sub?.label ?? "Off"} chevron onPress={() => setPage("tracks")} />
+      <Action label="Subtitle size" disabled reason="Follows the system caption style (Settings › Accessibility › Captions)" onPress={() => {}} />
       <Action label="Subtitle delay" disabled reason={ENGINE_REASON} onPress={() => {}} />
-      <Action label="Subtitle size" disabled reason="Follows the system caption style (Settings › Accessibility)" onPress={() => {}} />
       <Action label="Add subtitle file…" disabled reason={ENGINE_REASON} onPress={() => {}} />
 
       <SheetLabel>Video</SheetLabel>
-      <Action label="Aspect" value={FIT_LABEL[ctx.fit]} onPress={run(() => act.fit(ctx.fit === "contain" ? "cover" : ctx.fit === "cover" ? "fill" : "contain"), true)} />
-      <Action label="Rotate 90°" value={`${ctx.rotation}°`} onPress={run(act.rotate, true)} />
-      <Action label="Picture in picture" disabled={!ctx.caps.canPictureInPicture} reason="Not available here" onPress={run(act.pip)} />
+      <Action label="Aspect ratio" value={ctx.aspect ?? "As encoded"} chevron onPress={() => setPage("aspect")} />
+      <Action label="Zoom" value={ctx.aspect ? "—" : FIT_LABEL[ctx.fit]} onPress={run(() => act.fit(ctx.fit === "contain" ? "cover" : ctx.fit === "cover" ? "fill" : "contain"), true)} />
+      <Action label="Rotation" value={`${ctx.rotation}°`} chevron onPress={() => setPage("rotation")} />
       <Action label="Deinterlace" disabled reason={ENGINE_REASON} onPress={() => {}} />
-      <Action label="Save frame" disabled reason={ENGINE_REASON} onPress={() => {}} />
+      <Action label={Platform.OS === "android" ? "Save frame" : "Save frame…"} onPress={run(act.snapshot)} />
+      <Action label="Decoding" value="Hardware (system)" chevron onPress={() => setPage("info")} />
 
       <SheetLabel>View</SheetLabel>
+      <Action label="Picture in picture" disabled={!ctx.caps.canPictureInPicture} reason="Not available here" onPress={run(act.pip)} />
       <Action label="Lock controls" onPress={run(act.lock)} />
-      <Action label="Time display" value={ctx.remaining ? "Remaining" : "Total length"} onPress={run(() => setPref("timeDisplay", ctx.remaining ? "elapsed" : "remaining"), true)} />
       <Action label="Rotate screen" onPress={run(act.rotateScreen)} />
+      <Action label="Time display" value={ctx.remaining ? "Remaining" : "Total length"} onPress={run(() => setPref("timeDisplay", ctx.remaining ? "elapsed" : "remaining"), true)} />
+      <Action label="Playback details" chevron onPress={() => setPage("info")} />
 
       <SheetLabel>Playlist</SheetLabel>
-      <Action label="Queue" value={`${lib.queue.ids.length}`} chevron onPress={() => setPage("queue")} />
-      <Action label="Next in queue" disabled={Q.nextIndex(lib.queue, false) == null} reason="End of the queue" onPress={run(act.next)} />
-      <Action label="Previous" onPress={run(act.previous)} />
-      <Action label="Shuffle upcoming" disabled={lib.queue.ids.length - lib.queue.index <= 2} reason="Nothing to shuffle" onPress={run(() => setQueue(Q.shuffleUpcoming(getLibrary().queue)), true)} />
+      <Action label="Previous title" onPress={run(act.previous)} />
+      <Action label="Next title" disabled={Q.nextIndex(lib.queue, false) == null} reason="Nothing queued after this title" onPress={run(act.next)} />
+      <Action label="Repeat" value={{ off: "Off", one: "This title", all: "Queue" }[repeat]} chevron onPress={() => setPage("repeat")} />
+      <Action label="Shuffle upcoming" disabled={lib.queue.ids.length - lib.queue.index <= 2} reason="Queue two or more upcoming titles first" onPress={run(() => setQueue(Q.shuffleUpcoming(getLibrary().queue)), true)} />
+      <Action label="Show queue…" value={`${lib.queue.ids.length}`} chevron onPress={() => setPage("queue")} />
 
       <SheetLabel>Tools</SheetLabel>
-      <Action label="Playback information" chevron onPress={() => setPage("info")} />
+      <Action label="Gestures & controls" chevron onPress={() => setPage("help")} />
+      <Action label="Open file…" onPress={run(act.openFile)} />
+      <Action label="Back to library" onPress={run(act.library)} />
+    </>
+  );
+}
+
+function Aspect({ ctx }: { ctx: MenuContext }) {
+  return (
+    <>
+      <Choice label="As encoded" selected={ctx.aspect == null} onPress={() => ctx.act.aspect(null)} />
+      {ASPECT_RATIOS.map((r) => (
+        <Choice key={r} label={r} selected={ctx.aspect === r} onPress={() => ctx.act.aspect(r)} />
+      ))}
+      <SheetNote>The picture is stretched to the chosen shape. Pinch or Zoom goes back to the file’s own shape.</SheetNote>
+    </>
+  );
+}
+
+function Rotation({ ctx }: { ctx: MenuContext }) {
+  return (
+    <>
+      {[0, 90, 180, 270].map((d) => (
+        <Choice key={d} label={d === 0 ? "None" : `${d}° clockwise`} selected={ctx.rotation === d} onPress={() => ctx.act.setRotation(d)} />
+      ))}
+    </>
+  );
+}
+
+function Repeat() {
+  const lib = useLibrary();
+  const set = (repeat: Q.QueueState["repeat"]) => setQueue({ ...getLibrary().queue, repeat });
+  return (
+    <>
+      <Choice label="Off" selected={lib.queue.repeat === "off"} onPress={() => set("off")} />
+      <Choice label="This title" selected={lib.queue.repeat === "one"} onPress={() => set("one")} />
+      <Choice label="The whole queue" selected={lib.queue.repeat === "all"} onPress={() => set("all")} />
+    </>
+  );
+}
+
+/** Desktop's "Keyboard & mouse" sheet, for touch. */
+function Help() {
+  const rows: [string, string][] = [
+    ["Tap the picture", "Show or hide controls"],
+    ["Double-tap left / right", "Back / forward by the skip amount; keep tapping to add"],
+    ["Swipe up/down, right side", "Volume"],
+    ["Swipe up/down, left side", "Brightness (given back when you leave)"],
+    ["Pinch out / in", "Fill the screen / fit the picture"],
+    ["Drag the timeline", "Seek with preview frames; release lands on the exact frame"],
+    ["While dragging, slide up", "Fine scrubbing: ½, ¼, then 1/10 speed"],
+    ["Speed readout", "Tap: speed list · hold: one step faster"],
+    ["Audio / Subtitles readouts", "Tap: next track · hold: all tracks"],
+    ["A–B readout", "Set start, set end, clear"],
+    ["Time on the right", "Total length or time remaining"],
+    ["Lock", "Ignore touches; hold the lock to unlock"],
+  ];
+  return (
+    <>
+      {rows.map(([k, v]) => (
+        <Fact key={k} k={k} v={v} />
+      ))}
+      <SheetNote>Headphone buttons and the notification’s play, pause and skip work when “Keep playing in the background” is on (Settings).</SheetNote>
     </>
   );
 }
@@ -130,6 +218,8 @@ function Speed({ ctx }: { ctx: MenuContext }) {
       {SPEEDS.map((v) => (
         <Choice key={v} label={v === 1 ? "Normal" : `${v}×`} selected={Math.abs(ctx.s.speed - v) < 0.01} onPress={() => ctx.act.speed(v)} />
       ))}
+      <Action label="Slower" onPress={() => ctx.act.speed(nextSpeed(ctx.s.speed, -1))} />
+      <Action label="Faster" onPress={() => ctx.act.speed(nextSpeed(ctx.s.speed, 1))} />
       <SheetNote>Pitch is preserved.</SheetNote>
     </>
   );

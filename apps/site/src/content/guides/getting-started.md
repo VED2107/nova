@@ -26,7 +26,7 @@ updater: install 0.2.0 from this site once.
 - **Windows x64.** Tested on Windows 11 only. Windows 10 has not been tested.
 - **Microsoft Edge WebView2**, the system component the interface is drawn with. It ships with current Windows installs; NOVA does not bundle it.
 - **Graphics drivers.** Machines whose GPU driver does not provide Vulkan (`vulkan-1.dll`) have not been tested.
-- NOVA is made for Windows only.
+- NOVA for Windows is this app. There is also an [Android pre-release](/docs/android); there is no macOS, Linux or iPhone download.
 
 ## Opening a file
 

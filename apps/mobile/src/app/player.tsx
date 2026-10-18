@@ -19,8 +19,10 @@ import * as Q from "@/core/queue";
 import { accumulate, ScrubSession, scrubRateLabel, tapZone } from "@/core/seek";
 import { formatDelta, formatPrecise, formatTime } from "@/core/time";
 import { font, motion, room, space, TOUCH } from "@/design/tokens";
+import { openFiles } from "@/features/library/actions";
 import { PlayerMenu, type MenuContext, type Page } from "@/features/player/PlayerMenu";
-import { FIT_LABEL, nextSpeed, type Fit } from "@/playback/types";
+import { saveFrame } from "@/playback/snapshot";
+import { aspectBox, FIT_LABEL, nextSpeed, type Fit } from "@/playback/types";
 import { usePreviewFrames, useSystemEngine } from "@/playback/useSystemEngine";
 
 /** One route; each title is its own session (the engine is rebuilt per title, like desktop's sessions). */
@@ -34,7 +36,9 @@ export default function Player() {
 function Session({ item }: { item: MediaItem }) {
   const prefs = usePrefs();
   const [startAt] = useState(() => (prefs.resume === "on" ? resumePoint(getLibrary().progress[item.id]) : null));
-  const source = typeof item.source === "number" ? item.source : { uri: item.source };
+  // Title in the media notification and on headphones/lock screen (background playback).
+  const metadata = { title: item.title, artist: "NOVA" };
+  const source = typeof item.source === "number" ? { assetId: item.source, metadata } : { uri: item.source, metadata };
   const engine = useSystemEngine(source, startAt);
   return <Surface item={item} engine={engine} resumedAt={startAt} />;
 }
@@ -60,6 +64,7 @@ function Surface({ item, engine, resumedAt }: { item: MediaItem; engine: ReturnT
   const [ab, setAb] = useState<Q.AbLoop>({ aMs: null, bMs: null });
   const [fit, setFit] = useState<Fit>("contain");
   const [rotation, setRotation] = useState(0);
+  const [aspect, setAspect] = useState<string | null>(null);
   const [resumeNote, setResumeNote] = useState(resumedAt != null);
   const session = useRef<ScrubSession | null>(null);
   const scrubStart = useRef(0);
@@ -83,8 +88,8 @@ function Surface({ item, engine, resumedAt }: { item: MediaItem; engine: ReturnT
   const poke = useCallback(() => {
     setControls(true);
     clearTimeout(hideTimer.current);
-    hideTimer.current = setTimeout(() => setControls(false), motion.controlsHideMs);
-  }, []);
+    if (prefs.autoHide === "on") hideTimer.current = setTimeout(() => setControls(false), motion.controlsHideMs);
+  }, [prefs.autoHide]);
   useEffect(() => {
     if (!playing || scrub || page) {
       clearTimeout(hideTimer.current);
@@ -119,6 +124,13 @@ function Surface({ item, engine, resumedAt }: { item: MediaItem; engine: ReturnT
     const t = setTimeout(() => setResumeNote(false), 5000);
     return () => clearTimeout(t);
   }, [resumeNote]);
+
+  /* ---------- background playback and media notification (desktop: media keys) ---------- */
+  useEffect(() => {
+    const on = prefs.background === "on" && Platform.OS !== "web";
+    player.staysActiveInBackground = on;
+    player.showNowPlayingNotification = on;
+  }, [player, prefs.background]);
 
   /* ---------- leaving: free rotation, give brightness back ---------- */
   useEffect(
@@ -297,6 +309,7 @@ function Surface({ item, engine, resumedAt }: { item: MediaItem; engine: ReturnT
     .onEnd((e) => {
       const nf: Fit | null = e.scale > 1.12 ? "cover" : e.scale < 0.9 ? "contain" : null;
       if (nf && nf !== fit) {
+        setAspect(null);
         setFit(nf);
         flash(FIT_LABEL[nf]);
         tick();
@@ -329,6 +342,7 @@ function Surface({ item, engine, resumedAt }: { item: MediaItem; engine: ReturnT
     playing,
     ab,
     fit,
+    aspect,
     rotation,
     remaining,
     act: {
@@ -347,10 +361,38 @@ function Surface({ item, engine, resumedAt }: { item: MediaItem; engine: ReturnT
         flash(s.muted ? "Sound on" : "Muted");
       },
       fit: (f) => {
+        setAspect(null);
         setFit(f);
         flash(FIT_LABEL[f]);
       },
       rotate: () => setRotation((r) => (r + 90) % 360),
+      setRotation: (d) => {
+        setRotation(d);
+        flash(d === 0 ? "No rotation" : `Rotated ${d}°`);
+      },
+      aspect: (r) => {
+        setAspect(r);
+        if (r) setFit("fill");
+        else setFit("contain");
+        flash(r ? `Aspect ${r}` : "Aspect as encoded");
+      },
+      seekBy: (ms) => {
+        commands.seekBy(ms);
+        flash(`${ms > 0 ? "+" : "−"}${formatTime(Math.abs(ms))}`);
+      },
+      volume: (delta) => {
+        const v = Math.min(1, Math.max(0, (s.muted ? 0 : s.volume) + delta));
+        commands.setVolume(v);
+        flash(`Volume ${Math.round(v * 100)} %`);
+      },
+      snapshot: () => {
+        flash("Saving frame…");
+        saveFrame(player, s.positionMs, item.title)
+          .then(flash)
+          .catch((e) => flash(e instanceof Error ? `Not saved: ${e.message}` : "Not saved"));
+      },
+      openFile: () => void openFiles(),
+      library: () => router.back(),
       pip: () => void videoRef.current?.startPictureInPicture().catch(() => flash("Picture in picture is not available")),
       lock: () => {
         tick("medium");
@@ -416,7 +458,9 @@ function Surface({ item, engine, resumedAt }: { item: MediaItem; engine: ReturnT
       <GestureDetector gesture={surfaceGesture}>
         <View style={StyleSheet.absoluteFill} accessible={false} collapsable={false}>
           <View style={rotated ? { position: "absolute", width: height, height: width, left: (width - height) / 2, top: (height - width) / 2, transform: [{ rotate: `${rotation}deg` }] } : [StyleSheet.absoluteFill, { transform: [{ rotate: `${rotation}deg` }] }]}>
-            <VideoView ref={videoRef} player={player} style={StyleSheet.absoluteFill} contentFit={fit} nativeControls={false} allowsPictureInPicture={caps.canPictureInPicture} />
+            <View style={[StyleSheet.absoluteFill, { alignItems: "center", justifyContent: "center" }]}>
+              <VideoView ref={videoRef} player={player} style={aspect ? aspectBox(aspect, rotated ? height : width, rotated ? width : height) : StyleSheet.absoluteFill} contentFit={fit} nativeControls={false} allowsPictureInPicture={caps.canPictureInPicture} />
+            </View>
           </View>
         </View>
       </GestureDetector>

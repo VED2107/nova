@@ -20,6 +20,12 @@ export interface Prefs {
   resume: "on" | "off";
   /** First-run hint for double-tap seeking was dismissed. */
   gestureHintSeen: "yes" | "no";
+  /** Fade the player controls after a few seconds of playback (desktop: autoHide). */
+  autoHide: "on" | "off";
+  /** Keep playing with the screen off or in another app, with media controls in the notification. */
+  background: "on" | "off";
+  /** Look for a new release at start-up, or only when asked (Android app). */
+  updates: "auto" | "manual";
 }
 
 const ALLOWED: { [K in keyof Prefs]: readonly Prefs[K][] } = {
@@ -32,6 +38,9 @@ const ALLOWED: { [K in keyof Prefs]: readonly Prefs[K][] } = {
   timeDisplay: ["elapsed", "remaining"],
   resume: ["on", "off"],
   gestureHintSeen: ["yes", "no"],
+  autoHide: ["on", "off"],
+  background: ["on", "off"],
+  updates: ["auto", "manual"],
 };
 
 export const DEFAULT_PREFS: Prefs = {
@@ -44,6 +53,9 @@ export const DEFAULT_PREFS: Prefs = {
   timeDisplay: "elapsed",
   resume: "on",
   gestureHintSeen: "no",
+  autoHide: "on",
+  background: "off",
+  updates: "auto",
 };
 
 const KEY = "nova.prefs.v1";
