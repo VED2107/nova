@@ -3,7 +3,7 @@ title: Library and resume
 summary: Folders, scanning, search, missing files, Continue, the queue and playlists.
 order: 3
 status: current
-statusNote: Written from 0.1.0-rc.1. Scan progress, cancel and typing a search were present but not re-exercised for RC1.
+statusNote: Written from 0.1.0-rc.1; the Windows library is unchanged in 0.2.0 apart from the "On air" mark. Scan progress, cancel and typing a search were present but not re-exercised. For phones, see NOVA for Android.
 ---
 
 ## Folders

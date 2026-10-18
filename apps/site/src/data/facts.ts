@@ -87,7 +87,7 @@ export const RELEASE_GATES: { name: string; state: "open" | "not-started" | "don
   {
     name: "Engine licensing decision (ADR 0003)",
     state: "done",
-    detail: "Decided 2026-10-16. 0.1.0 ships the third-party engine build under the GPL, with its source and notices. Later releases move to an LGPL engine built from source (option B).",
+    detail: "Decided 2026-10-16. The 0.1.0 and 0.2.0 Windows installers ship the third-party engine build under the GPL, with its source and notices. Later releases move to an LGPL engine built from source (option B).",
     doc: "adr-0003",
   },
   {
@@ -105,7 +105,7 @@ export const RELEASE_GATES: { name: string; state: "open" | "not-started" | "don
   {
     name: "Third-party notices and licence review",
     state: "open",
-    detail: "0.1.0 ships licence texts, third-party notices, engine source archives and a written offer. Still to do: an automated licence report (cargo deny / cargo about, an npm licence checker) and a counsel review.",
+    detail: "The Windows installers ship licence texts, third-party notices, engine source archives and a written offer; the Android APK ships an automated licence list of its 562 packages. Still to do: an automated licence report for the Windows build (cargo deny / cargo about, an npm licence checker) and a counsel review.",
     doc: "adr-0003",
   },
   {
@@ -156,7 +156,7 @@ export const COMPARE_ROWS: { label: string; cells: [CompareCell, CompareCell, Co
   {
     label: "Availability",
     cells: [
-      { text: "Released: 0.1.0 for Windows, 2026-10-16. Tested on one machine.", status: "partial" },
+      { text: "Released: 0.2.0 for Windows, 2026-10-17, tested on one machine. Android 0.2.0 pre-release, 2026-10-18.", status: "partial" },
       { text: "Released; current version 3.0.24 for Windows.", src: 0 },
       { text: "Released; developed in public on GitHub.", src: 3 },
       { text: "Maintained fork since 2017; not accepting feature requests for now.", src: 5 },
@@ -174,7 +174,7 @@ export const COMPARE_ROWS: { label: string; cells: [CompareCell, CompareCell, Co
   {
     label: "Licence",
     cells: [
-      { text: "Code: MIT OR Apache-2.0, source on GitHub. The 0.1.0 installer is GPL because of its bundled engine.", status: "decided" },
+      { text: "Code: MIT OR Apache-2.0, source on GitHub. The 0.2.0 Windows installer is GPL because of its bundled engine; the Android APK has no GPL or LGPL code.", status: "decided" },
       { text: "Free and open source; most VideoLAN software is GPLv2.", src: 1 },
       { text: "GPLv2 or later; LGPLv2.1 or later with -Dgpl=false.", src: 3 },
       { text: "GPLv3.", src: 5 },

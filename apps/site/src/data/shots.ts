@@ -1,7 +1,9 @@
 /**
- * Captures of the real app. Every image was taken from NOVA 0.1.0 (the
- * redesign merged for 0.1.0-rc.1) on Windows 11 at 1440×900, playing open
- * films from the Blender Foundation. Nothing here is a mock-up.
+ * Captures of the real app. The Windows images were taken from NOVA 0.1.0
+ * (the redesign merged for 0.1.0-rc.1) on Windows 11 at 1440×900, playing
+ * open films from the Blender Foundation. The Android images are the 0.2.0
+ * app's own screens rendered from its code at phone size (393×852 points,
+ * 2× pixels); `source` says so in the caption. Nothing here is a mock-up.
  */
 
 export type FilmId = "tos" | "sintel" | "bbb";
@@ -44,6 +46,8 @@ export interface Shot {
   caption: string;
   films: FilmId[];
   dark: boolean;
+  /** Provenance line when it is not a Windows 0.1.0 capture. */
+  source?: string;
 }
 
 const s = (id: string, width: number, height: number, rest: Omit<Shot, "id" | "src" | "small" | "width" | "height">, small = true): Shot => ({
@@ -146,6 +150,32 @@ export const SHOTS = {
     films: ["tos"],
     dark: true,
   }),
+  androidHome: s(
+    "android-home",
+    786,
+    1704,
+    {
+      alt: "NOVA for Android's Home on a phone: the NOVA wordmark, Home and Library tabs, the NOVA test card under Start here with a Play button, and Your shelf with Add folder and Open files.",
+      caption: "Android, Home. The same Start here and shelf as on Windows.",
+      films: [],
+      dark: false,
+      source: "NOVA for Android 0.2.0, rendered at phone size",
+    },
+    false,
+  ),
+  androidLibrary: s(
+    "android-library",
+    786,
+    1704,
+    {
+      alt: "NOVA for Android's Library: folder chips, a search field, A–Z, Newest and Recent sorting, a missing-files filter, grid and list switches, and the test card as a list row.",
+      caption: "Android, Library. Search, sort, missing files, grid or list.",
+      films: [],
+      dark: false,
+      source: "NOVA for Android 0.2.0, rendered at phone size",
+    },
+    false,
+  ),
 } satisfies Record<string, Shot>;
 
 export type ShotKey = keyof typeof SHOTS;

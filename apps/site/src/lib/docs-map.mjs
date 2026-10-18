@@ -35,6 +35,27 @@ export const REPO_DOCS = [
     summary: "Feature audit with Verified, Partial and Deferred status, and known issues.",
   },
   {
+    path: "docs/architecture/seeking.md",
+    slug: "seeking",
+    title: "Seeking: diagnosis, specification and measurements",
+    group: "Evidence",
+    summary: "Why seeks missed by up to 9.9 s, the fix, and before/after measurements to one frame.",
+  },
+  {
+    path: "docs/compat/platform-matrix.md",
+    slug: "platform-matrix",
+    title: "Platform matrix: Windows, Android, iPhone",
+    group: "Evidence",
+    summary: "What each platform and engine plays and does, per feature.",
+  },
+  {
+    path: "docs/release/mobile.md",
+    slug: "mobile-release",
+    title: "Mobile release process",
+    group: "Testing",
+    summary: "How the Android APK is built, signed, checked and updated in the app; the mobile release gate.",
+  },
+  {
     path: "docs/testing/README.md",
     slug: "testing",
     title: "How NOVA is tested",
@@ -47,6 +68,13 @@ export const REPO_DOCS = [
     title: "Playback contract",
     group: "Architecture",
     summary: "The boundary between the interface and the engine.",
+  },
+  {
+    path: "docs/architecture/mobile.md",
+    slug: "mobile-architecture",
+    title: "Mobile architecture",
+    group: "Architecture",
+    summary: "The Android and iPhone app: Expo, the engine contract, storage and what runs where.",
   },
   {
     path: "docs/adr/0001-playback-engine-libmpv.md",
@@ -89,6 +117,13 @@ export const REPO_DOCS = [
     title: "ADR 0006: Media compatibility policy",
     group: "Decisions",
     summary: "What Verified, Partial, Expected and Unsupported mean.",
+  },
+  {
+    path: "docs/adr/0007-mobile-architecture.md",
+    slug: "adr-0007",
+    title: "ADR 0007: NOVA on Android and iPhone",
+    group: "Decisions",
+    summary: "Expo and React Native with system engines now, libmpv later; licensing per store.",
   },
 ];
 

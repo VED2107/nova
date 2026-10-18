@@ -44,7 +44,7 @@ export function rehypeRepoDocs() {
       if (doc) {
         node.properties.href = `/docs/${doc.slug}${hash ? `#${hash}` : ""}`;
       } else {
-        node.properties.href = `https://github.com/VED2107/nova/blob/v0.1.0/${resolved}${hash ? `#${hash}` : ""}`;
+        node.properties.href = `https://github.com/VED2107/nova/blob/main/${resolved}${hash ? `#${hash}` : ""}`;
       }
     });
   };

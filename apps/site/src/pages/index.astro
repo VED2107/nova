@@ -140,11 +140,59 @@ const chapters: Chapter[] = [
     <div class="wrap">
       <SectionHead id="projector-h" title="See it play" />
       <p class="room-lede">
-        Six chapters from the real app, captured from NOVA 0.1.0 playing open films. Use the timeline, or the arrow keys
-        once it has focus.
+        Six chapters from the Windows app, captured from NOVA 0.1.0 playing open films; 0.2.0 adds the Compact bar and the
+        right-click menu. Use the timeline, or the arrow keys once it has focus.
       </p>
       <Projector chapters={chapters} label="Chapters of the NOVA app" />
       <p class="more"><a class="link-arrow" href="/product">Every feature, with its test status</a></p>
+    </div>
+  </section>
+
+  <section class="section pocket sunk" id="android" aria-labelledby="pocket-h">
+    <div class="wrap">
+      <SectionHead id="pocket-h" title="The same player, in your pocket" />
+      <div class="pocket-grid">
+      <div class="pocket-copy">
+        <p class="lede">
+          NOVA for Android carries the Windows app over to touch: the same Home, Library and player, the same exact
+          seeking, the same habit of saying what it can't do.
+        </p>
+        <ul class="ledger">
+          <li>
+            <h3 class="spine">Same rooms</h3>
+            <p>Continue, your folders, search and sorting, poster frames, the queue, playlists and resume.</p>
+          </li>
+          <li>
+            <h3 class="spine">Exact, by touch</h3>
+            <p>Preview frames while you drag, a slower finger for fine scrubbing, double-tap to skip, A–B loop and frame step.</p>
+          </li>
+          <li>
+            <h3 class="spine">Updates itself</h3>
+            <p>Checks GitHub, verifies the download's SHA-256, and Android installs it only with NOVA's signature.</p>
+          </li>
+          <li>
+            <h3 class="spine">Asks for nothing</h3>
+            <p>No account and no storage, media or microphone permission. Files stay on the phone.</p>
+          </li>
+        </ul>
+        <p class="caveat">
+          It plays through the phone's own decoders. DTS, TrueHD, styled subtitles and subtitle delay arrive with NOVA's own
+          engine on Android, which is not built yet. No iPhone download.
+        </p>
+        <div class="actions">
+          <a class="btn" href="/release#android">Get it for Android</a>
+          <a class="btn ghost" href="/docs/android">What it does</a>
+        </div>
+        <p class="status-line">
+          <Stamp tier="preview" label="Pre-release" />
+          <span>Android 7 or newer · signed APK on GitHub · not yet tested on a device</span>
+        </p>
+      </div>
+      <div class="phones">
+        <Plate shot="androidHome" no="A1" sizes="(min-width: 1000px) 22vw, 46vw" class="phone" />
+        <Plate shot="androidLibrary" no="A2" sizes="(min-width: 1000px) 22vw, 46vw" class="phone phone-low" />
+      </div>
+      </div>
     </div>
   </section>
 
@@ -176,18 +224,19 @@ const chapters: Chapter[] = [
 
   <section class="section close sunk" aria-labelledby="close-h">
     <div class="wrap close-grid">
-      <h2 id="close-h" class="spine-xl">NOVA 0.2.0 is out.</h2>
+      <h2 id="close-h" class="spine-xl">NOVA 0.2.0 is out, on Windows and Android.</h2>
       <div class="close-copy">
         <p>
-          Free for Windows x64. It has been tested on one Windows 11 machine, so expect rough edges; the known ones are
-          listed on <a href="/product#issues-h">Product</a>.
+          Free for Windows x64, tested on one Windows 11 machine, and as an Android pre-release that has not yet been tested
+          on a device. Expect rough edges; the known ones are listed on <a href="/product#issues-h">Product</a>.
         </p>
         <p>
-          NOVA's code is MIT OR Apache-2.0. This installer bundles a third-party engine build with GPL components, so the
-          installer as a whole is GPL; the engine's source and licences ship with it. Later releases move to an LGPL engine.
+          NOVA's code is MIT OR Apache-2.0. The Windows installer bundles a third-party engine build with GPL components, so
+          it is GPL as a whole, with the engine's source and licences. The Android APK contains no GPL or LGPL code.
         </p>
         <div class="actions">
-          <a class="btn" href="/release">Download 0.2.0</a>
+          <a class="btn" href="/release">Download for Windows</a>
+          <a class="btn ghost" href="/release#android">Android APK</a>
           <a class="btn ghost" href="/trust">How NOVA is built and tested</a>
         </div>
       </div>
@@ -347,6 +396,68 @@ const chapters: Chapter[] = [
     max-width: 52ch;
   }
 
+  .pocket-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 6fr) minmax(0, 5fr);
+    gap: var(--s8);
+    align-items: center;
+  }
+  .pocket-copy {
+    display: grid;
+    gap: var(--s5);
+  }
+  .ledger {
+    list-style: none;
+    border-top: 1px solid var(--seam);
+  }
+  .ledger li {
+    display: grid;
+    grid-template-columns: minmax(9rem, 2fr) minmax(0, 5fr);
+    gap: var(--s2) var(--s5);
+    align-items: baseline;
+    padding-block: var(--s4);
+    border-bottom: 1px solid var(--seam);
+  }
+  .ledger h3 {
+    font-size: 1.4rem;
+  }
+  .ledger p {
+    color: var(--ink-2);
+    max-width: 52ch;
+  }
+  /* Two phones; the second sits lower, as if further along the beam. */
+  .phones {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--s5);
+    align-items: start;
+  }
+  .phones :global(.phone) {
+    border-radius: 24px;
+    padding: 8px;
+  }
+  .phones :global(.phone img) {
+    border-radius: 17px;
+  }
+  .phones :global(.phone figcaption) {
+    padding-inline: var(--s2);
+  }
+  .phones :global(.phone-low) {
+    margin-top: var(--s8);
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    @supports (animation-timeline: view()) {
+      .phones :global(.phone) {
+        animation: arrive linear both;
+        animation-timeline: view();
+        animation-range: entry 0% cover 28%;
+      }
+      .phones :global(.phone-low) {
+        animation-range: entry 8% cover 38%;
+      }
+    }
+  }
+
   .close-grid {
     display: grid;
     grid-template-columns: minmax(0, 6fr) minmax(0, 5fr);
@@ -366,6 +477,7 @@ const chapters: Chapter[] = [
   @media (max-width: 1000px) {
     .hero-grid,
     .atlas-grid,
+    .pocket-grid,
     .close-grid {
       grid-template-columns: 1fr;
     }
@@ -374,6 +486,27 @@ const chapters: Chapter[] = [
     }
     .proof {
       justify-self: start;
+    }
+    .phones {
+      max-width: 560px;
+    }
+  }
+  @media (max-width: 560px) {
+    .ledger li {
+      grid-template-columns: 1fr;
+    }
+    .phones {
+      gap: var(--s3);
+    }
+    .phones :global(.phone) {
+      border-radius: 18px;
+      padding: 5px;
+    }
+    .phones :global(.phone img) {
+      border-radius: 13px;
+    }
+    .phones :global(.phone-low) {
+      margin-top: var(--s6);
     }
   }
 </style>

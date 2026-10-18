@@ -50,7 +50,7 @@ if (kind === "guide") {
     d.status === "current"
       ? { tier: "verified", label: "Current", note: d.statusNote }
       : { tier: "expected", label: "Incomplete", note: d.statusNote };
-  meta = "Written for 0.1.0";
+  meta = "Guide · NOVA 0.2.0";
 } else {
   const doc = DOC_BY_SLUG.get(entry.id)!;
   title = doc.title;
@@ -59,7 +59,7 @@ if (kind === "guide") {
   meta = `${doc.path}${date ? ` · last changed ${date}` : ""}`;
   status =
     doc.slug === "adr-0003"
-      ? { tier: "verified", label: "Accepted", note: "Published as written in the repository. 0.1.0 ships the GPL engine build with its source; the LGPL build is for later releases." }
+      ? { tier: "verified", label: "Accepted", note: "Published as written in the repository. The 0.1.0 and 0.2.0 Windows installers ship the GPL engine build with its source; the LGPL build is for later releases. The Android APK contains no engine build." }
       : { tier: "verified", label: "As written", note: "Published unedited from the NOVA repository. Links to other repository files open on GitHub." };
 }
 ---

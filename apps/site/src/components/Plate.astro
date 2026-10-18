@@ -41,7 +41,7 @@ const srcset = shot.small ? `${shot.small} 960w, ${shot.src} ${shot.width}w` : u
             <a href="/trust#credits">CC BY 3.0</a>
           </>
         ) : (
-          "Captured from NOVA 0.1.0"
+          (shot.source ?? "Captured from NOVA 0.1.0 on Windows")
         )
       }
     </span>
