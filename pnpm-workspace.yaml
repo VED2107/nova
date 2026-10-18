@@ -1,2 +1,5 @@
 packages:
-  - apps/*
+  - apps/desktop
+  - apps/site
+  # apps/mobile is an Expo app with its own npm lockfile (Metro + pnpm symlinks
+  # are a known source of breakage); it is deliberately outside this workspace.

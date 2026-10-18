@@ -7,6 +7,7 @@
     "dev": "pnpm --filter @nova/desktop tauri dev",
     "build": "pnpm --filter @nova/desktop tauri build",
     "check": "pnpm --filter @nova/desktop check",
-    "test": "pnpm --filter @nova/desktop test"
+    "test": "pnpm --filter @nova/desktop test",
+    "mobile": "npm --prefix apps/mobile start"
   }
 }
