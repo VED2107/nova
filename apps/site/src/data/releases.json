@@ -101,7 +101,14 @@
           "state": "Built and signed in CI; not yet tested on a device"
         }
       ],
-      "download": null,
+      "download": {
+        "url": "https://github.com/VED2107/nova/releases/download/mobile-v0.2.0/NOVA-0.2.0-android.apk",
+        "sha256": "248581bcefa0af689ce3b1e607d2efe9b63a207f3e2ba363dd2a0cd564b403ec",
+        "size": "72 MB",
+        "signed": true,
+        "notices": "https://github.com/VED2107/nova/releases/download/mobile-v0.2.0/THIRD-PARTY-NOTICES.md",
+        "release": "https://github.com/VED2107/nova/releases/tag/mobile-v0.2.0"
+      },
       "cert": "D6:2D:80:28:A3:4B:3C:2E:5C:4A:60:6D:32:06:ED:77:1D:FE:8E:7F:4A:BE:B7:85:13:7A:64:0D:98:AA:C1:5B",
       "notes": [
         "In-app updates: NOVA checks GitHub for a newer release, downloads it, checks its SHA-256 and opens Android's installer (can be turned off).",
