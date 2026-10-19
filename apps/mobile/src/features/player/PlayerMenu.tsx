@@ -48,10 +48,18 @@ export interface MenuContext {
     next(): void;
     previous(): void;
     jump(id: string): void;
+    /** libmpv engine only (caps say which). Steps as on desktop: 50 ms, 10 %. */
+    subDelay(deltaMs: number | null): void;
+    audioDelay(deltaMs: number | null): void;
+    subScale(deltaPercent: number | null): void;
+    addSubtitle(): void;
+    chapter(delta: 1 | -1): void;
+    hwdec(on: boolean): void;
   };
 }
 
-const ENGINE_REASON = "Needs the NOVA engine (development build)";
+const ENGINE_REASON = "Needs the NOVA engine (Android app)";
+const signed = (v: number) => `${v > 0 ? "+" : v < 0 ? "−" : "±"}${Math.abs(v)} ms`;
 
 /**
  * The player menu: desktop's right-click menu, grouped the same way
@@ -90,7 +98,10 @@ function Menu({ ctx, setPage, close }: { ctx: MenuContext; setPage: (p: Page) =>
     f();
     if (!keep) close();
   };
-  const noFps = !s.video?.frameRate;
+  const noFps = !s.video?.frameRate && !ctx.caps.canFrameStep;
+  const { caps } = ctx;
+  const a = s.adjust;
+  const prefs = usePrefs();
   return (
     <>
       <Action label={ctx.playing ? "Pause" : "Play"} onPress={run(act.toggle)} />
@@ -103,7 +114,8 @@ function Menu({ ctx, setPage, close }: { ctx: MenuContext; setPage: (p: Page) =>
       <Action label="Forward 1 minute" onPress={run(() => act.seekBy(60_000), true)} />
       <Action label="Go to start" onPress={run(() => act.seek(0))} />
       <Action label="Jump to time…" chevron onPress={() => setPage("goto")} />
-      <Action label="Chapters" disabled reason="The system player does not report chapters" onPress={() => {}} />
+      <Action label="Previous chapter" disabled={!caps.canChapters || s.chapters === 0} reason={caps.canChapters ? "This file has no chapters" : "The system player does not report chapters"} onPress={run(() => act.chapter(-1), true)} />
+      <Action label="Next chapter" value={s.chapters ? `${s.chapters}` : undefined} disabled={!caps.canChapters || s.chapters === 0} reason={caps.canChapters ? "This file has no chapters" : "The system player does not report chapters"} onPress={run(() => act.chapter(1), true)} />
       <Action label="Previous frame" disabled={noFps} reason="Frame rate not reported for this file" onPress={run(() => act.frame(false), true)} />
       <Action label="Next frame" disabled={noFps} reason="Frame rate not reported for this file" onPress={run(() => act.frame(true), true)} />
       <Action label="Speed" value={`${+s.speed.toFixed(2)}×`} chevron onPress={() => setPage("speed")} />
@@ -114,23 +126,33 @@ function Menu({ ctx, setPage, close }: { ctx: MenuContext; setPage: (p: Page) =>
       <Action label={s.muted ? "Unmute" : "Mute"} onPress={run(act.mute, true)} />
       <Action label="Volume down" value={`${Math.round((s.muted ? 0 : s.volume) * 100)} %`} onPress={run(() => act.volume(-0.05), true)} />
       <Action label="Volume up" onPress={run(() => act.volume(0.05), true)} />
-      <Action label="Audio delay" disabled reason={ENGINE_REASON} onPress={() => {}} />
+      <Action label="Audio earlier" value={signed(a.audioDelayMs)} disabled={!caps.canDelayAudio} reason={ENGINE_REASON} onPress={run(() => act.audioDelay(-50), true)} />
+      <Action label="Audio later" disabled={!caps.canDelayAudio} reason={ENGINE_REASON} onPress={run(() => act.audioDelay(50), true)} />
+      <Action label="Reset audio delay" disabled={!caps.canDelayAudio || a.audioDelayMs === 0} reason={caps.canDelayAudio ? "No delay set" : ENGINE_REASON} onPress={run(() => act.audioDelay(null), true)} />
 
       <SheetLabel>Subtitles</SheetLabel>
       <Action label="Subtitles" value={sub?.label ?? "Off"} chevron onPress={() => setPage("tracks")} />
-      <Action label="Subtitle size" disabled reason="Follows the system caption style (Settings › Accessibility › Captions)" onPress={() => {}} />
-      <Action label="Subtitle delay" disabled reason={ENGINE_REASON} onPress={() => {}} />
-      <Action label="Add subtitle file…" disabled reason={ENGINE_REASON} onPress={() => {}} />
+      <Action label="Larger subtitles" value={`${a.subtitleScalePercent}%`} disabled={!caps.canStyleSubtitles || a.subtitleScalePercent >= 300} reason={caps.canStyleSubtitles ? "Largest size" : "Follows the system caption style (Settings › Accessibility › Captions)"} onPress={run(() => act.subScale(10), true)} />
+      <Action label="Smaller subtitles" disabled={!caps.canStyleSubtitles || a.subtitleScalePercent <= 50} reason={caps.canStyleSubtitles ? "Smallest size" : "Follows the system caption style"} onPress={run(() => act.subScale(-10), true)} />
+      <Action label="Subtitles earlier" value={signed(a.subtitleDelayMs)} disabled={!caps.canDelaySubtitles} reason={ENGINE_REASON} onPress={run(() => act.subDelay(-50), true)} />
+      <Action label="Subtitles later" disabled={!caps.canDelaySubtitles} reason={ENGINE_REASON} onPress={run(() => act.subDelay(50), true)} />
+      <Action label="Reset subtitle delay" disabled={!caps.canDelaySubtitles || a.subtitleDelayMs === 0} reason={caps.canDelaySubtitles ? "No delay set" : ENGINE_REASON} onPress={run(() => act.subDelay(null), true)} />
+      <Action label="Add subtitle file…" disabled={!caps.canAddSubtitleFiles} reason={ENGINE_REASON} onPress={run(act.addSubtitle)} />
 
       <SheetLabel>Video</SheetLabel>
       <Action label="Aspect ratio" value={ctx.aspect ?? "As encoded"} chevron onPress={() => setPage("aspect")} />
       <Action label="Zoom" value={ctx.aspect ? "—" : FIT_LABEL[ctx.fit]} onPress={run(() => act.fit(ctx.fit === "contain" ? "cover" : ctx.fit === "cover" ? "fill" : "contain"), true)} />
       <Action label="Rotation" value={`${ctx.rotation}°`} chevron onPress={() => setPage("rotation")} />
-      <Action label="Deinterlace" disabled reason={ENGINE_REASON} onPress={() => {}} />
+      <Action label="Deinterlace" disabled reason={caps.engine === "libmpv" ? "This Android build of libmpv has no video filters" : ENGINE_REASON} onPress={() => {}} />
       <Action label={Platform.OS === "android" ? "Save frame" : "Save frame…"} onPress={run(act.snapshot)} />
-      <Action label="Decoding" value="Hardware (system)" chevron onPress={() => setPage("info")} />
+      {caps.canHardwareDecodingSwitch ? (
+        <Action label="Hardware decoding" value={a.hwdec ? `On · ${a.hwdec}` : prefs.hwdec === "auto" ? "On · not used for this file" : "Off"} onPress={run(() => act.hwdec(prefs.hwdec !== "auto"), true)} />
+      ) : (
+        <Action label="Decoding" value="Hardware (system)" chevron onPress={() => setPage("info")} />
+      )}
 
       <SheetLabel>View</SheetLabel>
+      <Action label="Control bar" value={prefs.controlBar === "compact" ? "Compact" : "Full"} onPress={run(() => setPref("controlBar", prefs.controlBar === "compact" ? "full" : "compact"))} />
       <Action label="Picture in picture" disabled={!ctx.caps.canPictureInPicture} reason="Not available here" onPress={run(act.pip)} />
       <Action label="Lock controls" onPress={run(act.lock)} />
       <Action label="Rotate screen" onPress={run(act.rotateScreen)} />
@@ -240,7 +262,12 @@ function Tracks({ ctx }: { ctx: MenuContext }) {
       {subs.map((t) => (
         <Choice key={t.id} label={t.label} detail={t.language ?? undefined} selected={t.isSelected} onPress={() => ctx.act.track("subtitle", t.id)} />
       ))}
-      <SheetNote>{`${ctx.caps.engine} draws subtitles in the system caption style (Settings › Accessibility › Subtitles & Captioning). Delay, size and external subtitle files need the NOVA engine.`}</SheetNote>
+      {ctx.caps.canAddSubtitleFiles && <Action label="Add subtitle file…" onPress={ctx.act.addSubtitle} />}
+      <SheetNote>
+        {ctx.caps.canStyleSubtitles
+          ? "SRT, ASS/SSA with styling, WebVTT, PGS and VobSub. Size, delay and audio delay are in the player menu."
+          : `${ctx.caps.engine} draws subtitles in the system caption style (Settings › Accessibility › Subtitles & Captioning). Delay, size and external subtitle files need the NOVA engine.`}
+      </SheetNote>
     </>
   );
 }
@@ -257,6 +284,7 @@ function Info({ ctx }: { ctx: MenuContext }) {
       <Fact k="Decoder" v={caps.engine} />
       <Fact k="Running as" v={caps.engineDetail} />
       <Fact k="Seeking" v="Exact (tolerance 0); keyframes optional while dragging" />
+      {s.adjust.hwdec != null && <Fact k="Hardware decoder" v={s.adjust.hwdec} />}
       <Fact k="Seek landing" v={caps.reportsSeekCompletion ? "Reported by engine" : "Inferred from the next time update"} muted />
       <SheetLabel>Media</SheetLabel>
       <Fact k="Title" v={item.title} />
@@ -270,7 +298,7 @@ function Info({ ctx }: { ctx: MenuContext }) {
       <Fact k="Bitrate" v={s.video?.bitrate ? `${(s.video.bitrate / 1e6).toFixed(1)} Mb/s` : "Not reported"} muted={!s.video?.bitrate} />
       <Fact k="Video MIME" v={s.video?.mimeType ?? "Not reported"} muted={!s.video?.mimeType} />
       <Fact k="Tracks" v={`${audio.length} audio · ${subs.length} subtitle`} />
-      <SheetNote>Hardware or software decoder, dropped frames, A/V sync and codec names are not exposed by the system player. The NOVA engine reports them.</SheetNote>
+      {caps.engine !== "libmpv" && <SheetNote>Hardware or software decoder, dropped frames, A/V sync and codec names are not exposed by the system player. The NOVA engine reports them.</SheetNote>}
     </>
   );
 }

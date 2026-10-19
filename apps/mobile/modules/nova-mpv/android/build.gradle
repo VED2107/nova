@@ -1,0 +1,51 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'me.snowbros.nova'
+version = '0.3.0'
+
+android {
+  namespace "me.snowbros.nova.mpv"
+  defaultConfig {
+    versionCode 1
+    versionName '0.3.0'
+  }
+}
+
+dependencies {
+  implementation 'com.facebook.react:react-android'
+  // libmpv + FFmpeg for Android (mpv-android build scripts). FFmpeg is built
+  // with --enable-gpl --enable-version3, so APKs that contain it are GPLv3.
+  // Source: https://github.com/jarnedemeulemeester/libmpv-android (tag v1.0.0).
+  implementation 'dev.jdtech.mpv:libmpv:1.0.0'
+}
+
+// libmpv needs the libc++_shared.so it was built with (a newer NDK than React
+// Native's). Both AARs carry one and packaging keeps React Native's, so after the
+// app merges its native libraries, libmpv's copy replaces it. The newer libc++ is
+// a superset of the older one (same __ndk1 ABI), so React Native runs on it.
+configurations { mpvAar }
+dependencies { mpvAar 'dev.jdtech.mpv:libmpv:1.0.0@aar' }
+def mpvCxx = layout.buildDirectory.dir("mpv-cxx")
+def extractMpvCxx = tasks.register("extractMpvCxx", Copy) {
+  from({ zipTree(configurations.mpvAar.singleFile) }) {
+    include "jni/*/libc++_shared.so"
+    eachFile { it.path = it.path.replaceFirst("jni/", "") }
+  }
+  includeEmptyDirs = false
+  into mpvCxx
+}
+gradle.projectsEvaluated {
+  rootProject.findProject(":app")?.tasks?.matching { it.name ==~ /merge\w*NativeLibs/ }?.configureEach { t ->
+    t.dependsOn extractMpvCxx
+    t.doLast {
+      def out = new File(t.outputDir.get().asFile, "lib")
+      out.eachDir { abi ->
+        def mine = mpvCxx.get().file("${abi.name}/libc++_shared.so").asFile
+        if (mine.exists()) java.nio.file.Files.copy(mine.toPath(), new File(abi, "libc++_shared.so").toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+      }
+    }
+  }
+}

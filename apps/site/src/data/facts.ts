@@ -22,8 +22,8 @@ export interface Feature {
 }
 
 export const VERSION = {
-  version: "0.2.0",
-  date: "2026-10-17",
+  version: "0.3.0",
+  date: "2026-10-19",
   channel: "Release",
   platform: "Windows x64",
   tested: "Windows 11, one machine (i5-10300H, Intel UHD 630 + GTX 1650)",
@@ -32,6 +32,8 @@ export const VERSION = {
 export const FEATURES: Record<string, Feature[]> = {
   playback: [
     { name: "Open files from the dialog, by drag-and-drop or as a launch argument", status: "verified" },
+    { name: "Open with NOVA in File Explorer and Windows Default apps, without taking any default", status: "verified", note: "Install, upgrade from 0.2.0, uninstall and reinstall checked on one machine; an existing VLC default stayed." },
+    { name: "One window: files opened while NOVA runs go to the open window, several at once become a queue", status: "verified", note: "Checked with paths containing spaces, parentheses and Unicode." },
     { name: "Play, pause, exact seek, volume, mute, speed 0.25–4×, fullscreen", status: "verified" },
     { name: "Frame step, aspect ratio, rotation, deinterlace, audio and subtitle delay", status: "verified" },
     { name: "Audio and subtitle tracks, external subtitle files", status: "partial", note: "Menus verified; loading an external subtitle was verified in an earlier pass, not re-run for RC1." },
@@ -70,7 +72,7 @@ export const FEATURES: Record<string, Feature[]> = {
     { name: "Shortcuts help on F1 or ?", status: "verified" },
     { name: "Mouse wheel, click and double-click choices", status: "partial", note: "Settings render; wheel over the picture not re-exercised." },
     { name: "Daylight, Night or System theme; the player is always dark", status: "verified" },
-    { name: "In-app updates from signed GitHub releases", status: "partial", note: "The check is verified; download, signature check and install run end to end for the first time with the release after 0.2.0." },
+    { name: "In-app updates from signed GitHub releases", status: "partial", note: "The check is verified; 0.3.0 is the first release offered to 0.2.0 through the updater. Its signature is verified by the release gate with the app's own public key." },
   ],
 };
 
@@ -78,7 +80,8 @@ export const KNOWN_ISSUES = [
   "The controls can't blur the video, which is a native surface below the interface; they are translucent instead.",
   "A playlist's duration reads “0:30 known”: correct, but awkward.",
   "Interface contrast was computed from colour tokens, not measured on rendered pixels.",
-  "0.1.0 has no updater: install 0.2.0 once by hand; later releases arrive in the app.",
+  "0.1.0 has no updater: install a newer release once by hand; later releases arrive in the app.",
+  "The installer is not Authenticode-signed yet, so SmartScreen warns and UAC shows “Unknown publisher”.",
   "Alpha video is shown over black; image sequences, embedded timecode and camera RAW decoding are not built.",
 ];
 
@@ -111,13 +114,13 @@ export const RELEASE_GATES: { name: string; state: "open" | "not-started" | "don
   {
     name: "Clean-machine install test",
     state: "not-started",
-    detail: "Installed and tested on the development machine only. Not tested: a clean Windows install, machines without the GPU driver's Vulkan loader, per-machine install, uninstall, file associations.",
+    detail: "Installed and tested on the development machine only, including upgrade, uninstall, reinstall and file associations (0.3.0). Not tested: a clean Windows install, machines without the GPU driver's Vulkan loader, per-machine install.",
     doc: "rc1-test-record",
   },
   {
     name: "Installer signing and SmartScreen",
-    state: "not-started",
-    detail: "The local installer is unsigned. How Windows SmartScreen treats it has not been tested.",
+    state: "open",
+    detail: "The build signs every binary and the release gate verifies signatures and timestamps as soon as a certificate is configured (Azure Artifact Signing or an OV certificate for SNOWBROS). Waiting on: identity validation and the certificate. SmartScreen reputation then builds over time; no Microsoft certification is claimed.",
     doc: "rc1-test-record",
   },
   {
@@ -156,7 +159,7 @@ export const COMPARE_ROWS: { label: string; cells: [CompareCell, CompareCell, Co
   {
     label: "Availability",
     cells: [
-      { text: "Released: 0.2.0 for Windows, 2026-10-17, tested on one machine. Android 0.2.0 pre-release, 2026-10-18.", status: "partial" },
+      { text: "Released: 0.3.0 for Windows and a 0.3.0 Android pre-release, 2026-10-19, each tested on one machine or emulator.", status: "partial" },
       { text: "Released; current version 3.0.24 for Windows.", src: 0 },
       { text: "Released; developed in public on GitHub.", src: 3 },
       { text: "Maintained fork since 2017; not accepting feature requests for now.", src: 5 },
@@ -165,7 +168,7 @@ export const COMPARE_ROWS: { label: string; cells: [CompareCell, CompareCell, Co
   {
     label: "Platforms",
     cells: [
-      { text: "Windows x64, tested on Windows 11. Android 7+ pre-release, not yet tested on a device. No macOS, Linux or iPhone download.", status: "partial" },
+      { text: "Windows x64, tested on Windows 11. Android 8+ pre-release with the same engine, tested on an emulator. No macOS, Linux or iPhone download.", status: "partial" },
       { text: "Windows, macOS, Linux, Android, iOS, Apple TV, ChromeOS, BSDs and more.", src: 0 },
       { text: "Linux, Windows 10 1607+, macOS 10.15+.", src: 3 },
       { text: "Windows 7 to 11.", src: 5 },
@@ -174,7 +177,7 @@ export const COMPARE_ROWS: { label: string; cells: [CompareCell, CompareCell, Co
   {
     label: "Licence",
     cells: [
-      { text: "Code: MIT OR Apache-2.0, source on GitHub. The 0.2.0 Windows installer is GPL because of its bundled engine; the Android APK has no GPL or LGPL code.", status: "decided" },
+      { text: "Code: MIT OR Apache-2.0, source on GitHub. The Windows installer and the 0.3.0 Android APK are GPL because of their bundled engine.", status: "decided" },
       { text: "Free and open source; most VideoLAN software is GPLv2.", src: 1 },
       { text: "GPLv2 or later; LGPLv2.1 or later with -Dgpl=false.", src: 3 },
       { text: "GPLv3.", src: 5 },

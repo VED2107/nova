@@ -1,7 +1,17 @@
 # NOVA for Android and iOS: third-party notices
 
 NOVA's own code is © 2026 SNOWBROS, licensed MIT OR Apache-2.0 (LICENSE-MIT, LICENSE-APACHE in the repository).
-The app plays media with the phone's own decoders and contains **no GPL or LGPL code** (no libmpv, no FFmpeg).
+
+## Android app: libmpv and FFmpeg (GPL)
+
+The Android APK contains NOVA's playback engine, the same as on Windows: **mpv** (libmpv) and **FFmpeg**, with
+dav1d, mbedTLS, libxml2, libass, FreeType, HarfBuzz, FriBidi and Lua, packaged as `dev.jdtech.mpv:libmpv:1.0.0`
+(build scripts MIT, https://github.com/jarnedemeulemeester/libmpv-android, based on mpv-android).
+FFmpeg is configured with `--enable-gpl --enable-version3`, so **the APK as a whole is distributed under the
+GNU General Public License v3** (LICENSES/GPL-3.0.txt). The complete corresponding source is the libmpv-android
+repository at tag v1.0.0 with the component versions its `buildscripts/download.sh` pins; NOVA's own source is this
+repository at the release tag. Both are linked from every release; on request SNOWBROS provides the same source
+for three years. Expo Go and the iPhone version contain none of these components.
 
 Fonts: Archivo © 2020 The Archivo Project Authors, SIL Open Font License 1.1 (assets/fonts/OFL.txt).
 Test card: generated with FFmpeg by NOVA's build scripts; no third-party footage.

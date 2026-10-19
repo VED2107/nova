@@ -4,8 +4,8 @@ import { Platform } from "react-native";
  * Mobile mirror of the backend-neutral contract in crates/nova-playback-api.
  * The UI speaks only these types; an engine adapter translates. Today there
  * is one adapter, the platform's own player via expo-video (AVPlayer on iOS,
- * Media3/ExoPlayer on Android). A libmpv adapter (development build) will
- * implement the same interface; see docs/architecture/mobile.md.
+ * Media3/ExoPlayer on Android), and NOVA's libmpv engine on Android builds
+ * (modules/nova-mpv), the same engine as Windows. See docs/architecture/mobile.md.
  */
 
 export type PlaybackPhase = "idle" | "loading" | "playing" | "paused" | "seeking" | "ended" | "error";
@@ -39,7 +39,22 @@ export interface Snapshot {
   tracks: Track[];
   video: VideoFacts | null;
   error: string | null;
+  /** Engine-side adjustments (desktop: PlaybackSnapshot.adjust). Zero/100 on engines without them. */
+  adjust: Adjust;
+  chapters: number;
 }
+
+export interface Adjust {
+  subtitleDelayMs: number;
+  audioDelayMs: number;
+  subtitleScalePercent: number;
+  /** 0 (top) … 100 (bottom), as mpv's sub-pos. */
+  subtitlePosition: number;
+  /** Decoder in use, e.g. "mediacodec"; null for software or unknown. */
+  hwdec: string | null;
+}
+
+export const NO_ADJUST: Adjust = { subtitleDelayMs: 0, audioDelayMs: 0, subtitleScalePercent: 100, subtitlePosition: 100, hwdec: null };
 
 /** What an engine can do. The UI hides or explains controls it cannot honour. */
 export interface Capabilities {
@@ -56,6 +71,10 @@ export interface Capabilities {
   canAbLoop: boolean;
   canPreviewFrames: boolean;
   canPictureInPicture: boolean;
+  canAddSubtitleFiles: boolean;
+  canChapters: boolean;
+  canHardwareDecodingSwitch: boolean;
+  canBackgroundControls: boolean;
 }
 
 export interface Commands {
@@ -73,6 +92,19 @@ export interface Commands {
   selectTrack(kind: "audio" | "subtitle", id: string | null): void;
   setLoop(on: boolean): void;
   replay(): void;
+  /** Present when the matching capability is true (libmpv engine). */
+  setSubtitleDelay?(ms: number): void;
+  setAudioDelay?(ms: number): void;
+  setSubtitleScale?(percent: number): void;
+  setSubtitlePosition?(pos: number): void;
+  addSubtitle?(uri: string): void;
+  frameStep?(forward: boolean): void;
+  chapter?(delta: 1 | -1): void;
+  setHardwareDecoding?(on: boolean): void;
+  /** Engine-side picture shape (desktop: video-aspect-override / video-rotate / panscan). */
+  setAspect?(ratio: string | null): void;
+  setRotation?(degrees: number): void;
+  setFit?(fit: Fit): void;
 }
 
 /**

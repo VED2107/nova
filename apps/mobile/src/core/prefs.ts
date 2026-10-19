@@ -26,6 +26,26 @@ export interface Prefs {
   background: "on" | "off";
   /** Look for a new release at start-up, or only when asked (Android app). */
   updates: "auto" | "manual";
+  /** Desktop "Control bar": full deck, or one slim floating row (desktop: timelineLayout). */
+  controlBar: "full" | "compact";
+  /** Seconds before controls fade while playing. */
+  hideDelay: "2" | "3" | "5" | "8";
+  /** Screen orientation when the player opens. */
+  orientation: "auto" | "landscape" | "portrait";
+  /** How far a vertical swipe must travel for the full volume/brightness range. */
+  swipeSensitivity: "low" | "normal" | "high";
+  /** Prefer an audio track in the phone's language when the file has one. */
+  audioLang: "file" | "device";
+  /** Subtitles when a title opens: as the file says, off, or in the phone's language when the audio is not. */
+  subtitlesStart: "file" | "off" | "device";
+  /** Single tap on the picture (desktop: click). */
+  tapAction: "controls" | "pause";
+  /** Android: NOVA's libmpv engine (as on Windows) or the phone's Media3 player. */
+  engine: "nova" | "system";
+  /** libmpv engine: MediaCodec hardware decoding (desktop: hwdec). */
+  hwdec: "auto" | "off";
+  /** Subtitle size in percent, "50".."300" in steps of 10 (desktop: subScale). */
+  subScale: string;
 }
 
 const ALLOWED: { [K in keyof Prefs]: readonly Prefs[K][] } = {
@@ -41,6 +61,16 @@ const ALLOWED: { [K in keyof Prefs]: readonly Prefs[K][] } = {
   autoHide: ["on", "off"],
   background: ["on", "off"],
   updates: ["auto", "manual"],
+  controlBar: ["full", "compact"],
+  hideDelay: ["2", "3", "5", "8"],
+  orientation: ["auto", "landscape", "portrait"],
+  swipeSensitivity: ["low", "normal", "high"],
+  audioLang: ["file", "device"],
+  subtitlesStart: ["file", "off", "device"],
+  tapAction: ["controls", "pause"],
+  engine: ["nova", "system"],
+  hwdec: ["auto", "off"],
+  subScale: Array.from({ length: 26 }, (_, i) => String(50 + i * 10)),
 };
 
 export const DEFAULT_PREFS: Prefs = {
@@ -56,6 +86,16 @@ export const DEFAULT_PREFS: Prefs = {
   autoHide: "on",
   background: "off",
   updates: "auto",
+  controlBar: "full",
+  hideDelay: "3",
+  orientation: "auto",
+  swipeSensitivity: "normal",
+  audioLang: "file",
+  subtitlesStart: "file",
+  tapAction: "controls",
+  engine: "nova",
+  hwdec: "auto",
+  subScale: "100",
 };
 
 const KEY = "nova.prefs.v1";

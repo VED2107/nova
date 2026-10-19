@@ -28,7 +28,9 @@ DIST="$(grep '^distributionUrl=' gradle/wrapper/gradle-wrapper.properties | sed 
 if ls "$HOME/.gradle/wrapper/dists/$DIST-all/"*/"$DIST-all.zip.ok" >/dev/null 2>&1; then
   sed -i "s/$DIST-bin.zip/$DIST-all.zip/" gradle/wrapper/gradle-wrapper.properties
 fi
+# Lint of the release build runs out of Metaspace with the template's 512 MB.
 ./gradlew --no-daemon assembleRelease \
+  -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1536m" \
   -PreactNativeArchitectures=arm64-v8a,armeabi-v7a \
   -Pandroid.injected.signing.store.file="$(prop storeFile)" \
   -Pandroid.injected.signing.store.password="$(prop storePassword)" \

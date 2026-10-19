@@ -49,12 +49,17 @@ export async function resetFrameFolder(): Promise<void> {
   await AsyncStorage.removeItem(DIR_KEY).catch(() => {});
 }
 
-/** Returns a short message for the player's on-screen notice. */
-export async function saveFrame(player: VideoPlayer, positionMs: number, title: string): Promise<string> {
+/** System engine: decode the exact frame at full size as a PNG; returns its URI. */
+export async function systemFrame(player: VideoPlayer, positionMs: number): Promise<string> {
   const [thumb] = await player.generateThumbnailsAsync([positionMs / 1000]);
-  if (!thumb) return "This frame could not be decoded";
+  if (!thumb) throw new Error("This frame could not be decoded");
   const image = await ImageManipulator.manipulate(thumb).renderAsync();
-  const png = await image.saveAsync({ format: SaveFormat.PNG });
+  return (await image.saveAsync({ format: SaveFormat.PNG })).uri;
+}
+
+/** Saves a PNG from `grab` (the engine's frame); returns a short message for the player's notice. */
+export async function saveFrame(grab: () => Promise<string>, positionMs: number, title: string): Promise<string> {
+  const png = { uri: await grab() };
   const name = `${frameName(title, positionMs)}.png`;
 
   if (Platform.OS === "android") {

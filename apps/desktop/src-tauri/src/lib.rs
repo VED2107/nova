@@ -3,8 +3,10 @@
 //! The frontend never talks to libmpv. It sends validated `PlaybackCommand`s
 //! and receives `PlaybackSnapshot`s on the `playback://snapshot` event.
 
+mod launch;
 mod library;
 mod previews;
+mod shell;
 mod video_surface;
 
 use nova_application::progress_service::{ProgressService, ResumeNotice};
@@ -140,17 +142,41 @@ fn engine_info(engine: State<'_, Engine>) -> Result<EngineInfo, PlaybackError> {
     })
 }
 
-/// Media paths passed on the command line (OS "Open with", file association).
+/// Files this launch was given, plus any forwarded by later launches so far.
 #[tauri::command]
-fn launch_media_paths() -> Vec<String> {
-    std::env::args_os()
-        .skip(1)
-        .map(PathBuf::from)
-        .filter(|p| p.is_file())
-        // `nova clip.mp4` from a terminal is relative; the queue only takes absolute paths.
-        .filter_map(|p| std::path::absolute(p).ok())
-        .map(|p| p.display().to_string())
-        .collect()
+fn launch_media_paths(pending: State<'_, launch::Pending>) -> Vec<String> {
+    pending.take()
+}
+
+/// Settings › Windows: register "Open with" and default-app entries again.
+#[tauri::command]
+fn shell_register() -> Result<(), String> {
+    #[cfg(windows)]
+    {
+        let exe = std::env::current_exe().map_err(|e| e.to_string())?;
+        shell::register("Software", &exe.display().to_string()).map_err(|e| e.to_string())
+    }
+    #[cfg(not(windows))]
+    Err("File associations are only managed on Windows.".into())
+}
+
+/// Opens Settings › Default apps on NOVA's page (Windows 11), else the list.
+#[tauri::command]
+fn open_default_apps() -> Result<(), String> {
+    #[cfg(windows)]
+    {
+        let uri = format!(
+            "ms-settings:defaultapps?registeredAppUser={}",
+            shell::APP_NAME
+        );
+        std::process::Command::new("explorer.exe")
+            .arg(uri)
+            .spawn()
+            .map(|_| ())
+            .map_err(|e| e.to_string())
+    }
+    #[cfg(not(windows))]
+    Err("Only on Windows.".into())
 }
 
 #[tauri::command]
@@ -422,7 +448,14 @@ fn spawn_stats_logger(player: std::sync::Weak<MpvPlayer>) {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    if let Some(code) = shell::run_cli_action() {
+        std::process::exit(code);
+    }
     tauri::Builder::default()
+        // First, so a second launch exits before anything else starts.
+        .plugin(tauri_plugin_single_instance::init(|app, argv, cwd| {
+            launch::on_second_instance(app, argv, cwd)
+        }))
         .plugin(
             tauri_plugin_log::Builder::new()
                 .level(log::LevelFilter::Info)
@@ -432,6 +465,7 @@ pub fn run() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         .manage(Engine::default())
+        .manage(launch::Pending::default())
         .setup(|app| {
             let emitter = app.handle().clone();
             let queue: Queue = QueueService::new(Box::new(move |snapshot| {
@@ -521,6 +555,8 @@ pub fn run() {
             playback_media_details,
             engine_info,
             launch_media_paths,
+            shell_register,
+            open_default_apps,
             queue_get,
             queue_open,
             queue_append,

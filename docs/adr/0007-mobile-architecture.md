@@ -1,6 +1,7 @@
 # ADR 0007 — NOVA on Android and iOS: app stack and playback engines
 
-- **Status:** Proposed, 2026-10-18. The UI stack is accepted for the prototype. The engine choice is **pending M2 measurements**.
+- **Status:** Proposed, 2026-10-18. The UI stack is accepted for the prototype.
+- **Amended 2026-10-19 (owner's direction):** Windows and Android are the products; iOS is secondary. Android ships **libmpv** (`apps/mobile/modules/nova-mpv`, `dev.jdtech.mpv:libmpv:1.0.0`) as its default engine with the same options as desktop, and keeps Media3 as a user choice and per-file fallback. The prebuilt FFmpeg is a GPL v3 configuration, so the APK is GPL v3 (like the Windows installer); an LGPL build from source remains the option B path for both. iOS stays on AVPlayer in Expo Go. The M2c engine comparison (battery, heat, HDR) has not been run.
 - **Scope:** phones and tablets. The Windows app, its updater and its release flow are unchanged.
 - **Not legal advice.** The licensing sections need counsel before any store submission.
 

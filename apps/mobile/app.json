@@ -2,7 +2,7 @@
   "expo": {
     "name": "NOVA",
     "slug": "nova",
-    "version": "0.2.0",
+    "version": "0.3.0",
     "scheme": "nova",
     "orientation": "default",
     "icon": "./assets/icon.png",
@@ -12,7 +12,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "me.snowbros.nova",
       "requireFullScreen": false,
-      "buildNumber": "2",
+      "buildNumber": "3",
       "infoPlist": {
         "CFBundleDocumentTypes": [
           {
@@ -47,7 +47,7 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": true,
-      "versionCode": 2,
+      "versionCode": 3,
       "blockedPermissions": [
         "android.permission.RECORD_AUDIO",
         "android.permission.READ_EXTERNAL_STORAGE",
@@ -126,7 +126,15 @@
         }
       ],
       "expo-sharing",
-      "expo-asset"
+      "expo-asset",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "minSdkVersion": 26
+          }
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

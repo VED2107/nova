@@ -5,7 +5,7 @@ import { ConfirmDialog, Dialog } from "../../components/ui/Dialog";
 import { library } from "../../services/library/client";
 import { checkForUpdate, installUpdate, useUpdates } from "../../services/updates";
 import { ACTIONS, ACTION_BY_ID, chordLabel, chordOf, conflicts, effectiveKeymap, parseKeymap, type ActionGroup, type Keymap } from "../../services/playback/actions";
-import { engineInfo, type EngineInfo } from "../../services/playback/client";
+import { engineInfo, openDefaultApps, shellRegister, type EngineInfo } from "../../services/playback/client";
 import { setPref, usePrefs, type Prefs } from "../../services/prefs";
 import { bind, resetAction, unbind } from "./keymapEdit";
 
@@ -516,7 +516,29 @@ function Formats() {
         ))}
       </div>
       <p className="mt-3 px-3 text-[12px] text-ink-3">Hardware decoding depends on your graphics card and driver. NOVA falls back to software when the card can't decode a format.</p>
+      <OpenWith />
     </section>
+  );
+}
+
+/** Windows owns default apps: NOVA registers as a choice and links to the page where the user decides. */
+function OpenWith() {
+  const [status, setStatus] = useState("");
+  return (
+    <div className="mt-6 border-t border-seam pt-2">
+      <Field
+        label="Open with NOVA"
+        description="NOVA is listed under Open with for video, audio and subtitle files. It never makes itself the default: choose it in Windows Settings, or tick “Always” in the Open with dialog."
+      >
+        <Button onClick={() => void openDefaultApps().catch((e) => setStatus(String(e)))}>Default apps…</Button>
+      </Field>
+      <Field label="Repair registration" description="Writes NOVA's Open with entries again, for example after moving the app. Other apps' associations are not touched.">
+        <Button onClick={() => void shellRegister().then(() => setStatus("Registration repaired."), (e) => setStatus(String(e)))}>Repair</Button>
+      </Field>
+      <p role="status" aria-live="polite" className="px-3 py-2 text-[13px] text-ink-2">
+        {status}
+      </p>
+    </div>
   );
 }
 
