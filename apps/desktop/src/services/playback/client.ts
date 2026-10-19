@@ -112,6 +112,11 @@ export const revealScreenshot = (path: string) => invoke<void>("reveal_screensho
 /** A decoded frame of the playing media at `positionMs`, as an image URL. Rejects when busy or impossible. */
 export const previewFrame = (positionMs: number) => invoke<string>("preview_frame", { positionMs }).then((p) => convertFileSrc(p));
 export const launchMediaPaths = () => invoke<string[]>("launch_media_paths");
+/** Files from a later launch (Explorer "Open with", association, terminal) while NOVA runs. */
+export const onLaunchOpen = (f: (paths: string[]) => void) => listen<{ paths: string[] }>("launch://open", (e) => f(e.payload.paths));
+/** Writes NOVA's "Open with" and Default-apps registration again (Windows). */
+export const shellRegister = () => invoke<void>("shell_register");
+export const openDefaultApps = () => invoke<void>("open_default_apps");
 
 export function isPlaybackError(e: unknown): e is PlaybackError {
   return typeof e === "object" && e !== null && "kind" in e && "message" in e;

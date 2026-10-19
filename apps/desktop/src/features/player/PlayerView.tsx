@@ -8,7 +8,7 @@ import { Symbol } from "../../components/Wordmark";
 import { Button, IconButton } from "../../components/ui/controls";
 import { Dialog } from "../../components/ui/Dialog";
 import { ACTIONS, actionForChord, chordLabel, chordOf, commandFor, effectiveKeymap, nextSubScale, parseKeymap } from "../../services/playback/actions";
-import { engineInfo, execute, isPlaybackError, launchMediaPaths, queue, revealScreenshot, screenshot, useQueue, usePlayback, type EngineInfo } from "../../services/playback/client";
+import { engineInfo, execute, isPlaybackError, launchMediaPaths, onLaunchOpen, queue, revealScreenshot, screenshot, useQueue, usePlayback, type EngineInfo } from "../../services/playback/client";
 import { describeError } from "../../services/playback/errors";
 import { formatTime } from "../../services/playback/format";
 import { nextAbLoop } from "../../services/playback/shortcuts";
@@ -127,9 +127,29 @@ export function PlayerView(props: { active: boolean; onBrowse: () => void; onOpe
   phaseRef.current = s.phase;
   useEffect(() => {
     engineInfo().then(setEngine, (e) => isPlaybackError(e) && setEngineError(e));
+    // Media replaces what plays; subtitle files alone are added to it.
+    const incoming = (paths: string[], append = false) => {
+      const isSub = (x: string) => SUBTITLE_EXTENSIONS.some((ext) => x.toLowerCase().endsWith(`.${ext}`));
+      if (paths.length > 0 && paths.every(isSub)) {
+        if (phaseRef.current === "idle") flash("Open a video first, then add its subtitles.");
+        else for (const sub of paths) void execute({ type: "addSubtitle", path: sub }).catch(() => {});
+      } else void openPaths(paths, append);
+    };
+    // Explorer may start one launch per selected file; gather a burst into one queue.
+    let burst: string[] = [];
+    let burstTimer: number | undefined;
+    const unLaunch = onLaunchOpen((paths) => {
+      burst.push(...paths);
+      window.clearTimeout(burstTimer);
+      burstTimer = window.setTimeout(() => {
+        incoming(burst);
+        burst = [];
+      }, 250);
+    });
     if (!launchHandled) {
       launchHandled = true;
-      launchMediaPaths().then((paths) => void openPaths(paths));
+      // Ask only once listening, so a launch forwarded in between is not lost.
+      void unLaunch.then(launchMediaPaths).then((paths) => incoming(paths));
     }
     const win = getCurrentWindow();
     const unResize = win.onResized(async () => setFullscreen(await win.isFullscreen()));
@@ -139,17 +159,16 @@ export function PlayerView(props: { active: boolean; onBrowse: () => void; onOpe
       else if (p.type === "leave") setDragOver(false);
       else if (p.type === "drop") {
         setDragOver(false);
-        const isSub = (x: string) => SUBTITLE_EXTENSIONS.some((ext) => x.toLowerCase().endsWith(`.${ext}`));
-        if (p.paths.length > 0 && p.paths.every(isSub) && phaseRef.current !== "idle") {
-          for (const sub of p.paths) void execute({ type: "addSubtitle", path: sub }).catch(() => {});
-        } else void openPaths(p.paths, panelRef.current === "queue");
+        incoming(p.paths, panelRef.current === "queue");
       }
     });
     return () => {
+      window.clearTimeout(burstTimer);
+      unLaunch.then((f) => f());
       unResize.then((f) => f());
       unDrop.then((f) => f());
     };
-  }, [openPaths]);
+  }, [openPaths, flash]);
   useEffect(() => {
     if (s.phase === "playing") engineInfo().then(setEngine, () => {});
   }, [s.sessionId, s.phase === "playing", s.video?.hwdec]);
