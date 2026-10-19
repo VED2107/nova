@@ -4,7 +4,7 @@
 
 | Platform | Artefact | How users get it |
 |---|---|---|
-| Android 7+ (arm64, armv7) | `NOVA-<version>-android.apk`, signed with the NOVA release key, with a `.sha256` file | GitHub release; sideload (allow "Install unknown apps" for the browser or Files) |
+| Android 8+ (arm64, armv7; 7+ up to 0.2.0) | `NOVA-<version>-android.apk`, signed with the NOVA release key, with a `.sha256` file | GitHub release; sideload (allow "Install unknown apps" for the browser or Files) |
 | iOS | **No binary.** An installable iOS app needs Apple signing: a paid Apple Developer membership (TestFlight/App Store) or a Mac with Xcode (7-day personal installs) | Expo Go and a QR code from a developer machine (`npm run mobile`). Same app, same SDK (57) |
 
 **Engine (from 0.3.0).**

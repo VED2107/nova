@@ -168,7 +168,7 @@ export const COMPARE_ROWS: { label: string; cells: [CompareCell, CompareCell, Co
   {
     label: "Platforms",
     cells: [
-      { text: "Windows x64, tested on Windows 11. Android 7+ pre-release with the same engine, tested on an emulator. No macOS, Linux or iPhone download.", status: "partial" },
+      { text: "Windows x64, tested on Windows 11. Android 8+ pre-release with the same engine, tested on an emulator. No macOS, Linux or iPhone download.", status: "partial" },
       { text: "Windows, macOS, Linux, Android, iOS, Apple TV, ChromeOS, BSDs and more.", src: 0 },
       { text: "Linux, Windows 10 1607+, macOS 10.15+.", src: 3 },
       { text: "Windows 7 to 11.", src: 5 },

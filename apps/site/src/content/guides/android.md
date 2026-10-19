@@ -12,7 +12,7 @@ statusNote: Written for Android 0.3.0. The engine was exercised on an Android em
 2. Open the file. NOVA is not on Google Play, so Android asks you to allow **Install unknown apps** for your browser or Files app the first time.
 3. Every NOVA APK is signed with the same certificate (its SHA-256 fingerprint is on the Release page). Android installs an update over NOVA only if it carries that certificate, so your library, positions and settings stay.
 
-Android 7.0 or newer, on arm64 or armv7 phones and tablets.
+Android 8.0 or newer (from 0.3.0; 0.2.0 ran on 7.0), on arm64 or armv7 phones and tablets.
 
 ## Updates
 
