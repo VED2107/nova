@@ -1,9 +1,9 @@
 ---
 title: NOVA for Android
-summary: Installing the APK, what the Android app does, in-app updates, Open with NOVA, and what still needs NOVA's own engine.
+summary: Installing the APK, NOVA's own engine on Android, settings that match Windows, in-app updates and Open with NOVA.
 order: 6
 status: incomplete
-statusNote: Written for Android 0.2.0. The APK is built and signed in CI and the app was exercised in Expo Go on a phone; the release APK itself has not yet been tested on a device.
+statusNote: Written for Android 0.3.0. The engine was exercised on an Android emulator (Pixel 8 image); the release APK has not yet been tested on a physical phone.
 ---
 
 ## Installing
@@ -22,7 +22,7 @@ From 0.2.0 NOVA updates itself, as the Windows app does:
 - When one does, Home shows **NOVA x.y.z is ready**. **Install** downloads the APK, checks it against the release's SHA-256 and opens Android's installer; **Later** hides the notice until the next start.
 - Turn the check off, or check by hand, in **Settings → Updates**.
 
-0.1.0 has no updater: install 0.2.0 from the Release page once.
+0.1.0 has no updater: install 0.3.0 from the Release page once. 0.2.0 offers 0.3.0 in the app.
 
 ## What it does
 
@@ -39,15 +39,17 @@ The same Home, Library and player as on Windows, for touch:
 
 **Save frame** writes the exact frame, at full size, as a PNG into a folder you pick the first time (Pictures, say). No storage permission is involved.
 
-## What needs NOVA's own engine
+## NOVA's own engine (from 0.3.0)
 
-The Android app plays through the phone's own decoders (Media3). What plays therefore depends on the phone. Not available yet, and marked as such in the app:
+The Android app plays through the same engine as Windows: **libmpv with FFmpeg**, using the phone's MediaCodec for hardware decoding. That brings Windows' formats and controls to the phone:
 
-- DTS and TrueHD audio, image subtitles (PGS) and styled ASS subtitles.
-- Audio and subtitle delay, subtitle size (Android uses the system caption style) and external subtitle files.
-- Chapters, deinterlacing and decoder diagnostics.
+- MKV, WebM, AVI, TS, MXF; DTS, TrueHD, ProRes; ASS/SSA with styling, PGS and VobSub subtitles.
+- Subtitle size (50–300 %, remembered), subtitle and audio delay in 50 ms steps, external subtitle files, chapters, exact frame step, and a hardware-decoding switch, with the decoder in use shown in Playback information.
+- **Settings** has the Windows sections in the same order: Appearance, Playback, Audio & subtitles, Touch & gestures (Windows: Keys & mouse), Library & privacy, Formats, About, with search. The control bar can be **Full** or **Compact**.
 
-These come with NOVA's own engine (libmpv, LGPL) on Android, which is not built yet. The APK contains no GPL or LGPL code.
+Not on the NOVA engine yet: deinterlacing (this Android build of libmpv has no video filters), picture in picture and notification controls. For those, **Settings → Playback → Playback engine** switches to the phone's own player (Media3); a file NOVA's engine cannot open offers **Try the phone's player**.
+
+**Licence:** because the bundled FFmpeg includes GPL parts, the APK as a whole is distributed under the GPL v3, as the Windows installer is under the GPL. Source links are in each release's notes.
 
 ## Privacy
 

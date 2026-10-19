@@ -2,7 +2,29 @@
 
 All notable changes to NOVA.
 
-## Unreleased
+## 0.3.0 (2026-10-19): Open with NOVA, NOVA's engine on Android, settings that match
+
+### Windows
+- **Open with NOVA.** File Explorer's Open with lists NOVA for 36 video and audio types (Open with only for srt, ass,
+  ssa, vtt), and Windows Settings › Default apps has a NOVA page. NOVA never takes a default; uninstalling removes
+  only NOVA's own entries. Settings › Formats: Default apps… and Repair.
+- **One window.** Files opened while NOVA runs go to the open window; several at once become one queue; a subtitle
+  file is added to what plays.
+- **Release engineering.** Every shipped binary goes through an Authenticode signing hook (Azure Artifact Signing or
+  a certificate, from the environment only); a release gate checks signatures, the updater signature against the
+  app's key, `latest.json`, SHA-256 sums, licences and installed files. This release is **not Authenticode-signed**:
+  no certificate exists yet (see docs/release/windows.md). The installer's file properties now name SNOWBROS.
+
+### Android and iOS (mobile 0.3.0)
+- **NOVA's own engine on Android:** libmpv with FFmpeg, as on Windows: MKV/WebM/AVI/TS/MXF, DTS, TrueHD, ProRes,
+  ASS and PGS subtitles, subtitle size, subtitle and audio delay, subtitle files, chapters, exact frame step,
+  hardware-decoding switch. The phone's player stays available (Settings › Playback engine, and "Try the phone's
+  player" on a file libmpv cannot open). **The APK is now GPL v3** because of the bundled FFmpeg.
+- **Settings match Windows:** same sections and order, search, section bar; new Control bar (Full / Compact), Hide
+  after, Orientation, Tap on the picture, Swipe sensitivity, Audio language, Subtitles when a title opens.
+- **Compact control bar:** one slim floating row (play, time, timeline, total, More), toggled in Settings or the
+  player menu. The play key shows a spinner while loading or seeking.
+- iPhone: the same app in Expo Go (SDK 57) with the phone's player.
 
 ### Seeking (Windows)
 - Arrow keys, the wheel and every ±N s action now land on the requested time. They used keyframe seeks, which

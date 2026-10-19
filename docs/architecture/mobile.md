@@ -17,7 +17,7 @@ Companion to [ADR 0007](../adr/0007-mobile-architecture.md). Status as of 2026-1
 | Preferences schema (closed value sets) | `core/prefs.ts` (desktop equivalent: `nova-storage/src/extras.rs`) | Pattern shared, keys per platform |
 | Library and history | `core/library.ts` (AsyncStorage) | M4: SQLite (`expo-sqlite`) with a schema shared with `nova-storage` |
 | System engine adapter | `playback/useSystemEngine.ts` (expo-video) | Per platform inside expo-video |
-| libmpv engine module | *not built*: `modules/nova-engine` (Swift + Kotlin, Expo Modules API) | Per platform |
+| libmpv engine module | **Android: built** — `apps/mobile/modules/nova-mpv` (Kotlin, Expo Modules API, `dev.jdtech.mpv:libmpv`), JS adapter `playback/useMpvEngine.ts`. iOS: not planned for now | Android |
 | File access | iOS document picker and security-scoped bookmarks; Android SAF (`ACTION_OPEN_DOCUMENT`, persisted URI permissions) | Per platform |
 | Media session, lock screen, audio focus and interruptions, PiP, AirPlay | Native in each engine module | Per platform |
 

@@ -2,6 +2,38 @@
   "$comment": "Public release records, newest first. scripts/check-dist.mjs enforces: an installer link needs an https URL, a SHA-256 and a notices page; a \"gpl\" engine build also needs a corresponding-source URL. Engine \"gpl\" = the third-party mpv/FFmpeg build with GPL parts (0.1.0); \"lgpl\" = our own LGPL build (ADR 0003, option B).",
   "releases": [
     {
+      "version": "0.3.0",
+      "date": "2026-10-19",
+      "channel": "Release",
+      "engine": "gpl",
+      "platforms": [
+        {
+          "name": "Windows 11 x64",
+          "state": "Tested on one machine (install, upgrade from 0.2.0, uninstall, reinstall, Open with)"
+        },
+        {
+          "name": "Windows 10 x64",
+          "state": "Not tested"
+        }
+      ],
+      "download": {
+        "url": "https://github.com/VED2107/nova/releases/download/v0.3.0/NOVA_0.3.0_x64-setup.exe",
+        "sha256": "253cf56cd0b903209d7ec12b72768fdfeddffd3eabbc030e1beb3505908b356a",
+        "size": "37 MB",
+        "signed": false,
+        "notices": "https://github.com/VED2107/nova/blob/v0.3.0/THIRD-PARTY-NOTICES.md",
+        "source": "https://github.com/VED2107/nova/releases/tag/v0.3.0",
+        "release": "https://github.com/VED2107/nova/releases/tag/v0.3.0"
+      },
+      "notes": [
+        "Open with NOVA: File Explorer's Open with and Windows Settings › Default apps list NOVA for 36 video and audio types; NOVA never takes a default, and uninstalling removes only its own entries.",
+        "One window: files opened while NOVA runs go to the open window; several at once become one queue; subtitle files are added to what plays.",
+        "Settings › Formats: Default apps… and Repair registration.",
+        "Release pipeline ready for Authenticode signing, with a release gate that verifies signatures, the update signature, checksums and licences. This installer is not Authenticode-signed yet: SmartScreen will warn.",
+        "The installer's file properties name SNOWBROS as the publisher."
+      ]
+    },
+    {
       "version": "0.2.0",
       "date": "2026-10-17",
       "channel": "Release",
