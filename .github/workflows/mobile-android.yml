@@ -80,7 +80,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ inputs.tag || github.ref_name }}
-        run: gh release upload "$TAG" target/mobile/* apps/mobile/THIRD-PARTY-NOTICES.md --clobber
+        run: gh release upload "$TAG" target/mobile/* apps/mobile/THIRD-PARTY-NOTICES.md LICENSES/GPL-3.0.txt --clobber
       - name: Remove signing key
         if: always()
         run: rm -rf "$HOME/.nova/android"

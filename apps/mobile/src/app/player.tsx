@@ -1,11 +1,14 @@
 import * as Brightness from "expo-brightness";
+import * as DocumentPicker from "expo-document-picker";
 import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as ScreenOrientation from "expo-screen-orientation";
 import { StatusBar } from "expo-status-bar";
 import { VideoView } from "expo-video";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
-import { Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import type { ImageSource } from "expo-image";
+import type { StyleProp, ViewStyle } from "react-native";
+import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -13,45 +16,94 @@ import { ChevronDownIcon, InfoIcon, LockIcon, MoreIcon, MuteIcon, NextIcon, Paus
 import { Timeline, type ScrubState } from "@/components/Timeline";
 import { textStyles, tick } from "@/components/ui";
 import { findItem, getLibrary, resumePoint, saveProgress, setFacts, setMissing, setQueue, TEST_CARD, useLibrary, type MediaItem } from "@/core/library";
-import { checkExists } from "@/core/media";
+import { checkExists, uriOf } from "@/core/media";
 import { setPref, usePrefs } from "@/core/prefs";
 import * as Q from "@/core/queue";
+import { startTracks } from "@/core/tracks";
 import { accumulate, ScrubSession, scrubRateLabel, tapZone } from "@/core/seek";
 import { formatDelta, formatPrecise, formatTime } from "@/core/time";
 import { font, motion, room, space, TOUCH } from "@/design/tokens";
 import { openFiles } from "@/features/library/actions";
 import { PlayerMenu, type MenuContext, type Page } from "@/features/player/PlayerMenu";
-import { saveFrame } from "@/playback/snapshot";
-import { aspectBox, FIT_LABEL, nextSpeed, type Fit } from "@/playback/types";
+import { saveFrame, systemFrame } from "@/playback/snapshot";
+import { aspectBox, FIT_LABEL, nextSpeed, type Capabilities, type Commands, type Fit, type Snapshot } from "@/playback/types";
+import { useMpvEngine } from "@/playback/useMpvEngine";
 import { usePreviewFrames, useSystemEngine } from "@/playback/useSystemEngine";
+import { mpvAvailable } from "../../modules/nova-mpv/src";
+
+/** What the player surface needs from an engine, whichever it is. */
+interface Engine {
+  snapshot: Snapshot;
+  commands: Commands;
+  capabilities: Capabilities;
+  onSettled(l: () => void): () => void;
+  onEnded(l: () => void): () => void;
+  view(style: StyleProp<ViewStyle>, fit: Fit): ReactNode;
+  preview(ms: number): { frame: ImageSource; ms: number } | null;
+  setBackground(on: boolean): void;
+  grabFrame(positionMs: number): Promise<string>;
+  pip?(): Promise<void>;
+}
 
 /** One route; each title is its own session (the engine is rebuilt per title, like desktop's sessions). */
 export default function Player() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const lib = useLibrary();
   const item = findItem(id ?? "", lib) ?? TEST_CARD;
-  return <Session key={item.id} item={item} />;
+  // A file libmpv could not open can be retried with the phone's own player.
+  const [systemFor, setSystemFor] = useState<string | null>(null);
+  return <Session key={`${item.id}:${systemFor === item.id}`} item={item} forceSystem={systemFor === item.id} onFallback={() => setSystemFor(item.id)} />;
 }
 
-function Session({ item }: { item: MediaItem }) {
+function Session({ item, forceSystem, onFallback }: { item: MediaItem; forceSystem: boolean; onFallback: () => void }) {
   const prefs = usePrefs();
   const [startAt] = useState(() => (prefs.resume === "on" ? resumePoint(getLibrary().progress[item.id]) : null));
+  // Android plays through NOVA's libmpv engine, as Windows does; Expo Go and iOS use the system player.
+  const [nova] = useState(() => mpvAvailable && prefs.engine === "nova" && !forceSystem);
+  const [uri, setUri] = useState<string | null>(typeof item.source === "string" ? item.source : null);
+  useEffect(() => {
+    if (nova && uri == null) uriOf(item).then(setUri, () => setUri(""));
+  }, []);
+  if (!nova) return <SystemSession item={item} startAt={startAt} />;
+  if (uri == null) return <View style={styles.root} />;
+  return <MpvSession item={item} uri={uri} startAt={startAt} onFallback={onFallback} />;
+}
+
+function SystemSession({ item, startAt }: { item: MediaItem; startAt: number | null }) {
   // Title in the media notification and on headphones/lock screen (background playback).
   const metadata = { title: item.title, artist: "NOVA" };
   const source = typeof item.source === "number" ? { assetId: item.source, metadata } : { uri: item.source, metadata };
-  const engine = useSystemEngine(source, startAt);
+  const e = useSystemEngine(source, startAt);
+  const videoRef = useRef<VideoView>(null);
+  const preview = usePreviewFrames(e.player, e.snapshot.durationMs, e.capabilities.canPreviewFrames);
+  const engine: Engine = {
+    ...e,
+    view: (style, fit) => <VideoView ref={videoRef} player={e.player} style={style} contentFit={fit} nativeControls={false} allowsPictureInPicture={e.capabilities.canPictureInPicture} />,
+    preview,
+    setBackground: (on) => {
+      e.player.staysActiveInBackground = on;
+      e.player.showNowPlayingNotification = on;
+    },
+    grabFrame: (ms) => systemFrame(e.player, ms),
+    pip: () => videoRef.current?.startPictureInPicture() ?? Promise.reject(new Error("unavailable")),
+  };
   return <Surface item={item} engine={engine} resumedAt={startAt} />;
 }
 
-function Surface({ item, engine, resumedAt }: { item: MediaItem; engine: ReturnType<typeof useSystemEngine>; resumedAt: number | null }) {
-  const { player, snapshot: s, commands, capabilities: caps, onSettled, onEnded } = engine;
+function MpvSession({ item, uri, startAt, onFallback }: { item: MediaItem; uri: string; startAt: number | null; onFallback: () => void }) {
+  const e = useMpvEngine(uri, startAt);
+  const engine: Engine = { ...e, view: (style) => e.view(style), grabFrame: () => e.screenshot() };
+  return <Surface item={item} engine={engine} resumedAt={startAt} onFallback={onFallback} />;
+}
+
+function Surface({ item, engine, resumedAt, onFallback }: { item: MediaItem; engine: Engine; resumedAt: number | null; onFallback?: () => void }) {
+  const { snapshot: s, commands, capabilities: caps, onSettled, onEnded } = engine;
   const router = useRouter();
   const prefs = usePrefs();
   const lib = useLibrary();
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
   const landscape = width > height;
-  const videoRef = useRef<VideoView>(null);
   const stepMs = Number(prefs.seekStep) * 1000;
 
   const [controls, setControls] = useState(true);
@@ -75,7 +127,9 @@ function Surface({ item, engine, resumedAt }: { item: MediaItem; engine: ReturnT
   const burstTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const swipe = useRef<{ kind: "volume" | "brightness"; start: number } | null>(null);
   const brightness = useRef<{ initial: number | null; value: number }>({ initial: null, value: 0.5 });
-  const preview = usePreviewFrames(player, s.durationMs, caps.canPreviewFrames);
+  const preview = engine.preview;
+  /** libmpv shapes the picture itself (aspect, rotation, zoom); the system view is transformed instead. */
+  const engineShapes = commands.setAspect != null;
   const playing = s.phase === "playing" || (s.phase === "seeking" && wasPlaying.current);
   const remaining = prefs.timeDisplay === "remaining" && s.durationMs != null;
 
@@ -88,8 +142,8 @@ function Surface({ item, engine, resumedAt }: { item: MediaItem; engine: ReturnT
   const poke = useCallback(() => {
     setControls(true);
     clearTimeout(hideTimer.current);
-    if (prefs.autoHide === "on") hideTimer.current = setTimeout(() => setControls(false), motion.controlsHideMs);
-  }, [prefs.autoHide]);
+    if (prefs.autoHide === "on") hideTimer.current = setTimeout(() => setControls(false), Number(prefs.hideDelay) * 1000);
+  }, [prefs.autoHide, prefs.hideDelay]);
   useEffect(() => {
     if (!playing || scrub || page) {
       clearTimeout(hideTimer.current);
@@ -127,10 +181,31 @@ function Surface({ item, engine, resumedAt }: { item: MediaItem; engine: ReturnT
 
   /* ---------- background playback and media notification (desktop: media keys) ---------- */
   useEffect(() => {
-    const on = prefs.background === "on" && Platform.OS !== "web";
-    player.staysActiveInBackground = on;
-    player.showNowPlayingNotification = on;
-  }, [player, prefs.background]);
+    engine.setBackground(prefs.background === "on" && Platform.OS !== "web");
+  }, [prefs.background]);
+
+  /* ---------- engine-side settings (libmpv): as on desktop, saved values apply to every file ---------- */
+  const ready = s.phase !== "loading" || s.durationMs != null;
+  useEffect(() => {
+    if (ready) commands.setSubtitleScale?.(Number(prefs.subScale));
+  }, [ready, prefs.subScale]);
+  useEffect(() => {
+    if (ready) commands.setHardwareDecoding?.(prefs.hwdec === "auto");
+  }, [ready, prefs.hwdec]);
+
+  /* ---------- opening: orientation and preferred tracks ---------- */
+  useEffect(() => {
+    const lock = { landscape: ScreenOrientation.OrientationLock.LANDSCAPE, portrait: ScreenOrientation.OrientationLock.PORTRAIT_UP, auto: null }[prefs.orientation];
+    if (lock != null && Platform.OS !== "web") void ScreenOrientation.lockAsync(lock).catch(() => {});
+  }, []);
+  const tracksChosen = useRef(false);
+  useEffect(() => {
+    if (tracksChosen.current || s.tracks.length === 0) return;
+    tracksChosen.current = true;
+    const pick = startTracks(s.tracks, prefs, Intl.DateTimeFormat().resolvedOptions().locale);
+    if (pick.audio) commands.selectTrack("audio", pick.audio);
+    if (pick.subtitle !== undefined) commands.selectTrack("subtitle", pick.subtitle);
+  }, [s.tracks]);
 
   /* ---------- leaving: free rotation, give brightness back ---------- */
   useEffect(
@@ -233,6 +308,11 @@ function Surface({ item, engine, resumedAt }: { item: MediaItem; engine: ReturnT
     poke();
   };
   const frame = (forward: boolean) => {
+    if (commands.frameStep) {
+      commands.pause();
+      commands.frameStep(forward);
+      return flash(forward ? "Next frame" : "Previous frame");
+    }
     const t = Q.frameStepTarget(s.positionMs, s.video?.frameRate ?? null, forward);
     if (t == null) return;
     commands.pause();
@@ -264,7 +344,11 @@ function Surface({ item, engine, resumedAt }: { item: MediaItem; engine: ReturnT
   const singleTap = Gesture.Tap()
     .runOnJS(true)
     .onEnd(() => {
-      if (controls && playing && !locked) {
+      if (prefs.tapAction === "pause" && !locked) {
+        tick("light");
+        commands.toggle();
+        poke();
+      } else if (controls && playing && !locked) {
         clearTimeout(hideTimer.current);
         setControls(false);
       } else poke();
@@ -290,7 +374,7 @@ function Surface({ item, engine, resumedAt }: { item: MediaItem; engine: ReturnT
     .onUpdate((e) => {
       const sw = swipe.current;
       if (!sw) return;
-      const v = Math.min(1, Math.max(0, sw.start - e.translationY / (height * 0.6)));
+      const v = Math.min(1, Math.max(0, sw.start - e.translationY / (height * SWIPE_SPAN[prefs.swipeSensitivity])));
       if (sw.kind === "volume") {
         commands.setVolume(v);
         flash(`Volume ${Math.round(v * 100)} %`);
@@ -317,6 +401,13 @@ function Surface({ item, engine, resumedAt }: { item: MediaItem; engine: ReturnT
     });
   const taps = prefs.doubleTapSeek === "on" ? Gesture.Exclusive(doubleTap, singleTap) : singleTap;
   const surfaceGesture = Gesture.Race(pinch, swipeGesture, taps);
+
+  useEffect(() => {
+    if (!engineShapes) return;
+    commands.setFit?.(fit);
+    commands.setAspect?.(aspect);
+    commands.setRotation?.(rotation);
+  }, [engineShapes, fit, aspect, rotation, ready]);
 
   /* ---------- small actions ---------- */
   const toggleRotation = async () => {
@@ -387,13 +478,13 @@ function Surface({ item, engine, resumedAt }: { item: MediaItem; engine: ReturnT
       },
       snapshot: () => {
         flash("Saving frame…");
-        saveFrame(player, s.positionMs, item.title)
+        saveFrame(() => engine.grabFrame(s.positionMs), s.positionMs, item.title)
           .then(flash)
           .catch((e) => flash(e instanceof Error ? `Not saved: ${e.message}` : "Not saved"));
       },
       openFile: () => void openFiles(),
       library: () => router.back(),
-      pip: () => void videoRef.current?.startPictureInPicture().catch(() => flash("Picture in picture is not available")),
+      pip: () => void (engine.pip?.() ?? Promise.reject()).catch(() => flash("Picture in picture is not available")),
       lock: () => {
         tick("medium");
         setLocked(true);
@@ -402,6 +493,38 @@ function Surface({ item, engine, resumedAt }: { item: MediaItem; engine: ReturnT
       next,
       previous,
       jump: (id) => goTo(getLibrary().queue.ids.indexOf(id)),
+      subDelay: (d) => {
+        const v = d == null ? 0 : s.adjust.subtitleDelayMs + d;
+        commands.setSubtitleDelay?.(v);
+        flash(`Subtitle delay ${v > 0 ? "+" : ""}${v} ms`);
+      },
+      audioDelay: (d) => {
+        const v = d == null ? 0 : s.adjust.audioDelayMs + d;
+        commands.setAudioDelay?.(v);
+        flash(`Audio delay ${v > 0 ? "+" : ""}${v} ms`);
+      },
+      subScale: (d) => {
+        const v = d == null ? 100 : Math.min(300, Math.max(50, Number(prefs.subScale) + d));
+        setPref("subScale", String(v));
+        flash(`Subtitle size ${v}%`);
+      },
+      addSubtitle: () =>
+        void DocumentPicker.getDocumentAsync({ type: "*/*", copyToCacheDirectory: true })
+          .then((r) => {
+            const a = r.canceled ? null : r.assets?.[0];
+            if (!a) return;
+            commands.addSubtitle?.(a.uri);
+            flash(`Subtitles: ${a.name}`);
+          })
+          .catch(() => flash("The subtitle file could not be opened")),
+      chapter: (d) => {
+        commands.chapter?.(d);
+        flash(d > 0 ? "Next chapter" : "Previous chapter");
+      },
+      hwdec: (on) => {
+        setPref("hwdec", on ? "auto" : "off");
+        flash(on ? "Hardware decoding on" : "Hardware decoding off");
+      },
     },
   };
 
@@ -452,14 +575,39 @@ function Surface({ item, engine, resumedAt }: { item: MediaItem; engine: ReturnT
     </View>
   );
 
+  const compact = prefs.controlBar === "compact";
+  const busy = s.phase === "loading" || (s.phase === "seeking" && !scrub);
+  const playButton = (h: number) => (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={busy ? "Loading" : s.phase === "ended" ? "Play again" : playing ? "Pause" : "Play"}
+      accessibilityState={{ busy }}
+      onPress={() => {
+        tick("light");
+        commands.toggle();
+        poke();
+      }}
+      hitSlop={(TOUCH - h) / 2}
+      style={({ pressed }) => [styles.play, { height: h, width: h + 4 }, pressed && { opacity: 0.85 }]}
+    >
+      {busy ? <ActivityIndicator color={room.bg} /> : s.phase === "ended" ? <ReplayIcon color={room.bg} size={24} /> : playing ? <PauseIcon color={room.bg} size={24} /> : <PlayIcon color={room.bg} size={24} />}
+    </Pressable>
+  );
+  const timeline = <Timeline positionMs={s.positionMs} durationMs={s.durationMs} heldMs={heldMs} abLoop={ab} disabled={s.phase === "error" || s.phase === "loading"} stepMs={stepMs} onScrubStart={onScrubStart} onScrub={onScrub} onScrubEnd={onScrubEnd} onStep={step} />;
+  const totalTime = (
+    <Pressable accessibilityRole="button" accessibilityLabel={remaining ? "Show total length" : "Show time remaining"} onPress={() => setPref("timeDisplay", remaining ? "elapsed" : "remaining")} hitSlop={10}>
+      <Text style={[textStyles.readout, compact ? styles.timeC : styles.timeR]}>{remaining ? `−${formatTime(Math.max(0, (s.durationMs ?? 0) - shownTime))}` : formatTime(s.durationMs)}</Text>
+    </Pressable>
+  );
+
   return (
     <View style={styles.root}>
       <StatusBar hidden={!showChrome || landscape} style="light" animated />
       <GestureDetector gesture={surfaceGesture}>
         <View style={StyleSheet.absoluteFill} accessible={false} collapsable={false}>
-          <View style={rotated ? { position: "absolute", width: height, height: width, left: (width - height) / 2, top: (height - width) / 2, transform: [{ rotate: `${rotation}deg` }] } : [StyleSheet.absoluteFill, { transform: [{ rotate: `${rotation}deg` }] }]}>
+          <View style={engineShapes ? StyleSheet.absoluteFill : rotated ? { position: "absolute", width: height, height: width, left: (width - height) / 2, top: (height - width) / 2, transform: [{ rotate: `${rotation}deg` }] } : [StyleSheet.absoluteFill, { transform: [{ rotate: `${rotation}deg` }] }]}>
             <View style={[StyleSheet.absoluteFill, { alignItems: "center", justifyContent: "center" }]}>
-              <VideoView ref={videoRef} player={player} style={aspect ? aspectBox(aspect, rotated ? height : width, rotated ? width : height) : StyleSheet.absoluteFill} contentFit={fit} nativeControls={false} allowsPictureInPicture={caps.canPictureInPicture} />
+              {engine.view(aspect && !engineShapes ? aspectBox(aspect, rotated ? height : width, rotated ? width : height) : StyleSheet.absoluteFill, fit)}
             </View>
           </View>
         </View>
@@ -488,9 +636,16 @@ function Surface({ item, engine, resumedAt }: { item: MediaItem; engine: ReturnT
           <Text style={[textStyles.body, { color: room.ink2, marginTop: space.s, textAlign: "center" }]}>
             {lib.missing[item.id]
               ? "It was moved, deleted, or its folder is no longer shared with NOVA. Add the folder again or open the file from Files."
-              : `${caps.engine} could not open it${s.error ? ` (${s.error})` : ""}. Containers such as MKV or WebM on iPhone, and codecs such as DTS or TrueHD, need the NOVA engine.`}
+              : caps.engine === "libmpv"
+                ? "NOVA's engine could not open it. The file may be damaged, protected, or a format no engine supports. The phone's own player can be tried instead."
+                : `${caps.engine} could not open it${s.error ? ` (${s.error})` : ""}. Containers such as MKV or WebM on iPhone, and codecs such as DTS or TrueHD, need the NOVA engine.`}
           </Text>
           <View style={{ flexDirection: "row", gap: space.m, marginTop: space.xl }}>
+            {onFallback && !lib.missing[item.id] && (
+              <Pressable onPress={onFallback} style={[styles.errorBtn, styles.errorBtnPlain]} accessibilityRole="button">
+                <Text style={[textStyles.label, { color: room.ink, fontFamily: font.semibold }]}>Try the phone's player</Text>
+              </Pressable>
+            )}
             {Q.nextIndex(lib.queue, false) != null && (
               <Pressable onPress={next} style={[styles.errorBtn, styles.errorBtnPlain]} accessibilityRole="button">
                 <Text style={[textStyles.label, { color: room.ink, fontFamily: font.semibold }]}>Skip to next</Text>
@@ -522,15 +677,17 @@ function Surface({ item, engine, resumedAt }: { item: MediaItem; engine: ReturnT
               </Text>
             </View>
           </View>
-          <Ctl label="Lock controls" onPress={ctx.act.lock}>
-            <LockIcon color={room.ink} size={22} />
-          </Ctl>
-          {caps.canPictureInPicture && (
+          {!compact && (
+            <Ctl label="Lock controls" onPress={ctx.act.lock}>
+              <LockIcon color={room.ink} size={22} />
+            </Ctl>
+          )}
+          {!compact && caps.canPictureInPicture && (
             <Ctl label="Picture in picture" onPress={ctx.act.pip}>
               <PipIcon color={room.ink} size={22} />
             </Ctl>
           )}
-          {Platform.OS !== "web" && (
+          {!compact && Platform.OS !== "web" && (
             <Ctl label={landscape ? "Rotate to portrait" : "Rotate to landscape"} onPress={toggleRotation}>
               <RotateIcon color={room.ink} size={22} />
             </Ctl>
@@ -539,9 +696,9 @@ function Surface({ item, engine, resumedAt }: { item: MediaItem; engine: ReturnT
       )}
 
       {(showChrome || scrub) && (
-        <View pointerEvents="box-none" style={[styles.deck, { paddingLeft: pad.left, paddingRight: pad.right, paddingBottom: pad.bottom }]}>
+        <View pointerEvents="box-none" style={compact ? [styles.compactDeck, { left: pad.left, right: pad.right, bottom: pad.bottom + space.xs }] : [styles.deck, { paddingLeft: pad.left, paddingRight: pad.right, paddingBottom: pad.bottom }]}>
           {scrub && (
-            <View pointerEvents="none" style={[styles.bubble, { left: Math.min(Math.max(0, scrub.fraction * (width - pad.left - pad.right) - 92), width - pad.left - pad.right - 184) }]}>
+            <View pointerEvents="none" style={[styles.bubble, { bottom: compact ? 64 : 150, left: Math.min(Math.max(0, scrub.fraction * (width - pad.left - pad.right) - 92), width - pad.left - pad.right - 184) }]}>
               {prev && <Image source={prev.frame} style={styles.bubbleImg} contentFit="cover" />}
               <View style={styles.bubbleText}>
                 <Text style={[textStyles.readout, { color: room.ink, fontSize: 15 }]}>{formatPrecise(scrub.ms, fps)}</Text>
@@ -569,63 +726,65 @@ function Surface({ item, engine, resumedAt }: { item: MediaItem; engine: ReturnT
             </View>
           )}
 
-          {/* Timeline row, as on desktop: elapsed · bar · total (tap to show remaining). */}
-          <View style={styles.timeRow}>
-            <Text style={[textStyles.readout, styles.timeL]}>{formatTime(shownTime)}</Text>
-            <View style={{ flex: 1 }}>
-              <Timeline positionMs={s.positionMs} durationMs={s.durationMs} heldMs={heldMs} abLoop={ab} disabled={s.phase === "error" || s.phase === "loading"} stepMs={stepMs} onScrubStart={onScrubStart} onScrub={onScrub} onScrubEnd={onScrubEnd} onStep={step} />
+          {compact ? (
+            // Compact: one floating row; everything else is one tap away in More.
+            <View style={styles.compactRow}>
+              {!scrub && playButton(40)}
+              <Text style={[textStyles.readout, styles.timeC]}>{formatTime(shownTime)}</Text>
+              <View style={{ flex: 1 }}>{timeline}</View>
+              {totalTime}
+              {!scrub && (
+                <Ctl label="All player tools" onPress={() => setPage("menu")}>
+                  <MoreIcon color={room.ink} size={22} />
+                </Ctl>
+              )}
             </View>
-            <Pressable accessibilityRole="button" accessibilityLabel={remaining ? "Show total length" : "Show time remaining"} onPress={() => setPref("timeDisplay", remaining ? "elapsed" : "remaining")} hitSlop={10}>
-              <Text style={[textStyles.readout, styles.timeR]}>{remaining ? `−${formatTime(Math.max(0, (s.durationMs ?? 0) - shownTime))}` : formatTime(s.durationMs)}</Text>
-            </Pressable>
-          </View>
-
-          {!scrub && (
+          ) : (
             <>
-              <View style={styles.row}>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={s.phase === "ended" ? "Play again" : playing ? "Pause" : "Play"}
-                  onPress={() => {
-                    tick("light");
-                    commands.toggle();
-                    poke();
-                  }}
-                  style={({ pressed }) => [styles.play, pressed && { opacity: 0.85 }]}
-                >
-                  {s.phase === "ended" ? <ReplayIcon color={room.bg} size={24} /> : playing ? <PauseIcon color={room.bg} size={24} /> : <PlayIcon color={room.bg} size={24} />}
-                </Pressable>
-                <Ctl label="Stop" onPress={ctx.act.stop}>
-                  <StopIcon color={room.ink} size={20} />
-                </Ctl>
-                <Ctl label="Previous" onPress={previous}>
-                  <PreviousIcon color={room.ink} size={22} />
-                </Ctl>
-                <Ctl label="Next" onPress={next}>
-                  <NextIcon color={room.ink} size={22} />
-                </Ctl>
-                {landscape ? (
-                  <>
-                    <View style={styles.divider} />
-                    {volume}
-                    <View style={{ flex: 1 }} />
-                    {readouts}
-                    <View style={styles.divider} />
-                    {tools}
-                  </>
-                ) : (
-                  <>
-                    <View style={{ flex: 1 }} />
-                    {tools}
-                  </>
-                )}
+              {/* Timeline row, as on desktop: elapsed · bar · total (tap to show remaining). */}
+              <View style={styles.timeRow}>
+                <Text style={[textStyles.readout, styles.timeL]}>{formatTime(shownTime)}</Text>
+                <View style={{ flex: 1 }}>{timeline}</View>
+                {totalTime}
               </View>
-              {!landscape && (
-                <View style={[styles.row, { marginTop: 2 }]}>
-                  {volume}
-                  <View style={{ flex: 1 }} />
-                  {readouts}
-                </View>
+
+              {!scrub && (
+                <>
+                  <View style={styles.row}>
+                    {playButton(44)}
+                    <Ctl label="Stop" onPress={ctx.act.stop}>
+                      <StopIcon color={room.ink} size={20} />
+                    </Ctl>
+                    <Ctl label="Previous" onPress={previous}>
+                      <PreviousIcon color={room.ink} size={22} />
+                    </Ctl>
+                    <Ctl label="Next" onPress={next}>
+                      <NextIcon color={room.ink} size={22} />
+                    </Ctl>
+                    {landscape ? (
+                      <>
+                        <View style={styles.divider} />
+                        {volume}
+                        <View style={{ flex: 1 }} />
+                        {readouts}
+                        <View style={styles.divider} />
+                        {tools}
+                      </>
+                    ) : (
+                      <>
+                        <View style={{ flex: 1 }} />
+                        {tools}
+                      </>
+                    )}
+                  </View>
+                  {!landscape && (
+                    <View style={[styles.row, { marginTop: 2 }]}>
+                      {volume}
+                      <View style={{ flex: 1 }} />
+                      {readouts}
+                    </View>
+                  )}
+                </>
               )}
             </>
           )}
@@ -645,6 +804,9 @@ function Surface({ item, engine, resumedAt }: { item: MediaItem; engine: ReturnT
     </View>
   );
 }
+
+/** Share of the screen height a swipe travels for 0 → 100 %. */
+const SWIPE_SPAN = { low: 0.9, normal: 0.6, high: 0.35 } as const;
 
 /** Desktop's readout keys: an engraved label over the current value. Tap acts, long-press opens the list. */
 function Readout({ label, value, on, onPress, onLong }: { label: string; value: string; on?: boolean; onPress: () => void; onLong?: () => void }) {
@@ -706,8 +868,11 @@ const styles = StyleSheet.create({
   row: { flexDirection: "row", alignItems: "center", gap: 2 },
   inline: { flexDirection: "row", alignItems: "center" },
   divider: { width: StyleSheet.hairlineWidth, height: 24, backgroundColor: room.seam, marginHorizontal: space.s },
-  play: { width: 48, height: 44, borderRadius: 8, backgroundColor: room.cream, alignItems: "center", justifyContent: "center", marginRight: space.xs },
+  play: { borderRadius: 8, backgroundColor: room.cream, alignItems: "center", justifyContent: "center", marginRight: space.xs },
   ctl: { width: 44, height: TOUCH, borderRadius: 8, alignItems: "center", justifyContent: "center" },
+  compactDeck: { position: "absolute", gap: space.s },
+  compactRow: { flexDirection: "row", alignItems: "center", gap: space.s, paddingLeft: space.xs, minHeight: 52, borderRadius: 12, backgroundColor: "rgba(20,20,18,0.82)", borderWidth: StyleSheet.hairlineWidth, borderColor: room.seam },
+  timeC: { color: room.ink2, fontSize: 12, minWidth: 36, textAlign: "center" },
   readouts: { flexDirection: "row", gap: 2 },
   readout: { minWidth: 48, minHeight: TOUCH, alignItems: "center", justifyContent: "center", borderRadius: 6, paddingHorizontal: 4 },
   vol: { width: 84, height: TOUCH, justifyContent: "center" },

@@ -3,7 +3,7 @@ import { useVideoPlayer, type VideoPlayer, type VideoSource, type VideoThumbnail
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Platform } from "react-native";
 import { languageName } from "@/core/time";
-import type { Capabilities, Commands, Snapshot, Track, VideoFacts } from "./types";
+import { NO_ADJUST, type Capabilities, type Commands, type Snapshot, type Track, type VideoFacts } from "./types";
 
 /**
  * The platform player behind NOVA's contract: AVPlayer on iOS, Media3
@@ -176,6 +176,8 @@ export function useSystemEngine(source: VideoSource, startMs: number | null) {
     tracks,
     video,
     error: error?.message ?? null,
+    adjust: NO_ADJUST,
+    chapters: 0,
   };
 
   const capabilities: Capabilities = {
@@ -191,6 +193,10 @@ export function useSystemEngine(source: VideoSource, startMs: number | null) {
     canAbLoop: false,
     canPreviewFrames: Platform.OS !== "web",
     canPictureInPicture: Platform.OS !== "web",
+    canAddSubtitleFiles: false,
+    canChapters: false,
+    canHardwareDecodingSwitch: false,
+    canBackgroundControls: Platform.OS !== "web",
   };
 
   /** Subscribe to "a seek landed" (approximate, see above). */

@@ -1,0 +1,7 @@
+{
+  "name": "nova-mpv",
+  "version": "0.3.0",
+  "private": true,
+  "main": "src/index.ts",
+  "license": "MIT OR Apache-2.0"
+}
