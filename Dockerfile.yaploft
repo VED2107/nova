@@ -1,0 +1,13 @@
+# Self-hosting build of the NOVA website for Yaploft Cloud. Vercel ignores this file.
+# The site imports files from sibling folders (apps/desktop, docs), so it builds from the repository root.
+FROM node:24-bookworm-slim AS build
+WORKDIR /src
+RUN npm install -g pnpm@11.1.1 >/dev/null
+COPY . .
+RUN pnpm install --frozen-lockfile --filter "@nova/site..."
+RUN cd apps/site && pnpm run build
+
+FROM nginx:1.27-alpine
+COPY apps/site/nginx.yaploft.conf /etc/nginx/conf.d/default.conf
+COPY --from=build /src/apps/site/dist /usr/share/nginx/html
+EXPOSE 80
